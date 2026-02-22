@@ -9,6 +9,7 @@ const DynamicVTO = () => (
     description="Upload garment sketches or describe your design for instant virtual try-on with realistic compression physics, seam stretch simulation, and moisture wicking heatmaps."
     promptPlaceholder="Describe your garment for try-on... e.g. 'High-waist running shorts, electric blue, mesh panels on sides, reflective logo on left thigh'"
     features={["Compression Physics", "Heatmap Overlay", "Colorways"]}
+    showGarmentUpload
   />
 );
 export default DynamicVTO;

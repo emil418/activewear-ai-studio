@@ -1,13 +1,12 @@
 import { motion } from "framer-motion";
 import { Camera, Target, Shirt, Sparkles, ArrowRight, Clock } from "lucide-react";
 import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
 
 const quickActions = [
-  { icon: Camera, label: "Generate Visual", path: "/dashboard/motion-alive", color: "text-primary" },
-  { icon: Target, label: "Create Avatar", path: "/dashboard/athlete-id", color: "text-secondary" },
-  { icon: Shirt, label: "Virtual Try-On", path: "/dashboard/dynamic-vto", color: "text-primary" },
-  { icon: Sparkles, label: "Place Logo", path: "/dashboard/logo-placement", color: "text-secondary" },
+  { icon: Camera, label: "Generate Visual", desc: "Text to product image", path: "/dashboard/motion-alive" },
+  { icon: Target, label: "Create Avatar", desc: "Consistent brand models", path: "/dashboard/athlete-id" },
+  { icon: Shirt, label: "Virtual Try-On", desc: "See garments on avatars", path: "/dashboard/dynamic-vto" },
+  { icon: Sparkles, label: "Place Logo", desc: "Brand your garments", path: "/dashboard/logo-placement" },
 ];
 
 const recentItems = [
@@ -25,54 +24,54 @@ const stats = [
 ];
 
 const DashboardHome = () => (
-  <div className="p-6 lg:p-10 max-w-7xl mx-auto space-y-8">
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-      <h1 className="font-display text-2xl md:text-3xl font-bold mb-1">Welcome back</h1>
-      <p className="text-muted-foreground">Pick up where you left off or start something new.</p>
+  <div className="p-6 lg:p-10 max-w-7xl mx-auto space-y-10">
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
+      <h1 className="font-display text-2xl md:text-3xl font-bold mb-1 tracking-tight">Welcome back</h1>
+      <p className="text-sm text-muted-foreground">Pick up where you left off or start something new.</p>
     </motion.div>
 
-    {/* Quick Actions */}
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
       {quickActions.map((a, i) => (
-        <motion.div key={a.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
-          <Link to={a.path} className="glass-card-hover p-5 flex flex-col items-center gap-3 text-center group block">
-            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-              <a.icon className={`w-6 h-6 ${a.color}`} />
+        <motion.div key={a.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05, duration: 0.6 }}>
+          <Link to={a.path} className="glass-card-hover p-6 flex flex-col items-center gap-3 text-center group block">
+            <div className="w-12 h-12 rounded-2xl bg-primary/[0.06] flex items-center justify-center group-hover:bg-primary/10 transition-all duration-500">
+              <a.icon className="w-5 h-5 text-primary/80" />
             </div>
-            <span className="text-sm font-medium">{a.label}</span>
+            <div>
+              <span className="text-sm font-medium block">{a.label}</span>
+              <span className="text-xs text-muted-foreground">{a.desc}</span>
+            </div>
           </Link>
         </motion.div>
       ))}
     </div>
 
-    {/* Stats */}
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
       {stats.map((s, i) => (
-        <motion.div key={s.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 + i * 0.05 }}
-          className="glass-card p-5">
-          <p className="text-xs text-muted-foreground mb-1">{s.label}</p>
+        <motion.div key={s.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 + i * 0.05, duration: 0.6 }}
+          className="glass-card p-6">
+          <p className="text-xs text-muted-foreground mb-2">{s.label}</p>
           <p className="font-display text-2xl font-bold glow-text">{s.value}</p>
           <p className="text-xs text-muted-foreground mt-1">{s.sub}</p>
         </motion.div>
       ))}
     </div>
 
-    {/* Recent */}
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}>
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="font-display text-lg font-semibold">Recent Activity</h2>
-        <Link to="/dashboard/library" className="text-sm text-primary hover:underline flex items-center gap-1">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4, duration: 0.6 }}>
+      <div className="flex items-center justify-between mb-5">
+        <h2 className="font-display text-lg font-semibold tracking-tight">Recent Activity</h2>
+        <Link to="/dashboard/library" className="text-xs text-primary/70 hover:text-primary flex items-center gap-1 transition-colors uppercase tracking-wide font-medium">
           View all <ArrowRight className="w-3 h-3" />
         </Link>
       </div>
       <div className="space-y-2">
         {recentItems.map((item) => (
-          <div key={item.name} className="glass-card-hover p-4 flex items-center justify-between cursor-pointer">
+          <div key={item.name} className="glass-card-hover p-5 flex items-center justify-between cursor-pointer">
             <div>
               <p className="text-sm font-medium">{item.name}</p>
-              <p className="text-xs text-muted-foreground">{item.type}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{item.type}</p>
             </div>
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <Clock className="w-3 h-3" /> {item.time}
             </div>
           </div>
