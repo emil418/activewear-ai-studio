@@ -18,7 +18,7 @@ const recentItems = [
 ];
 
 const stats = [
-  { label: "Generations This Month", value: "127", sub: "of 300" },
+  { label: "Generations This Month", value: "127", sub: "of 400" },
   { label: "Estimated Cost Saved", value: "€12,400", sub: "+34% vs last month" },
   { label: "Return Rate Reduction", value: "38%", sub: "Industry avg: 12%" },
   { label: "Assets in Library", value: "1,247", sub: "24 collections" },

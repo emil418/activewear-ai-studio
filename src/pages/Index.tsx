@@ -129,7 +129,7 @@ const Features = () => (
 
 const tiers = [
   { name: "Free", price: "€0", features: ["15 generations/month", "2 avatars", "Watermarked exports", "Community support"], cta: "Get Started" },
-  { name: "Pro", price: "€49", popular: true, features: ["300 generations/month", "10 avatars", "HD, no watermark", "Basic analytics", "Priority support"], cta: "Start Pro Trial" },
+  { name: "Pro", price: "€79", popular: true, features: ["400 generations/month", "10 avatars", "HD, no watermark", "Basic analytics", "Priority support"], cta: "Start Pro Trial" },
   { name: "Business", price: "€249", features: ["Unlimited generations", "Team of 10", "Custom branding", "API access", "Dedicated support"], cta: "Contact Sales" },
 ];
 
@@ -176,7 +176,7 @@ const Navbar = () => (
   <nav className="fixed top-0 left-0 right-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
     <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
       <Link to="/" className="font-display text-xl font-bold">
-        Fit<span className="text-primary">Lumoo</span>
+        Active<span className="text-primary">Forge</span>
       </Link>
       <div className="hidden md:flex items-center gap-8">
         <a href="#features" className="nav-link">Features</a>
@@ -198,13 +198,13 @@ const Navbar = () => (
 const Footer = () => (
   <footer className="border-t border-border section-padding py-12">
     <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
-      <div className="font-display text-lg font-bold">Fit<span className="text-primary">Lumoo</span></div>
+      <div className="font-display text-lg font-bold">Active<span className="text-primary">Forge</span></div>
       <div className="flex gap-6 text-sm text-muted-foreground">
         <a href="#" className="hover:text-foreground transition-colors">Privacy</a>
         <a href="#" className="hover:text-foreground transition-colors">Terms</a>
         <a href="#" className="hover:text-foreground transition-colors">Contact</a>
       </div>
-      <p className="text-xs text-muted-foreground">© 2026 FitLumoo. All rights reserved.</p>
+      <p className="text-xs text-muted-foreground">© 2026 ActiveForge. All rights reserved.</p>
     </div>
   </footer>
 );
