@@ -35,7 +35,7 @@ const DashboardLayout = () => {
       <div className="p-4 flex items-center justify-between border-b border-sidebar-border">
         {!collapsed && (
           <Link to="/" className="font-display text-lg font-bold">
-            Fit<span className="text-primary">Lumoo</span>
+            Active<span className="text-primary">Forge</span>
           </Link>
         )}
         <button onClick={() => { setCollapsed(!collapsed); setMobileOpen(false); }}
@@ -84,7 +84,7 @@ const DashboardLayout = () => {
         <button onClick={() => setMobileOpen(!mobileOpen)} className="p-2 rounded-lg hover:bg-muted">
           {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
-        <span className="ml-3 font-display font-bold">Fit<span className="text-primary">Lumoo</span></span>
+        <span className="ml-3 font-display font-bold">Active<span className="text-primary">Forge</span></span>
       </div>
 
       {/* Mobile sidebar overlay */}
