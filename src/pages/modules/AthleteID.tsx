@@ -5,10 +5,10 @@ const AthleteID = () => (
   <ModulePage
     icon={Target}
     title="AthleteID"
-    subtitle="Brand avatar system"
-    description="Create pixel-perfect brand avatars from reference photos or specifications. AI ensures consistency across all generations with body measurement precision and A/B testing."
-    promptPlaceholder="Describe your ideal brand avatar... e.g. 'Female athlete, mid-20s, lean muscular build, warm skin tone, confident expression, suitable for yoga and HIIT content'"
-    features={["Consistency AI", "Version Control", "A/B Testing"]}
+    subtitle="Brand avatar system — all body types"
+    description="Create pixel-perfect brand avatars from reference photos or specifications. XS–XXL, any gender, body type (athletic, muscular, curvy, plus-size). AI ensures consistency across all generations with sport-specific poses."
+    promptPlaceholder="Describe your ideal brand athlete... e.g. 'Female, mid-20s, athletic build, warm skin tone, suitable for running and HIIT content, size M'"
+    features={["XS–XXL Range", "Consistency AI", "A/B Testing"]}
   />
 );
 export default AthleteID;

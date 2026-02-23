@@ -5,10 +5,10 @@ const DynamicVTO = () => (
   <ModulePage
     icon={Shirt}
     title="DynamicVTO"
-    subtitle="Virtual try-on engine"
-    description="Upload garment sketches or describe your design for instant virtual try-on with realistic compression physics, seam stretch simulation, and moisture wicking heatmaps."
-    promptPlaceholder="Describe your garment for try-on... e.g. 'High-waist running shorts, electric blue, mesh panels on sides, reflective logo on left thigh'"
-    features={["Compression Physics", "Heatmap Overlay", "Colorways"]}
+    subtitle="Virtual try-on with motion physics"
+    description="Upload any garment and instantly try it on AI athletes in motion. Realistic compression physics, seam stretch simulation, moisture wicking heatmaps. Select body type XS–XXL and sport movement to see true fit under load."
+    promptPlaceholder="Describe your garment for try-on... e.g. 'High-waist running shorts, electric blue, mesh panels on sides, reflective logo — show on female athlete doing sprint start'"
+    features={["Compression Physics", "Heatmap", "Colorways", "Motion Fit"]}
     showGarmentUpload
   />
 );
