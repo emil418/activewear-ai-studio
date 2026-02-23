@@ -5,9 +5,9 @@ const CampaignFlow = () => (
   <ModulePage
     icon={Video}
     title="CampaignFlow"
-    subtitle="Still-to-video animation"
-    description="Transform still images into dynamic campaign videos with movement sequences, AI voiceover in 10 languages, text animations, and shoppable end cards."
-    promptPlaceholder="Describe your campaign video... e.g. 'Dynamic 15-second reel showing athlete transitioning between 3 yoga poses, wearing teal sports bra and leggings set, ambient studio lighting'"
+    subtitle="Still-to-video for Reels & TikTok"
+    description="Transform stills into ready-to-post Reels/TikTok videos with sport movement sequences, royalty-free music, AI voiceover in 10 languages, text animations, and shoppable end cards. Auto-resize for all platforms."
+    promptPlaceholder="Describe your campaign video... e.g. '15-second reel — athlete transitions between 3 HIIT movements wearing neon running set, high-energy music, bold text overlay with product specs'"
     features={["AI Voiceover", "Shoppable Cards", "Auto-Resize"]}
   />
 );

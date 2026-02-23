@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Home, Camera, Target, Shirt, TrendingUp, Layers, Video,
   Image, BarChart3, Users, CreditCard, Settings, Sparkles,
-  ChevronLeft, ChevronRight, LogOut, Menu, X
+  ChevronLeft, ChevronRight, LogOut, Menu, X, Activity
 } from "lucide-react";
 
 const navItems = [
@@ -33,7 +33,8 @@ const DashboardLayout = () => {
     <div className="flex flex-col h-full">
       <div className="p-4 flex items-center justify-between border-b border-sidebar-border">
         {!collapsed && (
-          <Link to="/" className="font-display text-lg font-bold tracking-tight">
+          <Link to="/" className="font-display text-lg font-bold tracking-tight flex items-center gap-2">
+            <Activity className="w-4 h-4 text-primary" />
             Active<span className="text-primary">Forge</span>
           </Link>
         )}
@@ -84,7 +85,10 @@ const DashboardLayout = () => {
         <button onClick={() => setMobileOpen(!mobileOpen)} className="p-2 rounded-xl hover:bg-muted transition-colors">
           {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
-        <span className="ml-3 font-display font-bold tracking-tight">Active<span className="text-primary">Forge</span></span>
+        <span className="ml-3 font-display font-bold tracking-tight flex items-center gap-1.5">
+          <Activity className="w-4 h-4 text-primary" />
+          Active<span className="text-primary">Forge</span>
+        </span>
       </div>
 
       <AnimatePresence>

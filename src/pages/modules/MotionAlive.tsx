@@ -5,10 +5,10 @@ const MotionAlive = () => (
   <ModulePage
     icon={Camera}
     title="MotionAlive"
-    subtitle="Text-to-visual generation"
-    description="Turn text, voice notes, or sketches into hyper-realistic activewear product stills and videos. Support for fabric stretch, sweat simulation, hair movement, and dynamic poses."
-    promptPlaceholder="Describe your activewear visual... e.g. 'Athletic woman in black compression leggings, mid-squat position, gym setting, dramatic lighting, sweat detail on fabric'"
-    features={["Fabric Physics", "Sweat Simulation", "Batch Mode"]}
+    subtitle="Text-to-visual generation with motion physics"
+    description="Turn text, voice notes, or sketches into hyper-realistic activewear stills and 15–60s videos. Full fabric stretch, sweat simulation, wind effects, and 500+ sport movements including squats, sprints, push-ups, yoga flows, and HIIT combos."
+    promptPlaceholder="Describe your sport visual... e.g. 'Male athlete doing push-ups in black compression shirt, close-up showing fabric stretch across chest and shoulders, sweat detail, gym floor setting'"
+    features={["Fabric Physics", "Sweat Sim", "500+ Movements", "Batch Mode"]}
     showGarmentUpload
   />
 );

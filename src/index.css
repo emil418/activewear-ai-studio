@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Satoshi:wght@400;500;600;700;800;900&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,51 +6,52 @@
 
 @layer base {
   :root {
-    --background: 0 0% 4%;
+    --background: 0 0% 0%;
     --foreground: 0 0% 95%;
 
-    --card: 0 0% 6%;
+    --card: 0 0% 4%;
     --card-foreground: 0 0% 95%;
 
-    --popover: 0 0% 6%;
+    --popover: 0 0% 4%;
     --popover-foreground: 0 0% 95%;
 
-    --primary: 156 100% 50%;
-    --primary-foreground: 0 0% 4%;
+    --primary: 152 100% 51%;
+    --primary-foreground: 0 0% 0%;
 
-    --secondary: 186 100% 45%;
-    --secondary-foreground: 0 0% 4%;
+    --secondary: 187 100% 50%;
+    --secondary-foreground: 0 0% 0%;
 
-    --muted: 0 0% 10%;
+    --muted: 0 0% 8%;
     --muted-foreground: 0 0% 50%;
 
-    --accent: 156 80% 45%;
-    --accent-foreground: 0 0% 4%;
+    --accent: 152 100% 45%;
+    --accent-foreground: 0 0% 0%;
 
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 95%;
+    --destructive: 345 100% 60%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 12%;
-    --input: 0 0% 12%;
-    --ring: 156 100% 50%;
+    --border: 0 0% 10%;
+    --input: 0 0% 10%;
+    --ring: 152 100% 51%;
 
     --radius: 0.75rem;
 
-    --sidebar-background: 0 0% 5%;
-    --sidebar-foreground: 0 0% 70%;
-    --sidebar-primary: 156 100% 50%;
-    --sidebar-primary-foreground: 0 0% 4%;
-    --sidebar-accent: 0 0% 8%;
+    --sidebar-background: 0 0% 2%;
+    --sidebar-foreground: 0 0% 60%;
+    --sidebar-primary: 152 100% 51%;
+    --sidebar-primary-foreground: 0 0% 0%;
+    --sidebar-accent: 0 0% 6%;
     --sidebar-accent-foreground: 0 0% 90%;
-    --sidebar-border: 0 0% 10%;
-    --sidebar-ring: 156 100% 50%;
+    --sidebar-border: 0 0% 8%;
+    --sidebar-ring: 152 100% 51%;
 
-    /* Premium tokens */
-    --glow-primary: 156 100% 50%;
-    --glow-secondary: 186 100% 45%;
-    --glass-bg: 0 0% 100% / 0.03;
-    --glass-border: 0 0% 100% / 0.06;
-    --surface-elevated: 0 0% 8%;
+    /* Sport tokens */
+    --glow-primary: 152 100% 51%;
+    --glow-secondary: 187 100% 50%;
+    --cta: 345 100% 60%;
+    --glass-bg: 0 0% 100% / 0.02;
+    --glass-border: 0 0% 100% / 0.05;
+    --surface-elevated: 0 0% 6%;
   }
 }
 
@@ -66,17 +67,18 @@
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Space Grotesk', sans-serif;
+    font-family: 'Satoshi', sans-serif;
     letter-spacing: -0.03em;
+    font-weight: 700;
   }
 }
 
 @layer components {
   .glass-card {
-    @apply bg-card/40 backdrop-blur-2xl border border-white/[0.06] rounded-2xl;
+    @apply bg-card/50 backdrop-blur-2xl border border-white/[0.05] rounded-2xl;
     box-shadow: 
-      0 0 0 1px hsl(0 0% 100% / 0.03) inset,
-      0 20px 50px -12px rgba(0, 0, 0, 0.5);
+      0 0 0 1px hsl(0 0% 100% / 0.02) inset,
+      0 20px 50px -12px rgba(0, 0, 0, 0.6);
   }
 
   .glass-card-hover {
@@ -85,9 +87,9 @@
   .glass-card-hover:hover {
     @apply border-primary/20;
     box-shadow: 
-      0 0 0 1px hsl(156 100% 50% / 0.05) inset,
-      0 20px 50px -12px rgba(0, 0, 0, 0.5),
-      0 0 30px -5px hsl(156 100% 50% / 0.06);
+      0 0 0 1px hsl(152 100% 51% / 0.04) inset,
+      0 20px 50px -12px rgba(0, 0, 0, 0.6),
+      0 0 40px -8px hsl(152 100% 51% / 0.08);
     transform: translateY(-2px);
   }
 
@@ -97,24 +99,28 @@
 
   .glow-text {
     @apply text-primary;
-    text-shadow: 0 0 30px hsl(156 100% 50% / 0.35);
+    text-shadow: 0 0 40px hsl(152 100% 51% / 0.4);
   }
 
   .glow-border {
     box-shadow: 
-      0 0 20px hsl(156 100% 50% / 0.12),
-      0 0 60px hsl(156 100% 50% / 0.04),
-      inset 0 0 20px hsl(156 100% 50% / 0.03);
+      0 0 25px hsl(152 100% 51% / 0.15),
+      0 0 80px hsl(152 100% 51% / 0.05),
+      inset 0 0 25px hsl(152 100% 51% / 0.03);
   }
 
   .gradient-text {
     @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(135deg, hsl(156 100% 50%), hsl(186 100% 45%));
+    background-image: linear-gradient(135deg, hsl(152 100% 51%), hsl(187 100% 50%));
   }
 
   .gradient-text-subtle {
     @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(135deg, hsl(0 0% 95%), hsl(0 0% 65%));
+    background-image: linear-gradient(135deg, hsl(0 0% 95%), hsl(0 0% 60%));
+  }
+
+  .gradient-cta {
+    background-image: linear-gradient(135deg, hsl(345 100% 60%), hsl(15 100% 55%));
   }
 
   .section-padding {
@@ -137,34 +143,40 @@
   }
 
   .feature-badge {
-    @apply text-xs px-3 py-1.5 rounded-full font-medium tracking-wide uppercase;
-    background-color: hsl(156 100% 50% / 0.08);
-    color: hsl(156 100% 50% / 0.8);
+    @apply text-xs px-3 py-1.5 rounded-full font-semibold tracking-wider uppercase;
+    background-color: hsl(152 100% 51% / 0.08);
+    color: hsl(152 100% 51% / 0.85);
+  }
+
+  .sport-badge {
+    @apply text-xs px-3 py-1.5 rounded-full font-bold tracking-widest uppercase;
+    background-color: hsl(345 100% 60% / 0.1);
+    color: hsl(345 100% 60% / 0.9);
   }
 }
 
 @layer utilities {
   .animate-glow-pulse {
-    animation: glow-pulse 4s ease-in-out infinite;
+    animation: glow-pulse 3s ease-in-out infinite;
   }
   @keyframes glow-pulse {
-    0%, 100% { box-shadow: 0 0 20px hsl(156 100% 50% / 0.1); }
-    50% { box-shadow: 0 0 50px hsl(156 100% 50% / 0.2); }
+    0%, 100% { box-shadow: 0 0 20px hsl(152 100% 51% / 0.1); }
+    50% { box-shadow: 0 0 60px hsl(152 100% 51% / 0.25); }
   }
 
   .animate-float {
-    animation: float 8s ease-in-out infinite;
+    animation: float 6s ease-in-out infinite;
   }
   @keyframes float {
     0%, 100% { transform: translateY(0px); }
-    50% { transform: translateY(-12px); }
+    50% { transform: translateY(-10px); }
   }
 
-  .animate-shimmer {
-    animation: shimmer 3s ease-in-out infinite;
+  .animate-energy-pulse {
+    animation: energy-pulse 2s ease-in-out infinite;
   }
-  @keyframes shimmer {
-    0%, 100% { opacity: 0.5; }
+  @keyframes energy-pulse {
+    0%, 100% { opacity: 0.6; }
     50% { opacity: 1; }
   }
 }
