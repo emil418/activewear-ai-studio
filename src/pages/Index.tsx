@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { ArrowRight, Upload, Sparkles, Check, ChevronRight, Shirt, Camera, Target, TrendingUp, Layers, Video, Star, Play, Activity } from "lucide-react";
+import { ArrowRight, Upload, Sparkles, Check, ChevronRight, Shirt, Camera, Target, TrendingUp, Layers, Video, Star, Play, Activity, RotateCcw, Zap } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 
@@ -140,9 +140,9 @@ const HowItWorks = () =>
 
 
 const modules = [
-{ icon: Camera, name: "MotionAlive", desc: "Text-to-visual with fabric stretch, sweat simulation, wind and dynamic athletic movement." },
+{ icon: Camera, name: "MotionAlive", desc: "Text-to-visual with fabric physics, sweat simulation, multi-angle output and 360° spin." },
 { icon: Target, name: "AthleteID", desc: "Consistent brand avatars — all body types XS–XXL, any sport, pixel-perfect across generations." },
-{ icon: Shirt, name: "DynamicVTO", desc: "Virtual try-on with compression physics, seam stretch and performance heatmaps." },
+{ icon: Shirt, name: "DynamicVTO", desc: "Virtual try-on with compression physics, performance heatmaps and interactive 360° preview." },
 { icon: TrendingUp, name: "FitEvolve", desc: "Body transformation timeline — show garment fit at 4/8/12 weeks of training." },
 { icon: Layers, name: "CollectionForge", desc: "One-click lookbooks with tech specs, size charts and sustainability badges." },
 { icon: Video, name: "CampaignFlow", desc: "Still-to-video for Reels/TikTok with music, AI voiceover and shoppable cards." }];
@@ -228,22 +228,33 @@ const Pricing = () =>
   </section>;
 
 
-const Testimonial = () =>
+const PhysicsSection = () =>
 <section className="section-padding bg-white/[0.01] border-y border-white/[0.04]">
-    <div className="max-w-3xl mx-auto text-center">
-      
-
-
-
-
-
-
-
-
-
-
-
-
+    <div className="max-w-6xl mx-auto">
+      <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} className="text-center mb-16">
+        <p className="text-xs text-secondary font-bold tracking-widest uppercase mb-4">New</p>
+        <h2 className="font-display text-3xl md:text-5xl font-black mb-5 tracking-tight uppercase">
+          Real motion physics &{" "}<span className="gradient-text">360° testing</span>
+        </h2>
+        <p className="text-muted-foreground text-base max-w-2xl mx-auto">95% accurate drape and movement simulation. Test garment performance from every angle — no physical samples needed.</p>
+      </motion.div>
+      <div className="grid md:grid-cols-3 gap-6">
+        {[
+          { icon: Zap, title: "Physics Engine", desc: "Realistic stretch under load, compression zones, sweat beads, wind effects. Color-coded stress maps with labels like 'High Compression – 85% support'." },
+          { icon: RotateCcw, title: "Multi-Angle / 360°", desc: "Auto-generate 4–8 angles (front, sides, back, overhead) in one video. Interactive 360° spin mode with zoom on seams, logos, fabric detail." },
+          { icon: Activity, title: "500+ Movements", desc: "Push-ups, squats, sprints, yoga, HIIT sequences. Select single or chain movements — AI animates garment with full physics." },
+        ].map((item, i) => (
+          <motion.div key={item.title} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }} transition={{ delay: i * 0.1 }}
+            className="glass-card-hover p-8 group">
+            <div className="w-12 h-12 rounded-2xl bg-secondary/[0.06] flex items-center justify-center mb-5 group-hover:bg-secondary/10 transition-all duration-500">
+              <item.icon className="w-5 h-5 text-secondary" />
+            </div>
+            <h3 className="font-display text-lg font-bold mb-3 tracking-tight">{item.title}</h3>
+            <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+          </motion.div>
+        ))}
+      </div>
     </div>
   </section>;
 
@@ -272,7 +283,7 @@ const Index = () =>
     <ValueBar />
     <HowItWorks />
     <Modules />
-    <Testimonial />
+    <PhysicsSection />
     <Pricing />
     <Footer />
   </div>;
