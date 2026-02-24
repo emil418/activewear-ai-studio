@@ -5,10 +5,11 @@ const CollectionForge = () => (
   <ModulePage
     icon={Layers}
     title="CollectionForge"
-    subtitle="Lookbook & catalog generator"
-    description="One-click professional lookbooks and catalogs with motion GIFs. Generate branded PDFs or interactive web versions with tech specs, size charts, performance data, and sustainability badges."
-    promptPlaceholder="Describe your collection... e.g. 'Summer 2026 men's running collection, 8 pieces, bold black/neon palette, featuring recycled polyester, include tech spec overlays'"
-    features={["Motion GIFs", "Tech Specs", "PDF Export"]}
+    subtitle="Batch lookbooks with motion physics for entire drops"
+    description="Upload a ZIP or CSV of your entire collection → apply the same motion, physics, and branding to all pieces. Generate lookbooks with tech specs, performance overlays, eco-badges, and size charts. Priority queue for large batches. Tag and organize with smart collections."
+    promptPlaceholder="e.g. 'Summer 2026 running collection, 12 pieces — apply sprint + squat motion, compression overlays, eco-performance badges, generate PDF tech pack with specs'"
+    features={["Batch ZIP/CSV", "Priority Queue", "Tech Specs", "Eco Badges", "PDF Export"]}
+    showGarmentUpload
   />
 );
 export default CollectionForge;
