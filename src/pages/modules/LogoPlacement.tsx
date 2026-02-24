@@ -5,20 +5,19 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 
 const placements = [
-  { label: "Chest Left", active: true },
-  { label: "Chest Center", active: false },
-  { label: "Sleeve Left", active: false },
-  { label: "Back Center", active: false },
-  { label: "Waistband", active: false },
-  { label: "Leg Left", active: false },
+  { label: "Chest Left" },
+  { label: "Chest Center" },
+  { label: "Sleeve Left" },
+  { label: "Back Center" },
+  { label: "Waistband" },
+  { label: "Leg Left" },
 ];
 
 const renderStyles = [
-  { label: "Screen Print", active: true },
-  { label: "Embroidery", active: false },
-  { label: "Heat Transfer", active: false },
-  { label: "Reflective", active: false },
-  { label: "Sublimation", active: false },
+  { label: "Screen Print" },
+  { label: "Embroidery" },
+  { label: "Reflective" },
+  { label: "Sublimation" },
 ];
 
 const LogoPlacement = () => {
@@ -34,13 +33,12 @@ const LogoPlacement = () => {
           </div>
           <div>
             <h1 className="font-display text-2xl font-bold tracking-tight">LogoPlacement</h1>
-            <p className="text-sm text-muted-foreground">Advanced logo integration for activewear</p>
+            <p className="text-sm text-muted-foreground">Sport-optimized logo integration — follows fabric in motion</p>
           </div>
         </div>
       </motion.div>
 
       <div className="grid lg:grid-cols-2 gap-6">
-        {/* Logo Upload */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08, duration: 0.6 }}
           className="space-y-6">
           <div className="upload-zone">
@@ -54,11 +52,10 @@ const LogoPlacement = () => {
             </Button>
           </div>
 
-          {/* Placement suggestions */}
           <div className="glass-card p-6 space-y-4">
             <div className="flex items-center gap-2 mb-1">
               <Sparkles className="w-4 h-4 text-primary/60" />
-              <p className="text-sm font-medium">AI-Suggested Placements</p>
+              <p className="text-sm font-medium">Sport-Optimized Placements</p>
             </div>
             <div className="flex flex-wrap gap-2">
               {placements.map((p, i) => (
@@ -74,7 +71,6 @@ const LogoPlacement = () => {
             </div>
           </div>
 
-          {/* Controls */}
           <div className="glass-card p-6 space-y-5">
             <p className="text-sm font-medium">Adjustments</p>
             <div className="space-y-4">
@@ -97,20 +93,17 @@ const LogoPlacement = () => {
           </div>
         </motion.div>
 
-        {/* Preview + Render Style */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.16, duration: 0.6 }}
           className="space-y-6">
-          {/* Preview area */}
           <div className="glass-card aspect-[3/4] rounded-2xl flex items-center justify-center relative overflow-hidden group">
             <div className="absolute inset-0 bg-gradient-to-b from-white/[0.01] to-transparent" />
             <div className="text-center z-10">
               <Move className="w-8 h-8 text-muted-foreground/20 mx-auto mb-3" />
               <p className="text-sm text-muted-foreground/50">Garment preview with logo</p>
-              <p className="text-xs text-muted-foreground/30 mt-1">Drag to reposition</p>
+              <p className="text-xs text-muted-foreground/30 mt-1">Logo follows fabric stretch in motion</p>
             </div>
           </div>
 
-          {/* Render Styles */}
           <div className="glass-card p-6 space-y-4">
             <p className="text-sm font-medium">Rendering Style</p>
             <div className="flex flex-wrap gap-2">
