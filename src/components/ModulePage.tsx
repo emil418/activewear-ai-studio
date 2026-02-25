@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { LucideIcon, Upload, Image, Zap, RotateCcw, Activity, ChevronDown, Leaf, GitCompare, Lightbulb, Search, Gauge } from "lucide-react";
+import { LucideIcon, Upload, Image, Zap, RotateCcw, Activity, ChevronDown, Leaf, GitCompare, Lightbulb, Search, Gauge, Bolt, Music } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
@@ -30,6 +30,7 @@ const outputFormats = [
   { id: "360", label: "360° Spin", icon: "🔄" },
   { id: "ar-vr", label: "AR/VR Export (GLB)", icon: "🥽" },
   { id: "pdf", label: "PDF Tech Pack", icon: "📄" },
+  { id: "export-pack", label: "Export Pack (ZIP)", icon: "📦" },
 ];
 
 const viewAngles = ["Front", "Left 45°", "Side Left", "Back", "Side Right", "Right 45°", "Overhead", "Low Angle"];
@@ -43,21 +44,32 @@ const athletePresets = [
   { label: "Plus-Size Athlete", build: "Inclusive sizing" },
 ];
 
+const moodPresets = [
+  { label: "Default", desc: "Clean sport" },
+  { label: "Gymshark Bold", desc: "High energy, bold cuts" },
+  { label: "Nike Powerful", desc: "Dramatic, intense" },
+  { label: "Lululemon Zen", desc: "Soft, mindful" },
+];
+
 const ModulePage = ({ icon: Icon, title, subtitle, description, promptPlaceholder, features, showGarmentUpload }: ModulePageProps) => {
   const [prompt, setPrompt] = useState("");
   const [physicsMode, setPhysicsMode] = useState(true);
   const [multiView, setMultiView] = useState(false);
   const [ecoMode, setEcoMode] = useState(false);
+  const [quickTest, setQuickTest] = useState(false);
+  const [voiceOver, setVoiceOver] = useState(false);
   const [selectedMovement, setSelectedMovement] = useState("");
   const [selectedOutput, setSelectedOutput] = useState("single");
   const [showMovements, setShowMovements] = useState(false);
   const [selectedAngles, setSelectedAngles] = useState<string[]>(["Front", "Back", "Side Left", "Side Right"]);
   const [selectedPreset, setSelectedPreset] = useState("");
+  const [selectedMood, setSelectedMood] = useState("Default");
   const [intensity, setIntensity] = useState([50]);
   const [sweatLevel, setSweatLevel] = useState([60]);
   const [movementSearch, setMovementSearch] = useState("");
   const [showAthleteBuilder, setShowAthleteBuilder] = useState(false);
   const [showAISuggestions, setShowAISuggestions] = useState(false);
+  const [generating, setGenerating] = useState(false);
 
   const toggleAngle = (angle: string) => {
     setSelectedAngles(prev =>
@@ -70,6 +82,11 @@ const ModulePage = ({ icon: Icon, title, subtitle, description, promptPlaceholde
     movements: cat.movements.filter(m => m.toLowerCase().includes(movementSearch.toLowerCase()))
   })).filter(cat => cat.movements.length > 0);
 
+  const handleGenerate = () => {
+    setGenerating(true);
+    setTimeout(() => setGenerating(false), quickTest ? 1500 : 3000);
+  };
+
   return (
     <div className="p-6 lg:p-10 max-w-5xl mx-auto space-y-5">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
@@ -77,11 +94,35 @@ const ModulePage = ({ icon: Icon, title, subtitle, description, promptPlaceholde
           <div className="w-11 h-11 rounded-2xl bg-primary/[0.06] flex items-center justify-center">
             <Icon className="w-5 h-5 text-primary/80" />
           </div>
-          <div>
+          <div className="flex-1">
             <h1 className="font-display text-2xl font-bold tracking-tight">{title}</h1>
             <p className="text-sm text-muted-foreground">{subtitle}</p>
           </div>
+          {/* Quick test + mood */}
+          <div className="hidden md:flex items-center gap-3">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.02] border border-white/[0.04]">
+              <Bolt className="w-3.5 h-3.5 text-amber-400/70" />
+              <span className="text-[10px] font-semibold text-muted-foreground">Quick Test</span>
+              <Switch checked={quickTest} onCheckedChange={setQuickTest} className="scale-75" />
+            </div>
+          </div>
         </div>
+      </motion.div>
+
+      {/* Brand Mood Presets */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.03, duration: 0.5 }}
+        className="flex gap-2 flex-wrap">
+        {moodPresets.map(m => (
+          <button key={m.label} onClick={() => setSelectedMood(m.label)}
+            className={`text-[10px] px-3 py-1.5 rounded-lg font-semibold transition-all duration-300 ${
+              selectedMood === m.label
+                ? "bg-primary/10 text-primary border border-primary/20"
+                : "bg-white/[0.02] text-muted-foreground border border-white/[0.04] hover:border-white/[0.08]"
+            }`}>
+            {m.label}
+            <span className="block text-[8px] opacity-60">{m.desc}</span>
+          </button>
+        ))}
       </motion.div>
 
       {showGarmentUpload && (
@@ -229,6 +270,19 @@ const ModulePage = ({ icon: Icon, title, subtitle, description, promptPlaceholde
         </div>
       </motion.div>
 
+      {/* Voice-over toggle */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.5 }}
+        className="glass-card p-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Music className="w-4 h-4 text-muted-foreground" />
+          <div>
+            <p className="text-sm font-semibold">Voice-over & Sound</p>
+            <p className="text-[11px] text-muted-foreground">AI coach voice + gym music</p>
+          </div>
+        </div>
+        <Switch checked={voiceOver} onCheckedChange={setVoiceOver} />
+      </motion.div>
+
       {/* Performance Movement Library */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.11, duration: 0.5 }}>
         <div className="glass-card p-5">
@@ -344,26 +398,39 @@ const ModulePage = ({ icon: Icon, title, subtitle, description, promptPlaceholde
               <span key={f} className="feature-badge">{f}</span>
             ))}
           </div>
-          <Button disabled={!prompt.trim()} className="gap-2 rounded-xl px-6 font-bold">
-            <Zap className="w-4 h-4" /> Generate
+          <Button disabled={!prompt.trim() || generating} onClick={handleGenerate}
+            className="gap-2 rounded-xl px-6 font-bold">
+            {generating ? (
+              <>
+                <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
+                {quickTest ? "Quick testing..." : "Generating..."}
+              </>
+            ) : (
+              <>
+                <Zap className="w-4 h-4" /> {quickTest ? "Quick Test (3s)" : "Generate"}
+              </>
+            )}
           </Button>
         </div>
 
         {/* Active config summary */}
         <div className="flex flex-wrap gap-2 pt-2 border-t border-white/[0.04]">
+          {quickTest && <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/[0.06] text-amber-400/70 font-semibold">⚡ Quick Test</span>}
           {physicsMode && <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/[0.06] text-primary/70 font-semibold">⚡ Physics ON</span>}
           {multiView && <span className="text-[10px] px-2 py-0.5 rounded-full bg-secondary/[0.08] text-secondary/70 font-semibold">🔄 {selectedAngles.length} angles</span>}
           {ecoMode && <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-500/[0.06] text-green-400/70 font-semibold">🌱 Eco ON</span>}
+          {voiceOver && <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/[0.06] text-purple-400/70 font-semibold">🎙️ Voice + Music</span>}
           {selectedMovement && <span className="text-[10px] px-2 py-0.5 rounded-full bg-destructive/[0.06] text-destructive/70 font-semibold">🏋️ {selectedMovement}</span>}
           {selectedPreset && <span className="text-[10px] px-2 py-0.5 rounded-full bg-secondary/[0.06] text-secondary/70 font-semibold">👤 {selectedPreset}</span>}
           <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.03] text-muted-foreground font-semibold">📦 {outputFormats.find(f => f.id === selectedOutput)?.label}</span>
+          <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.03] text-muted-foreground font-semibold">🎨 {selectedMood}</span>
           {showAISuggestions && <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/[0.06] text-amber-400/70 font-semibold">🔀 A/B Testing</span>}
           <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.03] text-muted-foreground font-semibold">💧 Sweat: {sweatLevel[0]}%</span>
           <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.03] text-muted-foreground font-semibold">🔥 Intensity: {intensity[0]}%</span>
         </div>
       </motion.div>
 
-      {/* AI Optimization Suggestions (shown after "generate") */}
+      {/* AI Optimization Suggestions */}
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.18, duration: 0.5 }}
         className="glass-card p-5 border-l-2 border-amber-500/20">
         <div className="flex items-center gap-2 mb-3">

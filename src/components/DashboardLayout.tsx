@@ -1,16 +1,17 @@
 import { useState } from "react";
-import { Link, useLocation, Outlet } from "react-router-dom";
+import { Link, useLocation, Outlet, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Home, Camera, Target, Shirt, TrendingUp, Layers, Video,
   Image, BarChart3, Users, CreditCard, Settings, Sparkles,
-  ChevronLeft, ChevronRight, LogOut, Menu, X, Activity
+  ChevronLeft, ChevronRight, LogOut, Menu, X, Activity, Maximize2
 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 const navItems = [
   { icon: Home, label: "Home", path: "/dashboard" },
   { icon: Camera, label: "MotionAlive", path: "/dashboard/motion-alive" },
-  { icon: Target, label: "AthleteID", path: "/dashboard/athlete-id" },
+  { icon: Target, label: "Athlete Builder", path: "/dashboard/athlete-id" },
   { icon: Shirt, label: "DynamicVTO", path: "/dashboard/dynamic-vto" },
   { icon: TrendingUp, label: "FitEvolve", path: "/dashboard/fit-evolve" },
   { icon: Layers, label: "CollectionForge", path: "/dashboard/collection-forge" },
@@ -27,7 +28,28 @@ const navItems = [
 const DashboardLayout = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [focusMode, setFocusMode] = useState(false);
+  const { user, signOut } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate("/");
+  };
+
+  if (focusMode) {
+    return (
+      <div className="min-h-screen bg-background relative">
+        <button onClick={() => setFocusMode(false)}
+          className="fixed top-4 right-4 z-50 p-2 rounded-xl bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground transition-all">
+          <X className="w-4 h-4" />
+        </button>
+        <div className="animate-energy-pulse fixed top-4 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-primary/40" />
+        <Outlet />
+      </div>
+    );
+  }
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
@@ -65,12 +87,22 @@ const DashboardLayout = () => {
         })}
       </nav>
 
-      <div className="p-3 border-t border-sidebar-border">
-        <Link to="/"
-          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] text-sidebar-foreground hover:bg-sidebar-accent transition-all duration-300">
+      <div className="p-3 border-t border-sidebar-border space-y-1">
+        <button onClick={() => setFocusMode(true)}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] text-sidebar-foreground hover:bg-sidebar-accent transition-all duration-300">
+          <Maximize2 className="w-[18px] h-[18px]" />
+          {!collapsed && <span>Focus Mode</span>}
+        </button>
+        <button onClick={handleLogout}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] text-sidebar-foreground hover:bg-sidebar-accent transition-all duration-300">
           <LogOut className="w-[18px] h-[18px]" />
           {!collapsed && <span>Log out</span>}
-        </Link>
+        </button>
+        {!collapsed && user && (
+          <div className="px-3 py-2 text-[11px] text-muted-foreground truncate">
+            {user.email}
+          </div>
+        )}
       </div>
     </div>
   );
