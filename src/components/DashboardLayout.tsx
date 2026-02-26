@@ -2,33 +2,23 @@ import { useState } from "react";
 import { Link, useLocation, Outlet, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Home, Camera, Target, Shirt, TrendingUp, Layers, Video,
-  Image, BarChart3, Users, CreditCard, Settings, Sparkles,
-  ChevronLeft, ChevronRight, LogOut, Menu, X, Activity, Maximize2
+  Home, Zap, Image, CreditCard, Settings,
+  ChevronLeft, ChevronRight, LogOut, Menu, X, Activity
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 const navItems = [
   { icon: Home, label: "Home", path: "/dashboard" },
-  { icon: Camera, label: "MotionAlive", path: "/dashboard/motion-alive" },
-  { icon: Target, label: "Athlete Builder", path: "/dashboard/athlete-id" },
-  { icon: Shirt, label: "DynamicVTO", path: "/dashboard/dynamic-vto" },
-  { icon: TrendingUp, label: "FitEvolve", path: "/dashboard/fit-evolve" },
-  { icon: Layers, label: "CollectionForge", path: "/dashboard/collection-forge" },
-  { icon: Video, label: "CampaignFlow", path: "/dashboard/campaign-flow" },
-  { icon: Sparkles, label: "LogoPlacement", path: "/dashboard/logo-placement" },
-  { divider: true },
+  { icon: Zap, label: "Create", path: "/dashboard/create" },
   { icon: Image, label: "Library", path: "/dashboard/library" },
-  { icon: BarChart3, label: "Analytics", path: "/dashboard/analytics" },
-  { icon: Users, label: "Team", path: "/dashboard/team" },
+  { divider: true },
   { icon: CreditCard, label: "Billing", path: "/dashboard/billing" },
-  { icon: Settings, label: "Brand Settings", path: "/dashboard/settings" },
+  { icon: Settings, label: "Settings", path: "/dashboard/settings" },
 ] as const;
 
 const DashboardLayout = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [focusMode, setFocusMode] = useState(false);
   const { user, signOut } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -37,19 +27,6 @@ const DashboardLayout = () => {
     await signOut();
     navigate("/");
   };
-
-  if (focusMode) {
-    return (
-      <div className="min-h-screen bg-background relative">
-        <button onClick={() => setFocusMode(false)}
-          className="fixed top-4 right-4 z-50 p-2 rounded-xl bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground transition-all">
-          <X className="w-4 h-4" />
-        </button>
-        <div className="animate-energy-pulse fixed top-4 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-primary/40" />
-        <Outlet />
-      </div>
-    );
-  }
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
@@ -69,7 +46,9 @@ const DashboardLayout = () => {
       <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
         {navItems.map((item, i) => {
           if ('divider' in item) return <div key={i} className="my-4 border-t border-sidebar-border" />;
-          const active = location.pathname === item.path;
+          const active = item.path === "/dashboard"
+            ? location.pathname === "/dashboard"
+            : location.pathname.startsWith(item.path);
           return (
             <Link key={item.path} to={item.path} onClick={() => setMobileOpen(false)}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-300 relative ${
@@ -88,11 +67,6 @@ const DashboardLayout = () => {
       </nav>
 
       <div className="p-3 border-t border-sidebar-border space-y-1">
-        <button onClick={() => setFocusMode(true)}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] text-sidebar-foreground hover:bg-sidebar-accent transition-all duration-300">
-          <Maximize2 className="w-[18px] h-[18px]" />
-          {!collapsed && <span>Focus Mode</span>}
-        </button>
         <button onClick={handleLogout}
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] text-sidebar-foreground hover:bg-sidebar-accent transition-all duration-300">
           <LogOut className="w-[18px] h-[18px]" />
@@ -109,7 +83,7 @@ const DashboardLayout = () => {
 
   return (
     <div className="flex min-h-screen bg-background">
-      <aside className={`hidden lg:flex flex-col border-r border-white/[0.04] bg-sidebar transition-all duration-500 ease-out ${collapsed ? "w-16" : "w-60"}`}>
+      <aside className={`hidden lg:flex flex-col border-r border-white/[0.04] bg-sidebar transition-all duration-500 ease-out ${collapsed ? "w-16" : "w-56"}`}>
         <SidebarContent />
       </aside>
 
@@ -130,7 +104,7 @@ const DashboardLayout = () => {
               className="lg:hidden fixed inset-0 z-40 bg-background/80 backdrop-blur-md" onClick={() => setMobileOpen(false)} />
             <motion.aside initial={{ x: -260 }} animate={{ x: 0 }} exit={{ x: -260 }}
               transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              className="lg:hidden fixed left-0 top-0 bottom-0 z-50 w-60 bg-sidebar border-r border-white/[0.04]">
+              className="lg:hidden fixed left-0 top-0 bottom-0 z-50 w-56 bg-sidebar border-r border-white/[0.04]">
               <SidebarContent />
             </motion.aside>
           </>

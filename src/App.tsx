@@ -13,16 +13,8 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import DashboardLayout from "./components/DashboardLayout";
 import DashboardHome from "./pages/DashboardHome";
-import MotionAlive from "./pages/modules/MotionAlive";
-import AthleteID from "./pages/modules/AthleteID";
-import DynamicVTO from "./pages/modules/DynamicVTO";
-import FitEvolve from "./pages/modules/FitEvolve";
-import CollectionForge from "./pages/modules/CollectionForge";
-import CampaignFlow from "./pages/modules/CampaignFlow";
-import LogoPlacement from "./pages/modules/LogoPlacement";
+import Create from "./pages/Create";
 import Library from "./pages/Library";
-import Analytics from "./pages/Analytics";
-import Team from "./pages/Team";
 import Billing from "./pages/Billing";
 import BrandSettings from "./pages/BrandSettings";
 
@@ -43,16 +35,8 @@ const App = () => (
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/dashboard" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
               <Route index element={<DashboardHome />} />
-              <Route path="motion-alive" element={<MotionAlive />} />
-              <Route path="athlete-id" element={<AthleteID />} />
-              <Route path="dynamic-vto" element={<DynamicVTO />} />
-              <Route path="fit-evolve" element={<FitEvolve />} />
-              <Route path="collection-forge" element={<CollectionForge />} />
-              <Route path="campaign-flow" element={<CampaignFlow />} />
-              <Route path="logo-placement" element={<LogoPlacement />} />
+              <Route path="create" element={<Create />} />
               <Route path="library" element={<Library />} />
-              <Route path="analytics" element={<Analytics />} />
-              <Route path="team" element={<Team />} />
               <Route path="billing" element={<Billing />} />
               <Route path="settings" element={<BrandSettings />} />
             </Route>
