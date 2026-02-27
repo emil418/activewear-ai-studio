@@ -9,11 +9,10 @@ const corsHeaders = {
 
 const AI_GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
-// Smart Model Router: picks optimal model per task
 const MODEL_ROUTER: Record<string, string> = {
-  analyze: "google/gemini-3-flash-preview",      // fast garment analysis
-  generate_image: "google/gemini-3-pro-image-preview", // high-quality image gen
-  describe_physics: "google/gemini-2.5-flash",    // physics text descriptions
+  analyze: "google/gemini-3-flash-preview",
+  generate_image: "google/gemini-2.5-flash-image",
+  describe_physics: "google/gemini-2.5-flash",
 };
 
 serve(async (req) => {
@@ -31,7 +30,6 @@ serve(async (req) => {
     const authHeader = req.headers.get("authorization");
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Get user from JWT
     const token = authHeader?.replace("Bearer ", "");
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     if (authError || !user) {
@@ -43,105 +41,106 @@ serve(async (req) => {
 
     const { garmentName, garmentBase64, gender, size, bodyType, movement, intensity, logoBase64 } = await req.json();
 
-    // Step 1: Analyze garment (fast model)
+    // Step 1: Analyze garment
     console.log("Step 1: Analyzing garment...");
-    const analysisResp = await fetch(AI_GATEWAY, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: MODEL_ROUTER.analyze,
-        messages: [
-          {
-            role: "system",
-            content: "You are an expert sportswear analyst. Analyze the garment image and return a brief JSON with: fabric_type, garment_category, color_palette (array of hex), stretch_rating (1-10), breathability_rating (1-10). Return ONLY valid JSON.",
-          },
-          {
-            role: "user",
-            content: garmentBase64
-              ? [
-                  { type: "text", text: `Analyze this sportswear garment called "${garmentName}".` },
-                  { type: "image_url", image_url: { url: garmentBase64 } },
-                ]
-              : `Analyze a sportswear garment called "${garmentName}". It's a typical activewear piece. Return analysis JSON.`,
-          },
-        ],
-      }),
-    });
+    let garmentAnalysis: Record<string, unknown> = {
+      fabric_type: "polyester-elastane blend",
+      garment_category: "activewear",
+      color_palette: ["#1a1a1a", "#00FF85"],
+      stretch_rating: 8,
+      breathability_rating: 7,
+    };
 
-    if (!analysisResp.ok) {
-      const errText = await analysisResp.text();
-      console.error("Analysis failed:", analysisResp.status, errText);
-    }
-
-    let garmentAnalysis = {};
     try {
-      const analysisData = await analysisResp.json();
-      const content = analysisData.choices?.[0]?.message?.content || "{}";
-      // Try to extract JSON from the response
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) garmentAnalysis = JSON.parse(jsonMatch[0]);
+      const analysisResp = await fetch(AI_GATEWAY, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: MODEL_ROUTER.analyze,
+          messages: [
+            {
+              role: "system",
+              content: "You are an expert sportswear analyst. Analyze the garment image and return a brief JSON with: fabric_type, garment_category, color_palette (array of hex), stretch_rating (1-10), breathability_rating (1-10). Return ONLY valid JSON.",
+            },
+            {
+              role: "user",
+              content: garmentBase64
+                ? [
+                    { type: "text", text: `Analyze this sportswear garment called "${garmentName}".` },
+                    { type: "image_url", image_url: { url: garmentBase64 } },
+                  ]
+                : `Analyze a sportswear garment called "${garmentName}". Return analysis JSON.`,
+            },
+          ],
+        }),
+      });
+
+      if (analysisResp.ok) {
+        const analysisData = await analysisResp.json();
+        const content = analysisData.choices?.[0]?.message?.content || "{}";
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (jsonMatch) garmentAnalysis = JSON.parse(jsonMatch[0]);
+      } else {
+        console.error("Analysis failed:", analysisResp.status, await analysisResp.text());
+      }
     } catch (e) {
       console.error("Analysis parse error:", e);
-      garmentAnalysis = {
-        fabric_type: "polyester-elastane blend",
-        garment_category: "activewear",
-        color_palette: ["#1a1a1a", "#00FF85"],
-        stretch_rating: 8,
-        breathability_rating: 7,
-      };
     }
 
-    // Step 2: Generate performance physics description
+    // Step 2: Physics description
     console.log("Step 2: Generating physics description...");
-    const physicsResp = await fetch(AI_GATEWAY, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: MODEL_ROUTER.describe_physics,
-        messages: [
-          {
-            role: "system",
-            content: "You are a sportswear physics engine. Given garment details and movement, return JSON with: stretch_factor (e.g. '4x'), compression_percentage (0-100), sweat_absorption (0-100), breathability_score (0-100), stress_zones (array of strings), performance_notes (string, 1-2 sentences). Return ONLY valid JSON.",
-          },
-          {
-            role: "user",
-            content: `Garment: ${JSON.stringify(garmentAnalysis)}. Athlete: ${gender}, size ${size}, ${bodyType} build. Movement: ${movement} at ${intensity}% intensity. Calculate realistic physics metrics.`,
-          },
-        ],
-      }),
-    });
-
     let physicsData = {
       stretch_factor: "4×",
       compression_percentage: 85,
       sweat_absorption: 92,
       breathability_score: 78,
       stress_zones: ["knees", "glutes", "waistband"],
-      performance_notes: "Good stretch recovery under load. Compression zones maintain support during dynamic movement.",
+      performance_notes: "Good stretch recovery under load.",
     };
 
     try {
-      const physicsJson = await physicsResp.json();
-      const physContent = physicsJson.choices?.[0]?.message?.content || "{}";
-      const jsonMatch = physContent.match(/\{[\s\S]*\}/);
-      if (jsonMatch) physicsData = { ...physicsData, ...JSON.parse(jsonMatch[0]) };
+      const physicsResp = await fetch(AI_GATEWAY, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: MODEL_ROUTER.describe_physics,
+          messages: [
+            {
+              role: "system",
+              content: "You are a sportswear physics engine. Given garment details and movement, return JSON with: stretch_factor (e.g. '4x'), compression_percentage (0-100), sweat_absorption (0-100), breathability_score (0-100), stress_zones (array of strings), performance_notes (string). Return ONLY valid JSON.",
+            },
+            {
+              role: "user",
+              content: `Garment: ${JSON.stringify(garmentAnalysis)}. Athlete: ${gender}, size ${size}, ${bodyType} build. Movement: ${movement} at ${intensity}% intensity.`,
+            },
+          ],
+        }),
+      });
+
+      if (physicsResp.ok) {
+        const physicsJson = await physicsResp.json();
+        const physContent = physicsJson.choices?.[0]?.message?.content || "{}";
+        const jsonMatch = physContent.match(/\{[\s\S]*\}/);
+        if (jsonMatch) physicsData = { ...physicsData, ...JSON.parse(jsonMatch[0]) };
+      }
     } catch (e) {
       console.error("Physics parse error:", e);
     }
 
-    // Step 3: Generate images using image model
+    // Step 3: Generate images with modalities: ["image", "text"]
     console.log("Step 3: Generating motion images...");
     const angles = ["front", "side", "back"];
     const generatedImages: Record<string, string | null> = {};
 
     for (const angle of angles) {
       try {
+        console.log(`Generating ${angle} view...`);
         const imageResp = await fetch(AI_GATEWAY, {
           method: "POST",
           headers: {
@@ -150,10 +149,11 @@ serve(async (req) => {
           },
           body: JSON.stringify({
             model: MODEL_ROUTER.generate_image,
+            modalities: ["image", "text"],
             messages: [
               {
                 role: "user",
-                content: `Generate a professional studio photo of a ${gender} athlete (${bodyType} build, size ${size}) wearing activewear performing ${movement} at ${intensity}% intensity. ${angle} view angle. The garment should show realistic stretch, compression, and motion blur. Dark studio background with dramatic lighting. Professional sportswear campaign photo quality. Show realistic sweat and fabric tension. Athletic photography style similar to Nike or Adidas campaigns.`,
+                content: `Generate a professional studio photo of a ${gender} athlete (${bodyType} build, size ${size}) wearing dark athletic activewear performing ${movement} at ${intensity}% intensity. ${angle} view angle. The garment should show realistic stretch, compression, and motion blur. Dark studio background with dramatic lighting. Professional sportswear campaign photo quality. Athletic photography style similar to Nike or Adidas campaigns.`,
               },
             ],
           }),
@@ -162,21 +162,31 @@ serve(async (req) => {
         if (imageResp.ok) {
           const imageData = await imageResp.json();
           const choice = imageData.choices?.[0]?.message;
-          // Check for inline_data (base64 image) in parts
-          if (choice?.content && Array.isArray(choice.content)) {
+          
+          // Check for images array (Lovable AI Gateway format)
+          if (choice?.images && Array.isArray(choice.images)) {
+            for (const img of choice.images) {
+              if (img?.image_url?.url) {
+                generatedImages[angle] = img.image_url.url;
+                break;
+              }
+            }
+          }
+          // Fallback: check content array
+          else if (choice?.content && Array.isArray(choice.content)) {
             for (const part of choice.content) {
               if (part.type === "image_url" && part.image_url?.url) {
                 generatedImages[angle] = part.image_url.url;
                 break;
               }
-              if (part.inline_data) {
-                generatedImages[angle] = `data:${part.inline_data.mime_type};base64,${part.inline_data.data}`;
-                break;
-              }
             }
-          } else if (typeof choice?.content === "string") {
-            // Text response - no image generated
+          }
+          
+          if (!generatedImages[angle]) {
+            console.log(`No image found in response for ${angle}. Response keys:`, Object.keys(choice || {}));
             generatedImages[angle] = null;
+          } else {
+            console.log(`Got image for ${angle} (${generatedImages[angle]!.substring(0, 30)}...)`);
           }
         } else {
           const errText = await imageResp.text();
@@ -189,10 +199,9 @@ serve(async (req) => {
       }
     }
 
-    // Step 4: Store assets in database
+    // Step 4: Store results
     console.log("Step 4: Storing results...");
 
-    // Get or create brand for user
     const { data: brand } = await supabase
       .from("brands")
       .select("id")
@@ -210,7 +219,6 @@ serve(async (req) => {
       brandId = newBrand?.id;
     }
 
-    // Get or create default project
     let projectId: string | null = null;
     if (brandId) {
       const { data: project } = await supabase
@@ -231,7 +239,6 @@ serve(async (req) => {
         projectId = newProject?.id || null;
       }
 
-      // Log usage
       await supabase.from("usage_logs").insert({
         user_id: user.id,
         brand_id: brandId,
@@ -239,15 +246,9 @@ serve(async (req) => {
         credits_used: 1,
         metadata: { movement, intensity, gender, size, bodyType, garmentName },
       });
-
-      // Update credits
-      await supabase
-        .from("subscriptions")
-        .update({ credits_used: supabase.rpc ? undefined : 1 })
-        .eq("brand_id", brandId);
     }
 
-    // Store generated images in storage
+    // Upload generated images to storage
     const storedImageUrls: Record<string, string> = {};
     for (const [angle, imgData] of Object.entries(generatedImages)) {
       if (imgData && imgData.startsWith("data:")) {
@@ -256,11 +257,11 @@ serve(async (req) => {
           const binaryData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
           const fileName = `${user.id}/${Date.now()}_${angle}.png`;
 
-          const { data: uploadData, error: uploadError } = await supabase.storage
+          const { error: uploadError } = await supabase.storage
             .from("generated-images")
             .upload(fileName, binaryData, { contentType: "image/png", upsert: true });
 
-          if (!uploadError && uploadData) {
+          if (!uploadError) {
             const { data: urlData } = supabase.storage
               .from("generated-images")
               .getPublicUrl(fileName);
@@ -272,6 +273,10 @@ serve(async (req) => {
       }
     }
 
+    // Store first generated image as thumbnail
+    const firstImageUrl = Object.values(storedImageUrls)[0] || null;
+    const firstBase64Image = Object.values(generatedImages).find(v => v !== null) || null;
+
     // Create asset record
     if (brandId && projectId) {
       await supabase.from("assets").insert({
@@ -280,12 +285,18 @@ serve(async (req) => {
         name: `${garmentName} - ${movement}`,
         type: "generated",
         status: "completed",
+        thumbnail_url: firstImageUrl,
         physics_settings: physicsData,
         motion_settings: { movement, intensity },
         metadata: {
           garment_analysis: garmentAnalysis,
           athlete: { gender, size, bodyType },
           images: storedImageUrls,
+          raw_images: {
+            front: generatedImages.front ? true : false,
+            side: generatedImages.side ? true : false,
+            back: generatedImages.back ? true : false,
+          },
         },
       });
     }
@@ -310,13 +321,13 @@ serve(async (req) => {
     const message = e instanceof Error ? e.message : "Unknown error";
 
     if (message.includes("429") || message.includes("rate limit")) {
-      return new Response(JSON.stringify({ error: "Rate limit reached. Please wait a moment and try again." }), {
+      return new Response(JSON.stringify({ error: "Rate limit reached. Please wait and try again." }), {
         status: 429,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
     if (message.includes("402")) {
-      return new Response(JSON.stringify({ error: "AI credits exhausted. Please add credits in Settings → Workspace → Usage." }), {
+      return new Response(JSON.stringify({ error: "AI credits exhausted. Please add credits." }), {
         status: 402,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
