@@ -7,6 +7,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 /* ─── Step config ─── */
 const STEPS = [
@@ -38,6 +40,21 @@ const loadingMessages = [
   "Almost there — finalizing motion...",
 ];
 
+interface GenerationResult {
+  garment_analysis: Record<string, unknown>;
+  physics: {
+    stretch_factor: string;
+    compression_percentage: number;
+    sweat_absorption: number;
+    breathability_score: number;
+    stress_zones: string[];
+    performance_notes: string;
+  };
+  images: Record<string, string | null>;
+  stored_urls: Record<string, string>;
+  model_router: Record<string, string>;
+}
+
 const Create = () => {
   const [step, setStep] = useState(0);
   const [garmentFile, setGarmentFile] = useState<File | null>(null);
@@ -51,7 +68,10 @@ const Create = () => {
   const [generated, setGenerated] = useState(false);
   const [loadingMsg, setLoadingMsg] = useState(0);
   const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [result, setResult] = useState<GenerationResult | null>(null);
+  const [generationError, setGenerationError] = useState<string | null>(null);
   const { toast } = useToast();
+  const { session: _session } = useAuth();
 
   const handleFileDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -66,21 +86,82 @@ const Create = () => {
     reader.readAsDataURL(file);
   };
 
-  const handleGenerate = () => {
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleGenerate = async () => {
     setGenerating(true);
+    setGenerationError(null);
     setLoadingMsg(0);
+
+    // Animate loading messages
     const interval = setInterval(() => {
       setLoadingMsg(prev => {
-        if (prev >= loadingMessages.length - 1) {
-          clearInterval(interval);
-          setGenerating(false);
-          setGenerated(true);
-          setStep(4);
-          return prev;
-        }
+        if (prev >= loadingMessages.length - 1) return prev;
         return prev + 1;
       });
-    }, 1800);
+    }, 3000);
+
+    try {
+      // Convert garment image to base64
+      let garmentBase64: string | null = null;
+      if (garmentFile) {
+        garmentBase64 = await fileToBase64(garmentFile);
+      }
+
+      let logoBase64: string | null = null;
+      if (logoFile) {
+        logoBase64 = await fileToBase64(logoFile);
+      }
+
+      const response = await supabase.functions.invoke("generate-motion", {
+        body: {
+          garmentName: garmentFile?.name || "Activewear",
+          garmentBase64,
+          gender: selectedGender,
+          size: selectedSize,
+          bodyType: selectedBody,
+          movement: selectedMovement,
+          intensity: intensity[0],
+          logoBase64,
+        },
+      });
+
+      clearInterval(interval);
+
+      const data = response.data;
+      
+      if (!data || data.error) {
+        throw new Error(data?.error || "Generation failed");
+      }
+
+      const typedData = data as GenerationResult;
+
+      setResult(typedData);
+      setGenerated(true);
+      setStep(4);
+      toast({
+        title: "Generation complete!",
+        description: `Used models: ${Object.values(typedData.model_router || {}).join(", ")}`,
+      });
+    } catch (err: unknown) {
+      clearInterval(interval);
+      const message = err instanceof Error ? err.message : "Generation failed. Please try again.";
+      setGenerationError(message);
+      toast({
+        title: "Generation failed",
+        description: message,
+        variant: "destructive",
+      });
+    } finally {
+      setGenerating(false);
+    }
   };
 
   const canProceed = () => {
@@ -99,6 +180,8 @@ const Create = () => {
   };
 
   const back = () => { if (step > 0) setStep(step - 1); };
+
+  const physics = result?.physics;
 
   return (
     <div className="p-6 lg:p-10 max-w-4xl mx-auto space-y-8">
@@ -120,7 +203,7 @@ const Create = () => {
               <span className="hidden sm:inline">{s.label}</span>
             </button>
             {i < STEPS.length - 1 && (
-              <div className={`w-6 h-px ${i < step ? "bg-primary/30" : "bg-white/[0.06]"}`} />
+              <div className={`w-6 h-px ${i < step ? "bg-primary/30" : "bg-border"}`} />
             )}
           </div>
         ))}
@@ -157,13 +240,13 @@ const Create = () => {
                     <Upload className="w-7 h-7 text-primary/60" />
                   </div>
                   <p className="font-display text-base font-bold mb-1">Drop your garment here</p>
-                  <p className="text-xs text-muted-foreground mb-4">PNG, JPG, SVG, PSD — Max 25MB</p>
-                  <Button variant="outline" size="sm" className="rounded-xl border-white/[0.08] hover:bg-white/[0.03]">
+                  <p className="text-xs text-muted-foreground mb-4">PNG, JPG, SVG — Max 25MB</p>
+                  <Button variant="outline" size="sm" className="rounded-xl border-border hover:bg-muted">
                     Choose File
                   </Button>
                 </>
               )}
-              <input id="garment-input" type="file" accept="image/*,.psd,.svg" className="hidden"
+              <input id="garment-input" type="file" accept="image/*,.svg" className="hidden"
                 onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])} />
             </div>
 
@@ -176,7 +259,7 @@ const Create = () => {
                 </div>
                 {logoFile && <span className="text-xs text-primary/70">{logoFile.name}</span>}
               </div>
-              <Button variant="outline" size="sm" className="rounded-xl border-white/[0.08] hover:bg-white/[0.03]"
+              <Button variant="outline" size="sm" className="rounded-xl border-border hover:bg-muted"
                 onClick={() => document.getElementById("logo-input")?.click()}>
                 {logoFile ? "Change Logo" : "Upload Logo"}
               </Button>
@@ -204,7 +287,7 @@ const Create = () => {
                       className={`text-sm px-5 py-2.5 rounded-xl font-semibold transition-all duration-300 ${
                         selectedGender === g
                           ? "bg-primary/10 text-primary border border-primary/20"
-                          : "bg-white/[0.03] text-muted-foreground border border-white/[0.06] hover:border-white/[0.1]"
+                          : "bg-muted text-muted-foreground border border-border hover:border-primary/20"
                       }`}>{g}</button>
                   ))}
                 </div>
@@ -218,7 +301,7 @@ const Create = () => {
                       className={`text-sm px-4 py-2.5 rounded-xl font-semibold transition-all duration-300 ${
                         selectedSize === s
                           ? "bg-primary/10 text-primary border border-primary/20"
-                          : "bg-white/[0.03] text-muted-foreground border border-white/[0.06] hover:border-white/[0.1]"
+                          : "bg-muted text-muted-foreground border border-border hover:border-primary/20"
                       }`}>{s}</button>
                   ))}
                 </div>
@@ -232,7 +315,7 @@ const Create = () => {
                       className={`text-sm px-4 py-2.5 rounded-xl font-semibold transition-all duration-300 ${
                         selectedBody === b
                           ? "bg-primary/10 text-primary border border-primary/20"
-                          : "bg-white/[0.03] text-muted-foreground border border-white/[0.06] hover:border-white/[0.1]"
+                          : "bg-muted text-muted-foreground border border-border hover:border-primary/20"
                       }`}>{b}</button>
                   ))}
                 </div>
@@ -260,7 +343,7 @@ const Create = () => {
                         className={`text-sm px-4 py-2.5 rounded-xl font-semibold transition-all duration-300 ${
                           selectedMovement === m
                             ? "bg-primary/10 text-primary border border-primary/20"
-                            : "bg-white/[0.03] text-muted-foreground border border-white/[0.06] hover:border-white/[0.1] hover:text-foreground"
+                            : "bg-muted text-muted-foreground border border-border hover:border-primary/20 hover:text-foreground"
                         }`}>{m}</button>
                     ))}
                   </div>
@@ -322,14 +405,15 @@ const Create = () => {
               </div>
             </div>
 
-            {/* Physics info */}
+            {/* Smart Model Router info */}
             <div className="glass-card p-6">
-              <p className="text-sm font-semibold mb-3">Physics simulation will include:</p>
+              <p className="text-sm font-semibold mb-3">Smart Model Router will use:</p>
               <div className="flex flex-wrap gap-2">
-                {["Fabric Stretch", "Compression Zones", "Sweat Simulation", "Breathability Map", "Seam Stress"].map(f => (
+                {["Garment Analysis (Flash)", "Physics Engine (Flash)", "Image Gen (Pro Image)"].map(f => (
                   <span key={f} className="feature-badge">{f}</span>
                 ))}
               </div>
+              <p className="text-xs text-muted-foreground mt-3">3 AI models working in sync — auto-selected for each task.</p>
             </div>
 
             {generating ? (
@@ -337,7 +421,15 @@ const Create = () => {
                 <div className="w-10 h-10 border-2 border-primary border-t-transparent rounded-full animate-spin mb-6" />
                 <p className="font-display text-lg font-bold mb-2 tracking-tight">Generating realistic motion...</p>
                 <p className="text-sm text-muted-foreground animate-energy-pulse">{loadingMessages[loadingMsg]}</p>
-                <p className="text-xs text-muted-foreground/50 mt-4">This usually takes 30-45 seconds</p>
+                <p className="text-xs text-muted-foreground/50 mt-4">This usually takes 30-60 seconds</p>
+              </div>
+            ) : generationError ? (
+              <div className="glass-card p-6 border-destructive/20 space-y-3">
+                <p className="text-sm font-semibold text-destructive">Generation failed</p>
+                <p className="text-xs text-muted-foreground">{generationError}</p>
+                <Button onClick={handleGenerate} variant="outline" size="sm" className="rounded-xl">
+                  Try Again
+                </Button>
               </div>
             ) : (
               <Button onClick={handleGenerate} size="lg"
@@ -355,67 +447,89 @@ const Create = () => {
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="font-display text-2xl font-bold tracking-tight mb-1">Your results</h2>
-                <p className="text-sm text-muted-foreground">Multi-angle preview with performance physics.</p>
+                <p className="text-sm text-muted-foreground">AI-generated multi-angle preview with performance physics.</p>
               </div>
-              <Button onClick={() => { setStep(0); setGenerated(false); setGarmentFile(null); setGarmentPreview(null); setSelectedMovement(""); }}
-                variant="outline" size="sm" className="rounded-xl border-white/[0.08]">
+              <Button onClick={() => { setStep(0); setGenerated(false); setGarmentFile(null); setGarmentPreview(null); setSelectedMovement(""); setResult(null); }}
+                variant="outline" size="sm" className="rounded-xl border-border">
                 New Generation
               </Button>
             </div>
 
             {/* Multi-angle preview grid */}
             <div className="grid grid-cols-3 gap-4">
-              {["Front", "Side", "Back"].map((angle) => (
-                <div key={angle} className="glass-card aspect-[3/4] rounded-2xl flex flex-col items-center justify-center relative overflow-hidden group cursor-pointer hover:border-white/[0.08] transition-all duration-500">
-                  <span className="absolute top-3 left-3 text-[10px] font-bold text-muted-foreground/40 uppercase tracking-wider">{angle}</span>
-                  <Image className="w-10 h-10 text-muted-foreground/15 group-hover:text-muted-foreground/30 transition-colors duration-500" />
-                  <p className="text-xs text-muted-foreground/30 mt-2">Preview</p>
-                  <div className="absolute bottom-3 right-3 flex flex-col items-end gap-0.5">
-                    <span className="text-[8px] text-primary/30 font-bold">COMPRESSION: HIGH</span>
-                    <span className="text-[8px] text-secondary/30 font-bold">STRETCH: 4×</span>
+              {["front", "side", "back"].map((angle) => {
+                const imgSrc = result?.images?.[angle];
+                return (
+                  <div key={angle} className="glass-card aspect-[3/4] rounded-2xl flex flex-col items-center justify-center relative overflow-hidden group cursor-pointer hover:border-primary/10 transition-all duration-500">
+                    <span className="absolute top-3 left-3 text-[10px] font-bold text-muted-foreground/40 uppercase tracking-wider">{angle}</span>
+                    {imgSrc ? (
+                      <img src={imgSrc} alt={`${angle} view`} className="w-full h-full object-cover rounded-2xl" />
+                    ) : (
+                      <>
+                        <Image className="w-10 h-10 text-muted-foreground/15 group-hover:text-muted-foreground/30 transition-colors duration-500" />
+                        <p className="text-xs text-muted-foreground/30 mt-2">No image generated</p>
+                      </>
+                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
-            {/* Video preview placeholder */}
-            <div className="glass-card aspect-video rounded-2xl flex items-center justify-center relative overflow-hidden">
-              <div className="text-center">
-                <div className="w-14 h-14 rounded-full bg-primary/[0.06] flex items-center justify-center mx-auto mb-3">
-                  <Zap className="w-6 h-6 text-primary/60" />
+            {/* Physics results */}
+            {physics && (
+              <>
+                <div className="grid grid-cols-4 gap-3">
+                  {[
+                    { label: "Stretch Factor", value: physics.stretch_factor || "4×" },
+                    { label: "Compression", value: `${physics.compression_percentage || 85}%` },
+                    { label: "Sweat Absorption", value: `${physics.sweat_absorption || 92}%` },
+                    { label: "Breathability", value: `${physics.breathability_score || 78}%` },
+                  ].map(m => (
+                    <div key={m.label} className="glass-card p-4 text-center">
+                      <p className="text-xs text-muted-foreground mb-1">{m.label}</p>
+                      <p className="font-display text-lg font-bold glow-text">{m.value}</p>
+                    </div>
+                  ))}
                 </div>
-                <p className="text-sm font-semibold mb-1">Motion Video</p>
-                <p className="text-xs text-muted-foreground">{selectedMovement} — {intensity[0]}% intensity</p>
-              </div>
-              <div className="absolute bottom-4 left-4 flex gap-2">
-                {["Stretch Map", "Compression", "Sweat"].map(overlay => (
-                  <span key={overlay} className="text-[9px] px-2 py-0.5 rounded-full bg-primary/[0.06] text-primary/60 font-semibold">{overlay}</span>
-                ))}
-              </div>
-            </div>
 
-            {/* Performance metrics */}
-            <div className="grid grid-cols-4 gap-3">
-              {[
-                { label: "Stretch Factor", value: "4×" },
-                { label: "Compression", value: "85%" },
-                { label: "Sweat Absorption", value: "92%" },
-                { label: "Breathability", value: "78%" },
-              ].map(m => (
-                <div key={m.label} className="glass-card p-4 text-center">
-                  <p className="text-xs text-muted-foreground mb-1">{m.label}</p>
-                  <p className="font-display text-lg font-bold glow-text">{m.value}</p>
+                {physics.stress_zones && physics.stress_zones.length > 0 && (
+                  <div className="glass-card p-5">
+                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3">Stress Zones</p>
+                    <div className="flex flex-wrap gap-2">
+                      {physics.stress_zones.map((zone: string) => (
+                        <span key={zone} className="sport-badge">{zone}</span>
+                      ))}
+                    </div>
+                    {physics.performance_notes && (
+                      <p className="text-xs text-muted-foreground mt-3">{physics.performance_notes}</p>
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* Garment Analysis */}
+            {result?.garment_analysis && Object.keys(result.garment_analysis).length > 0 && (
+              <div className="glass-card p-5">
+                <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3">Garment Analysis</p>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  {Object.entries(result.garment_analysis).map(([key, value]) => (
+                    <div key={key}>
+                      <span className="text-muted-foreground capitalize">{key.replace(/_/g, " ")}:</span>{" "}
+                      <span className="font-medium">{Array.isArray(value) ? (value as string[]).join(", ") : String(value)}</span>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </div>
+            )}
 
             {/* Export */}
             <div className="flex gap-3">
               <Button className="flex-1 rounded-xl font-bold gap-2 py-5 glow-border"
-                onClick={() => toast({ title: "Campaign Pack", description: "Preparing your export pack: video, images, Reels clip, and PDF lookbook..." })}>
+                onClick={() => toast({ title: "Campaign Pack", description: "Preparing your export pack..." })}>
                 <Package className="w-4 h-4" /> Create Campaign Pack
               </Button>
-              <Button variant="outline" className="rounded-xl border-white/[0.08] hover:bg-white/[0.03] gap-2 px-6"
+              <Button variant="outline" className="rounded-xl border-border hover:bg-muted gap-2 px-6"
                 onClick={() => toast({ title: "Downloaded", description: "High-res images saved." })}>
                 <Download className="w-4 h-4" /> Images
               </Button>
@@ -426,7 +540,7 @@ const Create = () => {
 
       {/* Navigation buttons */}
       {step < 4 && !generating && (
-        <div className="flex items-center justify-between pt-4 border-t border-white/[0.04]">
+        <div className="flex items-center justify-between pt-4 border-t border-border">
           <Button variant="ghost" onClick={back} disabled={step === 0} className="gap-2 text-muted-foreground">
             <ArrowLeft className="w-4 h-4" /> Back
           </Button>

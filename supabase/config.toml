@@ -1,1 +1,4 @@
 project_id = "ovmolvfdbdktadpkbikj"
+
+[functions.generate-motion]
+verify_jwt = false
