@@ -80,10 +80,10 @@ NEVER return categories like jewelry, cufflinks, or non-sportswear items. Return
               role: "user",
               content: garmentBase64
                 ? [
-                    { type: "text", text: `Analyze this activewear/sportswear garment called "${garmentName}". It is athletic training clothing.` },
+                    { type: "text", text: `Analyze this uploaded activewear/sportswear garment called "${garmentName}". This is ALWAYS athletic training clothing. Identify fabric composition, stretch, compression, breathability, color palette. Categorize as one of: T-Shirt, Compression T-Shirt, Leggings, Shorts, Sports Bra, Training Top, Tank Top, Hoodie, Joggers. NEVER categorize as jewelry, cufflinks, or non-sportswear.` },
                     { type: "image_url", image_url: { url: garmentBase64 } },
                   ]
-                : `Analyze an activewear/sportswear garment called "${garmentName}". It is athletic training clothing. Return analysis JSON.`,
+                : `Analyze an activewear garment called "${garmentName}". Categorize as activewear (T-Shirt, Leggings, Shorts, etc). NEVER use categories like jewelry. Return analysis JSON.`,
             },
           ],
         }),
@@ -164,7 +164,22 @@ NEVER return categories like jewelry, cufflinks, or non-sportswear items. Return
             messages: [
               {
                 role: "user",
-                content: `Generate a professional studio photo of a ${gender} athlete (${bodyType} build, size ${size}) wearing dark athletic activewear performing ${movement} at ${intensity}% intensity. ${angle} view angle. The garment should show realistic stretch, compression, and motion blur. Dark studio background with dramatic lighting. Professional sportswear campaign photo quality. Athletic photography style similar to Nike or Adidas campaigns.`,
+              content: garmentBase64
+                ? [
+                    { type: "text", text: `CRITICAL INSTRUCTION: Use the EXACT uploaded garment image as the ONLY source for clothing. Do NOT invent, replace, or change the garment in any way. The athlete must wear THIS EXACT garment – same shape, color, fabric, seams, fit, and all visual details.
+
+Generate a professional studio photo of a ${gender} athlete (${bodyType} build, size ${size}) wearing EXACTLY this uploaded garment while performing ${movement} at ${intensity}% intensity. ${angle} view angle.
+
+Requirements:
+- The garment must be IDENTICAL to the uploaded image – same color, pattern, fabric texture, seams, and fit
+- Show realistic stretch, compression, and motion appropriate to the movement
+- Dark studio background with dramatic lighting
+- Professional sportswear campaign photo quality (Nike/Adidas style)
+- The garment is the HERO – it must be recognizable as the exact same item that was uploaded${logoBase64 ? "\n- Place the brand logo exactly as shown in the logo image, on the chest/front area of the garment, following fabric stretch and deformation realistically" : ""}` },
+                    { type: "image_url", image_url: { url: garmentBase64 } },
+                    ...(logoBase64 ? [{ type: "image_url", image_url: { url: logoBase64 } }] : []),
+                  ]
+                : `Generate a professional studio photo of a ${gender} athlete (${bodyType} build, size ${size}) wearing dark athletic activewear performing ${movement} at ${intensity}% intensity. ${angle} view angle. Dark studio background with dramatic lighting. Professional sportswear campaign photo quality.`,
               },
             ],
           }),
