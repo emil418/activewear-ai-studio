@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Image, Search, Download, Plus, Calendar, Zap, Loader2 } from "lucide-react";
+import { Image, Search, Download, Plus, Calendar, Zap, Loader2, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
+import JSZip from "jszip";
 import type { Json } from "@/integrations/supabase/types";
 
 interface AssetRow {
@@ -25,6 +27,7 @@ const Library = () => {
   const [search, setSearch] = useState("");
   const [selectedAsset, setSelectedAsset] = useState<AssetRow | null>(null);
   const { session } = useAuth();
+  const { toast } = useToast();
 
   useEffect(() => {
     if (!session) return;
@@ -61,6 +64,39 @@ const Library = () => {
 
   const getMotion = (asset: AssetRow) => {
     return asset.motion_settings as Record<string, unknown> | null;
+  };
+
+  const getAnalysis = (asset: AssetRow) => {
+    const meta = asset.metadata as Record<string, unknown> | null;
+    return meta?.garment_analysis as Record<string, unknown> | null;
+  };
+
+  const handleDownloadImages = async (asset: AssetRow) => {
+    const images = getImages(asset);
+    const entries = Object.entries(images).filter(([, url]) => !!url);
+    if (entries.length === 0) {
+      toast({ title: "No images", description: "This asset has no generated images.", variant: "destructive" });
+      return;
+    }
+    if (entries.length === 1) {
+      window.open(entries[0][1], "_blank");
+    } else {
+      const zip = new JSZip();
+      for (const [angle, url] of entries) {
+        try {
+          const resp = await fetch(url);
+          const blob = await resp.blob();
+          zip.file(`${angle}.png`, blob);
+        } catch { /* skip */ }
+      }
+      const content = await zip.generateAsync({ type: "blob" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(content);
+      a.download = `${asset.name.replace(/\s+/g, "-")}-images.zip`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+    toast({ title: "Images saved successfully", description: `${entries.length} images downloaded.` });
   };
 
   return (
@@ -117,7 +153,7 @@ const Library = () => {
             {filtered.map((asset, i) => {
               const images = getImages(asset);
               const motion_s = getMotion(asset);
-              const firstImg = Object.values(images)[0];
+              const firstImg = asset.thumbnail_url || Object.values(images)[0];
               
               return (
                 <motion.div key={asset.id} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
@@ -210,6 +246,21 @@ const Library = () => {
                 </div>
               )}
 
+              {/* Garment Analysis */}
+              {getAnalysis(selectedAsset) && (
+                <div>
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3">Garment Analysis</p>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    {Object.entries(getAnalysis(selectedAsset)!).map(([key, value]) => (
+                      <div key={key}>
+                        <span className="text-muted-foreground capitalize">{key.replace(/_/g, " ")}:</span>{" "}
+                        <span className="font-medium">{Array.isArray(value) ? (value as string[]).join(", ") : String(value)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Athlete info */}
               {getAthlete(selectedAsset) && (
                 <div className="flex gap-2 text-xs text-muted-foreground">
@@ -217,15 +268,11 @@ const Library = () => {
                 </div>
               )}
 
-              {/* Download */}
+              {/* Actions */}
               <div className="flex gap-3">
-                {Object.entries(getImages(selectedAsset)).map(([angle, url]) => (
-                  <a key={angle} href={url} target="_blank" rel="noopener noreferrer" download>
-                    <Button variant="outline" size="sm" className="rounded-xl border-border gap-2">
-                      <Download className="w-3 h-3" /> {angle}
-                    </Button>
-                  </a>
-                ))}
+                <Button className="gap-2 rounded-xl font-bold" onClick={() => handleDownloadImages(selectedAsset)}>
+                  <Download className="w-3 h-3" /> Save Images
+                </Button>
               </div>
             </motion.div>
           )}
