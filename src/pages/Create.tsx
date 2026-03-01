@@ -9,6 +9,8 @@ import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import JSZip from "jszip";
+import { jsPDF } from "jspdf";
 
 /* ─── Step config ─── */
 const STEPS = [
@@ -526,12 +528,100 @@ const Create = () => {
             {/* Export */}
             <div className="flex gap-3">
               <Button className="flex-1 rounded-xl font-bold gap-2 py-5 glow-border"
-                onClick={() => toast({ title: "Campaign Pack", description: "Preparing your export pack..." })}>
+                onClick={async () => {
+                  if (!result) return;
+                  toast({ title: "Preparing Campaign Pack...", description: "Generating PDF and bundling assets." });
+                  try {
+                    const zip = new JSZip();
+                    const imgFolder = zip.folder("images");
+                    // Add images
+                    for (const [angle, url] of Object.entries(result.images)) {
+                      if (url) {
+                        try {
+                          const resp = await fetch(url);
+                          const blob = await resp.blob();
+                          imgFolder?.file(`${angle}.png`, blob);
+                        } catch { /* skip failed downloads */ }
+                      }
+                    }
+                    // Generate PDF lookbook
+                    const pdf = new jsPDF();
+                    pdf.setFontSize(24);
+                    pdf.text("ActiveForge Campaign Pack", 20, 30);
+                    pdf.setFontSize(12);
+                    pdf.text(`Garment: ${garmentFile?.name || "Activewear"}`, 20, 50);
+                    pdf.text(`Movement: ${selectedMovement} at ${intensity[0]}% intensity`, 20, 60);
+                    pdf.text(`Athlete: ${selectedGender}, ${selectedSize}, ${selectedBody}`, 20, 70);
+                    pdf.setFontSize(16);
+                    pdf.text("Performance Physics", 20, 90);
+                    pdf.setFontSize(11);
+                    const p = result.physics;
+                    pdf.text(`Stretch Factor: ${p.stretch_factor}`, 20, 105);
+                    pdf.text(`Compression: ${p.compression_percentage}%`, 20, 115);
+                    pdf.text(`Sweat Absorption: ${p.sweat_absorption}%`, 20, 125);
+                    pdf.text(`Breathability: ${p.breathability_score}%`, 20, 135);
+                    if (p.stress_zones?.length) pdf.text(`Stress Zones: ${p.stress_zones.join(", ")}`, 20, 145);
+                    if (p.performance_notes) { pdf.text("Notes:", 20, 160); pdf.text(p.performance_notes, 20, 170, { maxWidth: 170 }); }
+                    // Garment analysis
+                    pdf.setFontSize(16);
+                    pdf.text("Garment Analysis", 20, 195);
+                    pdf.setFontSize(11);
+                    let y = 210;
+                    for (const [key, val] of Object.entries(result.garment_analysis)) {
+                      const display = Array.isArray(val) ? (val as string[]).join(", ") : String(val);
+                      pdf.text(`${key.replace(/_/g, " ")}: ${display}`, 20, y);
+                      y += 10;
+                      if (y > 280) { pdf.addPage(); y = 20; }
+                    }
+                    zip.file("lookbook.pdf", pdf.output("blob"));
+                    // Metrics JSON
+                    zip.file("performance-metrics.json", JSON.stringify({ physics: result.physics, garment_analysis: result.garment_analysis }, null, 2));
+                    const content = await zip.generateAsync({ type: "blob" });
+                    const a = document.createElement("a");
+                    a.href = URL.createObjectURL(content);
+                    a.download = `campaign-pack-${selectedMovement.toLowerCase().replace(/\s+/g, "-")}.zip`;
+                    a.click();
+                    URL.revokeObjectURL(a.href);
+                    toast({ title: "Campaign Pack downloaded", description: "ZIP with images, PDF lookbook, and metrics." });
+                  } catch (err) {
+                    toast({ title: "Export failed", description: String(err), variant: "destructive" });
+                  }
+                }}>
                 <Package className="w-4 h-4" /> Create Campaign Pack
               </Button>
               <Button variant="outline" className="rounded-xl border-border hover:bg-muted gap-2 px-6"
-                onClick={() => toast({ title: "Downloaded", description: "High-res images saved." })}>
-                <Download className="w-4 h-4" /> Images
+                onClick={async () => {
+                  if (!result) return;
+                  const imageEntries = Object.entries(result.images).filter(([, url]) => !!url);
+                  if (imageEntries.length === 0) {
+                    toast({ title: "No images to save", description: "Generation did not produce images.", variant: "destructive" });
+                    return;
+                  }
+                  if (imageEntries.length === 1) {
+                    const a = document.createElement("a");
+                    a.href = imageEntries[0][1]!;
+                    a.download = `${imageEntries[0][0]}.png`;
+                    a.target = "_blank";
+                    a.click();
+                  } else {
+                    const zip = new JSZip();
+                    for (const [angle, url] of imageEntries) {
+                      try {
+                        const resp = await fetch(url!);
+                        const blob = await resp.blob();
+                        zip.file(`${angle}.png`, blob);
+                      } catch { /* skip */ }
+                    }
+                    const content = await zip.generateAsync({ type: "blob" });
+                    const a = document.createElement("a");
+                    a.href = URL.createObjectURL(content);
+                    a.download = `images-${selectedMovement.toLowerCase().replace(/\s+/g, "-")}.zip`;
+                    a.click();
+                    URL.revokeObjectURL(a.href);
+                  }
+                  toast({ title: "Images saved successfully", description: `${imageEntries.length} images downloaded.` });
+                }}>
+                <Download className="w-4 h-4" /> Save Images
               </Button>
             </div>
           </motion.div>

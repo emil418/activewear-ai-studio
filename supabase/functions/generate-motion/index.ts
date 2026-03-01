@@ -44,11 +44,13 @@ serve(async (req) => {
     // Step 1: Analyze garment
     console.log("Step 1: Analyzing garment...");
     let garmentAnalysis: Record<string, unknown> = {
-      fabric_type: "polyester-elastane blend",
-      garment_category: "activewear",
+      fabric_type: "High-compression polyester-elastane blend",
+      garment_category: "Training Leggings",
       color_palette: ["#1a1a1a", "#00FF85"],
       stretch_rating: 8,
+      compression_level: "High",
       breathability_rating: 7,
+      recommended_use: ["HIIT", "Strength", "CrossFit"],
     };
 
     try {
@@ -63,16 +65,25 @@ serve(async (req) => {
           messages: [
             {
               role: "system",
-              content: "You are an expert sportswear analyst. Analyze the garment image and return a brief JSON with: fabric_type, garment_category, color_palette (array of hex), stretch_rating (1-10), breathability_rating (1-10). Return ONLY valid JSON.",
+              content: `You are an expert activewear and sportswear fabric analyst. You ONLY analyze athletic clothing (leggings, shorts, sports bras, tanks, compression gear, training tops, etc.). 
+Analyze the garment and return JSON with EXACTLY these fields:
+- fabric_type: string (e.g. "High-compression polyester-elastane blend", "Moisture-wicking nylon mesh")
+- garment_category: string (ONLY activewear categories: "Leggings", "Shorts", "Sports Bra", "Training Top", "Compression Tights", "Tank Top", "Hoodie", "Joggers")
+- color_palette: array of hex strings
+- stretch_rating: number 1-10
+- compression_level: string ("Light", "Medium", "High", "Ultra-High")
+- breathability_rating: number 1-10
+- recommended_use: array of strings (e.g. ["HIIT", "Strength", "Running", "Yoga", "CrossFit", "Cardio"])
+NEVER return categories like jewelry, cufflinks, or non-sportswear items. Return ONLY valid JSON.`,
             },
             {
               role: "user",
               content: garmentBase64
                 ? [
-                    { type: "text", text: `Analyze this sportswear garment called "${garmentName}".` },
+                    { type: "text", text: `Analyze this activewear/sportswear garment called "${garmentName}". It is athletic training clothing.` },
                     { type: "image_url", image_url: { url: garmentBase64 } },
                   ]
-                : `Analyze a sportswear garment called "${garmentName}". Return analysis JSON.`,
+                : `Analyze an activewear/sportswear garment called "${garmentName}". It is athletic training clothing. Return analysis JSON.`,
             },
           ],
         }),
