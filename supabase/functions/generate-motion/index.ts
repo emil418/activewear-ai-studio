@@ -175,7 +175,13 @@ Requirements:
 - Show realistic stretch, compression, and motion appropriate to the movement
 - Dark studio background with dramatic lighting
 - Professional sportswear campaign photo quality (Nike/Adidas style)
-- The garment is the HERO – it must be recognizable as the exact same item that was uploaded${logoBase64 ? "\n- Place the brand logo exactly as shown in the logo image, on the chest/front area of the garment, following fabric stretch and deformation realistically" : ""}` },
+- The garment is the HERO – it must be recognizable as the exact same item that was uploaded${logoBase64 ? `
+- LOGO PLACEMENT RULES (CRITICAL):
+  - Place the brand logo ONLY on the FRONT CHEST area of the garment – NEVER duplicate it on the back, sides, or any other location
+  - The logo must appear EXACTLY ONCE on the entire garment
+  - Keep the logo's ORIGINAL colors, size, proportions and style – do NOT recolor, tint, invert, or modify it in any way
+  - The logo should follow the fabric's natural stretch and movement realistically (compression, wrinkles, sweat)
+  - For "${angle}" view: ${angle === "front" ? "show the logo clearly on the chest" : angle === "side" ? "show the logo partially visible from the side angle on the chest only" : "do NOT show any logo on the back – the back of the garment has NO logo"}` : ""}` },
                     { type: "image_url", image_url: { url: garmentBase64 } },
                     ...(logoBase64 ? [{ type: "image_url", image_url: { url: logoBase64 } }] : []),
                   ]
