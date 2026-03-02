@@ -13,7 +13,81 @@ const MODEL_ROUTER: Record<string, string> = {
   analyze: "google/gemini-3-flash-preview",
   generate_image: "google/gemini-2.5-flash-image",
   describe_physics: "google/gemini-2.5-flash",
+  remove_bg: "google/gemini-2.5-flash-image",
 };
+
+// ── Helper: remove background from an image using AI ──
+async function removeBackground(base64Image: string, apiKey: string, label: string): Promise<string> {
+  console.log(`Removing background from ${label}...`);
+  try {
+    const resp = await fetch(AI_GATEWAY, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: MODEL_ROUTER.remove_bg,
+        modalities: ["image", "text"],
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: `Remove the background from this image completely. Output ONLY the foreground object (the ${label}) on a fully transparent background. Keep the original colors, details, and quality of the foreground object 100% intact. Do NOT alter, tint, or recolor any part of the foreground. The result must be a clean cutout with no background remnants, no color bleeding, and no artifacts.`,
+              },
+              { type: "image_url", image_url: { url: base64Image } },
+            ],
+          },
+        ],
+      }),
+    });
+
+    if (resp.ok) {
+      const data = await resp.json();
+      const choice = data.choices?.[0]?.message;
+
+      // Extract image from response
+      let resultUrl: string | null = null;
+      if (choice?.images && Array.isArray(choice.images)) {
+        for (const img of choice.images) {
+          if (img?.image_url?.url) { resultUrl = img.image_url.url; break; }
+        }
+      } else if (choice?.content && Array.isArray(choice.content)) {
+        for (const part of choice.content) {
+          if (part.type === "image_url" && part.image_url?.url) { resultUrl = part.image_url.url; break; }
+        }
+      }
+
+      if (resultUrl) {
+        console.log(`Background removed successfully for ${label}`);
+        return resultUrl;
+      }
+    }
+    console.warn(`Background removal failed for ${label}, using original`);
+  } catch (e) {
+    console.warn(`Background removal error for ${label}:`, e);
+  }
+  return base64Image; // fallback to original
+}
+
+// ── Helper: extract image from AI response ──
+function extractImageFromResponse(choice: Record<string, unknown>): string | null {
+  if (choice?.images && Array.isArray(choice.images)) {
+    for (const img of choice.images) {
+      if (img?.image_url?.url) return img.image_url.url;
+    }
+  }
+  if (choice?.content && Array.isArray(choice.content)) {
+    for (const part of (choice.content as Array<Record<string, unknown>>)) {
+      if (part.type === "image_url" && (part.image_url as Record<string, string>)?.url) {
+        return (part.image_url as Record<string, string>).url;
+      }
+    }
+  }
+  return null;
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -41,12 +115,33 @@ serve(async (req) => {
 
     const { garmentName, garmentBase64, gender, size, bodyType, movement, intensity, logoBase64 } = await req.json();
 
-    // Step 1: Analyze garment
+    // ── Step 0: Pre-process uploads – remove backgrounds ──
+    console.log("Step 0: Removing backgrounds from uploaded images...");
+
+    const bgRemovalPromises: Promise<string>[] = [];
+    bgRemovalPromises.push(
+      garmentBase64
+        ? removeBackground(garmentBase64, LOVABLE_API_KEY, "garment/clothing")
+        : Promise.resolve("")
+    );
+    bgRemovalPromises.push(
+      logoBase64
+        ? removeBackground(logoBase64, LOVABLE_API_KEY, "brand logo")
+        : Promise.resolve("")
+    );
+
+    const [cleanGarment, cleanLogo] = await Promise.all(bgRemovalPromises);
+    const processedGarment = cleanGarment || garmentBase64;
+    const processedLogo = cleanLogo || logoBase64;
+
+    console.log("Background removal complete.");
+
+    // ── Step 1: Analyze garment ──
     console.log("Step 1: Analyzing garment...");
     let garmentAnalysis: Record<string, unknown> = {
       fabric_type: "High-compression polyester-elastane blend",
-      garment_category: "Training Leggings",
-      color_palette: ["#1a1a1a", "#00FF85"],
+      garment_category: "Training T-Shirt",
+      color_palette: ["#1a1a1a"],
       stretch_rating: 8,
       compression_level: "High",
       breathability_rating: 7,
@@ -65,25 +160,26 @@ serve(async (req) => {
           messages: [
             {
               role: "system",
-              content: `You are an expert activewear and sportswear fabric analyst. You ONLY analyze athletic clothing (leggings, shorts, sports bras, tanks, compression gear, training tops, etc.). 
+              content: `You are an expert activewear and sportswear fabric analyst. You ONLY analyze athletic clothing.
+IMPORTANT: The image may have its background removed (transparent). Focus ONLY on the foreground clothing item. Ignore any background artifacts.
 Analyze the garment and return JSON with EXACTLY these fields:
-- fabric_type: string (e.g. "High-compression polyester-elastane blend", "Moisture-wicking nylon mesh")
-- garment_category: string (ONLY activewear categories: "Leggings", "Shorts", "Sports Bra", "Training Top", "Compression Tights", "Tank Top", "Hoodie", "Joggers")
-- color_palette: array of hex strings
+- fabric_type: string (e.g. "High-compression polyester-elastane blend", "Moisture-wicking nylon mesh", "Cotton-polyester training blend")
+- garment_category: string (ONLY one of: "T-Shirt", "Compression T-Shirt", "Leggings", "Shorts", "Sports Bra", "Training Top", "Compression Tights", "Tank Top", "Hoodie", "Joggers")
+- color_palette: array of hex strings (analyze the ACTUAL fabric color, not any background)
 - stretch_rating: number 1-10
 - compression_level: string ("Light", "Medium", "High", "Ultra-High")
 - breathability_rating: number 1-10
 - recommended_use: array of strings (e.g. ["HIIT", "Strength", "Running", "Yoga", "CrossFit", "Cardio"])
-NEVER return categories like jewelry, cufflinks, or non-sportswear items. Return ONLY valid JSON.`,
+CRITICAL: NEVER return categories like jewelry, cufflinks, metal, accessories, or non-sportswear items. This is ALWAYS athletic clothing. Return ONLY valid JSON.`,
             },
             {
               role: "user",
-              content: garmentBase64
+              content: processedGarment
                 ? [
-                    { type: "text", text: `Analyze this uploaded activewear/sportswear garment called "${garmentName}". This is ALWAYS athletic training clothing. Identify fabric composition, stretch, compression, breathability, color palette. Categorize as one of: T-Shirt, Compression T-Shirt, Leggings, Shorts, Sports Bra, Training Top, Tank Top, Hoodie, Joggers. NEVER categorize as jewelry, cufflinks, or non-sportswear.` },
-                    { type: "image_url", image_url: { url: garmentBase64 } },
+                    { type: "text", text: `Analyze this uploaded activewear/sportswear garment called "${garmentName}". The background has been removed – focus ONLY on the clothing item itself. This is ALWAYS athletic training clothing. Identify the actual fabric color (ignore background), fabric composition, stretch, compression, breathability. Categorize as one of: T-Shirt, Compression T-Shirt, Leggings, Shorts, Sports Bra, Training Top, Tank Top, Hoodie, Joggers. NEVER categorize as jewelry, metal, cufflinks, or non-sportswear.` },
+                    { type: "image_url", image_url: { url: processedGarment } },
                   ]
-                : `Analyze an activewear garment called "${garmentName}". Categorize as activewear (T-Shirt, Leggings, Shorts, etc). NEVER use categories like jewelry. Return analysis JSON.`,
+                : `Analyze an activewear garment called "${garmentName}". Categorize as activewear. Return analysis JSON.`,
             },
           ],
         }),
@@ -93,7 +189,15 @@ NEVER return categories like jewelry, cufflinks, or non-sportswear items. Return
         const analysisData = await analysisResp.json();
         const content = analysisData.choices?.[0]?.message?.content || "{}";
         const jsonMatch = content.match(/\{[\s\S]*\}/);
-        if (jsonMatch) garmentAnalysis = JSON.parse(jsonMatch[0]);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          // Validate garment_category is activewear
+          const validCategories = ["T-Shirt", "Compression T-Shirt", "Leggings", "Shorts", "Sports Bra", "Training Top", "Compression Tights", "Tank Top", "Hoodie", "Joggers"];
+          if (parsed.garment_category && !validCategories.includes(parsed.garment_category)) {
+            parsed.garment_category = "T-Shirt"; // safe fallback
+          }
+          garmentAnalysis = parsed;
+        }
       } else {
         console.error("Analysis failed:", analysisResp.status, await analysisResp.text());
       }
@@ -101,7 +205,7 @@ NEVER return categories like jewelry, cufflinks, or non-sportswear items. Return
       console.error("Analysis parse error:", e);
     }
 
-    // Step 2: Physics description
+    // ── Step 2: Physics description ──
     console.log("Step 2: Generating physics description...");
     let physicsData = {
       stretch_factor: "4×",
@@ -144,94 +248,91 @@ NEVER return categories like jewelry, cufflinks, or non-sportswear items. Return
       console.error("Physics parse error:", e);
     }
 
-    // Step 3: Generate images with modalities: ["image", "text"]
+    // ── Step 3: Generate multi-angle images ──
     console.log("Step 3: Generating motion images...");
     const angles = ["front", "side", "back"];
     const generatedImages: Record<string, string | null> = {};
+    const MAX_RETRIES = 2;
 
     for (const angle of angles) {
-      try {
-        console.log(`Generating ${angle} view...`);
-        const imageResp = await fetch(AI_GATEWAY, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${LOVABLE_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: MODEL_ROUTER.generate_image,
-            modalities: ["image", "text"],
-            messages: [
-              {
-                role: "user",
-              content: garmentBase64
-                ? [
-                    { type: "text", text: `CRITICAL INSTRUCTION: Use the EXACT uploaded garment image as the ONLY source for clothing. Do NOT invent, replace, or change the garment in any way. The athlete must wear THIS EXACT garment – same shape, color, fabric, seams, fit, and all visual details.
+      let attempts = 0;
+      while (attempts < MAX_RETRIES && !generatedImages[angle]) {
+        attempts++;
+        try {
+          console.log(`Generating ${angle} view (attempt ${attempts})...`);
+
+          const logoInstructions = processedLogo ? `
+LOGO RULES (CRITICAL – NO EXCEPTIONS):
+- The brand logo has been provided with its background REMOVED (transparent cutout)
+- Place the logo ONLY on the FRONT CHEST area of the garment – NEVER on back, sides, sleeves, or any other location
+- The logo must appear EXACTLY ONCE on the entire garment
+- Keep the logo's ORIGINAL colors EXACTLY as-is – do NOT recolor, tint, darken, lighten, invert, or blend with garment color
+- If the logo is white, it stays white. If it's black, it stays black. If it's multicolor, keep all colors exact
+- The logo should follow the fabric's natural stretch and movement realistically
+- For "${angle}" view: ${angle === "front" ? "show the logo clearly visible on the chest" : angle === "side" ? "show the logo partially visible from the side angle on the chest only" : "do NOT show any logo – the back has NO logo whatsoever"}` : "";
+
+          const imageResp = await fetch(AI_GATEWAY, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${LOVABLE_API_KEY}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: MODEL_ROUTER.generate_image,
+              modalities: ["image", "text"],
+              messages: [
+                {
+                  role: "user",
+                  content: processedGarment
+                    ? [
+                        { type: "text", text: `CRITICAL INSTRUCTIONS (MUST FOLLOW):
+1. GARMENT REFERENCE: The uploaded garment image has its background REMOVED. Use ONLY the foreground clothing as the strict reference. Do NOT pick up any background color or blend background into the garment. The garment's actual color and fabric must be preserved EXACTLY.
+2. NO COLOR BLEEDING: If the garment is black, it MUST remain black. If white, it MUST remain white. Do NOT let any background, studio lighting, or other element change the garment's true color.
+3. STRICT FIDELITY: The athlete must wear THIS EXACT garment – same shape, color, fabric texture, seams, fit, and all visual details. Do NOT invent, replace, or modify the clothing in any way.
 
 Generate a professional studio photo of a ${gender} athlete (${bodyType} build, size ${size}) wearing EXACTLY this uploaded garment while performing ${movement} at ${intensity}% intensity. ${angle} view angle.
 
 Requirements:
-- The garment must be IDENTICAL to the uploaded image – same color, pattern, fabric texture, seams, and fit
+- The garment color and fabric must match the uploaded reference EXACTLY – no color shifts, no background color contamination
 - Show realistic stretch, compression, and motion appropriate to the movement
-- Dark studio background with dramatic lighting
+- Dark studio background with dramatic lighting (lighting must NOT wash out or change garment color)
 - Professional sportswear campaign photo quality (Nike/Adidas style)
-- The garment is the HERO – it must be recognizable as the exact same item that was uploaded${logoBase64 ? `
-- LOGO PLACEMENT RULES (CRITICAL):
-  - Place the brand logo ONLY on the FRONT CHEST area of the garment – NEVER duplicate it on the back, sides, or any other location
-  - The logo must appear EXACTLY ONCE on the entire garment
-  - Keep the logo's ORIGINAL colors, size, proportions and style – do NOT recolor, tint, invert, or modify it in any way
-  - The logo should follow the fabric's natural stretch and movement realistically (compression, wrinkles, sweat)
-  - For "${angle}" view: ${angle === "front" ? "show the logo clearly on the chest" : angle === "side" ? "show the logo partially visible from the side angle on the chest only" : "do NOT show any logo on the back – the back of the garment has NO logo"}` : ""}` },
-                    { type: "image_url", image_url: { url: garmentBase64 } },
-                    ...(logoBase64 ? [{ type: "image_url", image_url: { url: logoBase64 } }] : []),
-                  ]
-                : `Generate a professional studio photo of a ${gender} athlete (${bodyType} build, size ${size}) wearing dark athletic activewear performing ${movement} at ${intensity}% intensity. ${angle} view angle. Dark studio background with dramatic lighting. Professional sportswear campaign photo quality.`,
-              },
-            ],
-          }),
-        });
+- The garment is the HERO – it must be instantly recognizable as the exact same item${logoInstructions}` },
+                        { type: "image_url", image_url: { url: processedGarment } },
+                        ...(processedLogo ? [{ type: "image_url", image_url: { url: processedLogo } }] : []),
+                      ]
+                    : `Generate a professional studio photo of a ${gender} athlete (${bodyType} build, size ${size}) wearing dark athletic activewear performing ${movement} at ${intensity}% intensity. ${angle} view angle. Dark studio background with dramatic lighting. Professional sportswear campaign photo quality.`,
+                },
+              ],
+            }),
+          });
 
-        if (imageResp.ok) {
-          const imageData = await imageResp.json();
-          const choice = imageData.choices?.[0]?.message;
-          
-          // Check for images array (Lovable AI Gateway format)
-          if (choice?.images && Array.isArray(choice.images)) {
-            for (const img of choice.images) {
-              if (img?.image_url?.url) {
-                generatedImages[angle] = img.image_url.url;
-                break;
-              }
+          if (imageResp.ok) {
+            const imageData = await imageResp.json();
+            const choice = imageData.choices?.[0]?.message;
+            const imgUrl = extractImageFromResponse(choice as Record<string, unknown>);
+
+            if (imgUrl) {
+              generatedImages[angle] = imgUrl;
+              console.log(`Got image for ${angle}`);
+            } else {
+              console.warn(`No image in response for ${angle} (attempt ${attempts})`);
             }
-          }
-          // Fallback: check content array
-          else if (choice?.content && Array.isArray(choice.content)) {
-            for (const part of choice.content) {
-              if (part.type === "image_url" && part.image_url?.url) {
-                generatedImages[angle] = part.image_url.url;
-                break;
-              }
-            }
-          }
-          
-          if (!generatedImages[angle]) {
-            console.log(`No image found in response for ${angle}. Response keys:`, Object.keys(choice || {}));
-            generatedImages[angle] = null;
           } else {
-            console.log(`Got image for ${angle} (${generatedImages[angle]!.substring(0, 30)}...)`);
+            const errText = await imageResp.text();
+            console.error(`Image gen failed for ${angle}:`, imageResp.status, errText);
           }
-        } else {
-          const errText = await imageResp.text();
-          console.error(`Image gen failed for ${angle}:`, imageResp.status, errText);
-          generatedImages[angle] = null;
+        } catch (e) {
+          console.error(`Image gen error for ${angle} (attempt ${attempts}):`, e);
         }
-      } catch (e) {
-        console.error(`Image gen error for ${angle}:`, e);
+      }
+
+      if (!generatedImages[angle]) {
         generatedImages[angle] = null;
       }
     }
 
-    // Step 4: Store results
+    // ── Step 4: Store results ──
     console.log("Step 4: Storing results...");
 
     const { data: brand } = await supabase
@@ -305,11 +406,8 @@ Requirements:
       }
     }
 
-    // Store first generated image as thumbnail
     const firstImageUrl = Object.values(storedImageUrls)[0] || null;
-    const firstBase64Image = Object.values(generatedImages).find(v => v !== null) || null;
 
-    // Create asset record
     if (brandId && projectId) {
       await supabase.from("assets").insert({
         brand_id: brandId,
@@ -325,9 +423,9 @@ Requirements:
           athlete: { gender, size, bodyType },
           images: storedImageUrls,
           raw_images: {
-            front: generatedImages.front ? true : false,
-            side: generatedImages.side ? true : false,
-            back: generatedImages.back ? true : false,
+            front: !!generatedImages.front,
+            side: !!generatedImages.side,
+            back: !!generatedImages.back,
           },
         },
       });
