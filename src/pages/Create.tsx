@@ -137,10 +137,26 @@ const Create = () => {
 
       clearInterval(interval);
 
+      // Check for HTTP-level errors from the function
+      if (response.error) {
+        const msg = response.error.message || "Generation failed";
+        if (msg.includes("402") || msg.includes("credits") || msg.includes("payment")) {
+          throw new Error("Not enough AI credits. Go to Settings → Workspace → Usage to add credits, then try again.");
+        }
+        if (msg.includes("429") || msg.includes("rate limit")) {
+          throw new Error("Rate limit reached. Please wait a minute and try again.");
+        }
+        throw new Error(msg);
+      }
+
       const data = response.data;
       
       if (!data || data.error) {
-        throw new Error(data?.error || "Generation failed");
+        const errMsg = data?.error || "Generation failed";
+        if (errMsg.includes("credits") || errMsg.includes("402")) {
+          throw new Error("Not enough AI credits. Go to Settings → Workspace → Usage to add credits, then try again.");
+        }
+        throw new Error(errMsg);
       }
 
       const typedData = data as GenerationResult;
