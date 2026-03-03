@@ -148,9 +148,16 @@ const Create = () => {
       setResult(typedData);
       setGenerated(true);
       setStep(4);
+
+      // Count successfully generated angles
+      const allImages = { ...typedData.images, ...typedData.stored_urls };
+      const successCount = Object.values(allImages).filter(Boolean).length;
+      const analysis = typedData.garment_analysis as Record<string, unknown>;
+      const garmentLabel = analysis?.garment_category || "Garment";
+
       toast({
-        title: "Generation complete!",
-        description: `Used models: ${Object.values(typedData.model_router || {}).join(", ")}`,
+        title: "✅ Generation complete — ready for export",
+        description: `${garmentLabel} rendered in ${successCount}/3 angles. ${successCount === 3 ? "All views generated successfully." : "Some views may need retry."}`,
       });
     } catch (err: unknown) {
       clearInterval(interval);
