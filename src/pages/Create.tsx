@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Upload, User, Zap, Download, ArrowRight, ArrowLeft,
@@ -6,10 +6,12 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useInfluencerMode } from "@/hooks/useInfluencerMode";
 import { supabase } from "@/integrations/supabase/client";
+import LogoPlacer, { type LogoPosition } from "@/components/LogoPlacer";
 import JSZip from "jszip";
 import { jsPDF } from "jspdf";
 
@@ -31,6 +33,7 @@ const movements = [
 
 const genders = ["Male", "Female", "Non-binary"];
 const ALL_SIZES = ["XS", "S", "M", "L", "XL", "XXL"] as const;
+const ANGLES = ["front", "side", "back"] as const;
 const bodyTypes = ["Lean Runner", "Athletic", "Muscular", "Plus-Size", "Adaptive"];
 
 const loadingMessages = [
@@ -71,13 +74,16 @@ const Create = () => {
   const [generated, setGenerated] = useState(false);
   const [loadingMsg, setLoadingMsg] = useState(0);
   const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [logoPosition, setLogoPosition] = useState<LogoPosition | null>(null);
   const [result, setResult] = useState<GenerationResult | null>(null);
   const [generationError, setGenerationError] = useState<string | null>(null);
-  
-  // Size variants
+
+  // Size variants: maps size -> GenerationResult
   const [sizeVariants, setSizeVariants] = useState<Record<string, GenerationResult | null>>({});
   const [generatingSizes, setGeneratingSizes] = useState(false);
-  const [sizeProgress, setSizeProgress] = useState<string>("");
+  const [sizeProgress, setSizeProgress] = useState("");
+  const [activeSizeTab, setActiveSizeTab] = useState("M");
 
   const { toast } = useToast();
   const { session: _session } = useAuth();
@@ -93,6 +99,17 @@ const Create = () => {
     setGarmentFile(file);
     const reader = new FileReader();
     reader.onload = (e) => setGarmentPreview(e.target?.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  const handleLogoSelect = (file: File) => {
+    setLogoFile(file);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setLogoPreview(e.target?.result as string);
+      // Default to chest-center
+      if (!logoPosition) setLogoPosition({ x: 50, y: 25, placement: "chest-center" });
+    };
     reader.readAsDataURL(file);
   };
 
@@ -115,6 +132,7 @@ const Create = () => {
         movement: selectedMovement,
         intensity: intensity[0],
         logoBase64,
+        logoPosition: logoPosition || undefined,
       },
     });
     if (!response.data || response.data.error) throw new Error(response.data?.error || "Generation failed");
@@ -125,6 +143,7 @@ const Create = () => {
     setGenerating(true);
     setGenerationError(null);
     setLoadingMsg(0);
+    setSizeVariants({});
 
     const interval = setInterval(() => {
       setLoadingMsg(prev => prev >= loadingMessages.length - 1 ? prev : prev + 1);
@@ -133,13 +152,13 @@ const Create = () => {
     try {
       const garmentBase64 = garmentFile ? await fileToBase64(garmentFile) : null;
       const logoBase64 = logoFile ? await fileToBase64(logoFile) : null;
-
       const typedData = await generateForSize(selectedSize, garmentBase64, logoBase64);
 
       clearInterval(interval);
       setResult(typedData);
       setGenerated(true);
       setStep(4);
+      setActiveSizeTab(selectedSize);
 
       const allImages = { ...typedData.images, ...typedData.stored_urls };
       const successCount = Object.values(allImages).filter(Boolean).length;
@@ -164,7 +183,6 @@ const Create = () => {
     if (!garmentFile) return;
     setGeneratingSizes(true);
     const variants: Record<string, GenerationResult | null> = {};
-    // Pre-set current size result
     variants[selectedSize] = result;
 
     try {
@@ -184,7 +202,7 @@ const Create = () => {
       setSizeVariants(variants);
       toast({
         title: "✅ All size variants generated",
-        description: `${Object.values(variants).filter(Boolean).length}/${ALL_SIZES.length} sizes completed successfully.`,
+        description: `${Object.values(variants).filter(Boolean).length}/${ALL_SIZES.length} sizes completed — all views included.`,
       });
     } catch (err) {
       toast({ title: "Size generation failed", description: String(err), variant: "destructive" });
@@ -208,52 +226,55 @@ const Create = () => {
   const back = () => { if (step > 0) setStep(step - 1); };
 
   const physics = result?.physics;
+  const showSimplifiedUI = influencerMode;
+
+  // Helper: get image URL for a given result
+  const getImageUrl = (res: GenerationResult | null, angle: string) =>
+    res?.stored_urls?.[angle] || res?.images?.[angle] || null;
+
+  // Collect ALL images across sizes for downloads
+  const collectAllImages = useMemo(() => {
+    const entries: { size: string; angle: string; url: string }[] = [];
+    const garmentName = garmentFile?.name?.replace(/\.[^/.]+$/, "").replace(/\s+/g, "-") || "Garment";
+
+    // If we have size variants, use them (includes the primary size)
+    const sizesToProcess = Object.keys(sizeVariants).length > 0 ? sizeVariants : { [selectedSize]: result };
+
+    for (const [size, data] of Object.entries(sizesToProcess)) {
+      if (!data) continue;
+      for (const angle of ANGLES) {
+        const url = getImageUrl(data, angle);
+        if (url) entries.push({ size, angle, url });
+      }
+    }
+    return { entries, garmentName };
+  }, [sizeVariants, result, selectedSize, garmentFile]);
 
   const buildCampaignPack = async () => {
     if (!result) return;
     toast({ title: "Preparing Campaign Pack...", description: "Generating PDF and bundling assets." });
     try {
       const zip = new JSZip();
-      const imgFolder = zip.folder("images");
-      const allImages = { ...result.images, ...result.stored_urls };
+      const { entries, garmentName } = collectAllImages;
 
-      for (const [angle, url] of Object.entries(allImages)) {
-        if (url) {
-          try {
-            const resp = await fetch(url);
-            const blob = await resp.blob();
-            imgFolder?.file(`${angle}.png`, blob);
-          } catch { /* skip */ }
-        }
-      }
-
-      // Size variants images
-      if (Object.keys(sizeVariants).length > 0) {
-        const sizesFolder = zip.folder("size-variants");
-        for (const [size, data] of Object.entries(sizeVariants)) {
-          if (!data) continue;
-          const sFolder = sizesFolder?.folder(size);
-          const sImages = { ...data.images, ...data.stored_urls };
-          for (const [angle, url] of Object.entries(sImages)) {
-            if (url) {
-              try {
-                const resp = await fetch(url);
-                const blob = await resp.blob();
-                sFolder?.file(`${angle}.png`, blob);
-              } catch { /* skip */ }
-            }
-          }
-        }
-      }
-
-      // Reels thumbnail (front image)
-      const frontUrl = result.stored_urls?.front || result.images?.front;
-      if (frontUrl) {
-        const reelsFolder = zip.folder("reels-thumbnails");
+      // Images organized by size
+      for (const { size, angle, url } of entries) {
+        const folder = zip.folder(size);
         try {
-          const resp = await fetch(frontUrl);
+          const resp = await fetch(url);
           const blob = await resp.blob();
-          reelsFolder?.file("reel-thumbnail-front.png", blob);
+          folder?.file(`${garmentName}_${size}_${angle.charAt(0).toUpperCase() + angle.slice(1)}.png`, blob);
+        } catch { /* skip */ }
+      }
+
+      // Reels thumbnails from front views
+      const reelsFolder = zip.folder("reels-thumbnails");
+      for (const { size, angle, url } of entries) {
+        if (angle !== "front") continue;
+        try {
+          const resp = await fetch(url);
+          const blob = await resp.blob();
+          reelsFolder?.file(`reel-${size}.png`, blob);
         } catch { /* skip */ }
       }
 
@@ -273,24 +294,24 @@ const Create = () => {
       pdf.text(`Movement: ${selectedMovement} at ${intensity[0]}% intensity`, 20, 65);
       pdf.text(`Athlete: ${selectedGender}, ${selectedSize}, ${selectedBody}`, 20, 75);
       pdf.text(`Generated: ${new Date().toLocaleDateString()}`, 20, 85);
+      if (logoPosition) pdf.text(`Logo Position: ${logoPosition.placement}`, 20, 95);
 
       pdf.setFontSize(16);
-      pdf.text("Performance Metrics", 20, 105);
+      pdf.text("Performance Metrics", 20, 115);
       pdf.setFontSize(11);
       const p = result.physics;
-      const metrics = [
+      [
         ["Stretch Factor", p.stretch_factor],
         ["Compression", `${p.compression_percentage}%`],
         ["Sweat Absorption", `${p.sweat_absorption}%`],
         ["Breathability", `${p.breathability_score}%`],
-      ];
-      metrics.forEach(([label, val], i) => {
-        pdf.text(`${label}: ${val}`, 20, 120 + i * 10);
+      ].forEach(([label, val], i) => {
+        pdf.text(`${label}: ${val}`, 20, 130 + i * 10);
       });
-      if (p.stress_zones?.length) pdf.text(`Stress Zones: ${p.stress_zones.join(", ")}`, 20, 165);
-      if (p.performance_notes) { pdf.text("Notes:", 20, 180); pdf.text(p.performance_notes, 20, 190, { maxWidth: 170 }); }
+      if (p.stress_zones?.length) pdf.text(`Stress Zones: ${p.stress_zones.join(", ")}`, 20, 175);
+      if (p.performance_notes) { pdf.text("Notes:", 20, 190); pdf.text(p.performance_notes, 20, 200, { maxWidth: 170 }); }
 
-      // Garment analysis
+      // Garment analysis page
       pdf.addPage();
       pdf.setFontSize(16);
       pdf.text("Garment Analysis", 20, 25);
@@ -303,7 +324,7 @@ const Create = () => {
         if (y > 280) { pdf.addPage(); y = 20; }
       }
 
-      // Size variants page
+      // Size variants summary
       if (Object.keys(sizeVariants).length > 0) {
         pdf.addPage();
         pdf.setFontSize(16);
@@ -313,8 +334,7 @@ const Create = () => {
         for (const size of ALL_SIZES) {
           const sv = sizeVariants[size];
           if (!sv) { pdf.text(`${size}: Not generated`, 20, sy); sy += 10; continue; }
-          const imgs = { ...sv.images, ...sv.stored_urls };
-          const count = Object.values(imgs).filter(Boolean).length;
+          const count = ANGLES.filter(a => getImageUrl(sv, a)).length;
           pdf.text(`${size}: ${count}/3 angles — Stretch ${sv.physics.stretch_factor}, Compression ${sv.physics.compression_percentage}%`, 20, sy);
           sy += 10;
           if (sy > 280) { pdf.addPage(); sy = 20; }
@@ -325,23 +345,56 @@ const Create = () => {
       zip.file("performance-metrics.json", JSON.stringify({
         physics: result.physics,
         garment_analysis: result.garment_analysis,
-        ...(Object.keys(sizeVariants).length > 0 ? { size_variants: Object.fromEntries(
-          Object.entries(sizeVariants).filter(([, v]) => v).map(([size, v]) => [size, { physics: v!.physics }])
-        ) } : {}),
+        logo_position: logoPosition,
+        sizes: Object.fromEntries(
+          Object.entries(Object.keys(sizeVariants).length > 0 ? sizeVariants : { [selectedSize]: result })
+            .filter(([, v]) => v)
+            .map(([s, v]) => [s, { physics: v!.physics, angles: ANGLES.filter(a => getImageUrl(v!, a)) }])
+        ),
       }, null, 2));
 
       const content = await zip.generateAsync({ type: "blob" });
-      const brandName = "ActiveForge";
       const dateStr = new Date().toISOString().split("T")[0];
       const a = document.createElement("a");
       a.href = URL.createObjectURL(content);
-      a.download = `${brandName}-${selectedMovement.replace(/\s+/g, "-")}-${dateStr}.zip`;
+      a.download = `ActiveForge-${garmentName}-${selectedMovement.replace(/\s+/g, "-")}-${dateStr}.zip`;
       a.click();
       URL.revokeObjectURL(a.href);
-      toast({ title: "Campaign Pack downloaded", description: "ZIP with images, PDF lookbook, size variants, metrics, and Reels thumbnails." });
+      toast({ title: "Campaign Pack downloaded", description: `${entries.length} images across ${Object.keys(Object.keys(sizeVariants).length > 0 ? sizeVariants : { [selectedSize]: result }).length} size(s) bundled.` });
     } catch (err) {
       toast({ title: "Export failed", description: String(err), variant: "destructive" });
     }
+  };
+
+  const handleSaveImages = async () => {
+    const { entries, garmentName } = collectAllImages;
+    if (entries.length === 0) {
+      toast({ title: "No images to save", variant: "destructive" });
+      return;
+    }
+    if (entries.length === 1) {
+      const a = document.createElement("a");
+      a.href = entries[0].url;
+      a.download = `${garmentName}_${entries[0].size}_${entries[0].angle}.png`;
+      a.target = "_blank";
+      a.click();
+    } else {
+      const zip = new JSZip();
+      for (const { size, angle, url } of entries) {
+        try {
+          const resp = await fetch(url);
+          const blob = await resp.blob();
+          zip.file(`${garmentName}_${size}_${angle.charAt(0).toUpperCase() + angle.slice(1)}.png`, blob);
+        } catch { /* skip */ }
+      }
+      const content = await zip.generateAsync({ type: "blob" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(content);
+      a.download = `${garmentName}-all-images.zip`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+    toast({ title: "Images saved", description: `${entries.length} images downloaded.` });
   };
 
   const handleSendToBrand = () => {
@@ -351,8 +404,10 @@ const Create = () => {
     });
   };
 
-  // Influencer mode simplifications
-  const showSimplifiedUI = influencerMode;
+  // Current active result for preview (size tab or primary)
+  const activeResult = Object.keys(sizeVariants).length > 0
+    ? (sizeVariants[activeSizeTab] || result)
+    : result;
 
   return (
     <div className="p-6 lg:p-10 max-w-4xl mx-auto space-y-8">
@@ -405,7 +460,7 @@ const Create = () => {
                 <div className="relative">
                   <img src={garmentPreview} alt="Garment preview" className="max-h-[250px] rounded-xl object-contain" />
                   <p className="text-xs text-muted-foreground mt-4">{garmentFile?.name}</p>
-                  <button onClick={(e) => { e.stopPropagation(); setGarmentFile(null); setGarmentPreview(null); }}
+                  <button onClick={(e) => { e.stopPropagation(); setGarmentFile(null); setGarmentPreview(null); setLogoPosition(null); }}
                     className="absolute top-2 right-2 p-1.5 rounded-lg bg-background/80 text-muted-foreground hover:text-foreground transition-colors">✕</button>
                 </div>
               ) : (
@@ -424,12 +479,12 @@ const Create = () => {
                 onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])} />
             </div>
 
-            {/* Optional logo */}
-            <div className="glass-card p-5">
-              <div className="flex items-center justify-between mb-3">
+            {/* Logo upload + placement */}
+            <div className="glass-card p-5 space-y-4">
+              <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-semibold">Logo {showSimplifiedUI ? "" : "(optional)"}</p>
-                  <p className="text-xs text-muted-foreground">Upload to auto-place on garment</p>
+                  <p className="text-xs text-muted-foreground">Upload, then drag to position on garment</p>
                 </div>
                 {logoFile && <span className="text-xs text-primary/70">{logoFile.name}</span>}
               </div>
@@ -438,7 +493,17 @@ const Create = () => {
                 {logoFile ? "Change Logo" : "Upload Logo"}
               </Button>
               <input id="logo-input" type="file" accept="image/*,.svg" className="hidden"
-                onChange={(e) => e.target.files?.[0] && setLogoFile(e.target.files[0])} />
+                onChange={(e) => e.target.files?.[0] && handleLogoSelect(e.target.files[0])} />
+
+              {/* Logo placer */}
+              {garmentPreview && logoPreview && (
+                <LogoPlacer
+                  garmentPreview={garmentPreview}
+                  logoPreview={logoPreview}
+                  position={logoPosition}
+                  onPositionChange={setLogoPosition}
+                />
+              )}
             </div>
           </motion.div>
         )}
@@ -567,7 +632,7 @@ const Create = () => {
                 {logoFile && (
                   <div className="space-y-1">
                     <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold">Logo</p>
-                    <p className="text-sm font-medium">{logoFile.name}</p>
+                    <p className="text-sm font-medium">{logoFile.name} — {logoPosition?.placement || "chest-center"}</p>
                   </div>
                 )}
               </div>
@@ -615,31 +680,68 @@ const Create = () => {
                 <h2 className="font-display text-2xl font-bold tracking-tight mb-1">Your results</h2>
                 <p className="text-sm text-muted-foreground">AI-generated multi-angle preview with performance physics.</p>
               </div>
-              <Button onClick={() => { setStep(0); setGenerated(false); setGarmentFile(null); setGarmentPreview(null); setSelectedMovement(""); setResult(null); setSizeVariants({}); }}
+              <Button onClick={() => { setStep(0); setGenerated(false); setGarmentFile(null); setGarmentPreview(null); setSelectedMovement(""); setResult(null); setSizeVariants({}); setLogoFile(null); setLogoPreview(null); setLogoPosition(null); }}
                 variant="outline" size="sm" className="rounded-xl border-border">
                 New Generation
               </Button>
             </div>
 
-            {/* Multi-angle preview grid */}
-            <div className="grid grid-cols-3 gap-4">
-              {["front", "side", "back"].map((angle) => {
-                const imgSrc = result?.stored_urls?.[angle] || result?.images?.[angle] || null;
-                return (
-                  <div key={angle} className="glass-card aspect-[3/4] rounded-2xl flex flex-col items-center justify-center relative overflow-hidden group cursor-pointer hover:border-primary/10 transition-all duration-500">
-                    <span className="absolute top-3 left-3 text-[10px] font-bold text-muted-foreground/40 uppercase tracking-wider">{angle}</span>
-                    {imgSrc ? (
-                      <img src={imgSrc} alt={`${angle} view`} className="w-full h-full object-cover rounded-2xl" />
-                    ) : (
-                      <>
-                        <Image className="w-10 h-10 text-muted-foreground/15 group-hover:text-muted-foreground/30 transition-colors duration-500" />
-                        <p className="text-xs text-muted-foreground/30 mt-2">No image generated</p>
-                      </>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+            {/* Size tabs when variants exist */}
+            {Object.keys(sizeVariants).length > 0 ? (
+              <Tabs value={activeSizeTab} onValueChange={setActiveSizeTab}>
+                <TabsList className="w-full justify-start bg-muted/30 rounded-xl">
+                  {ALL_SIZES.map(size => (
+                    <TabsTrigger key={size} value={size} disabled={!sizeVariants[size]}
+                      className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary rounded-lg text-xs font-bold">
+                      {size}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+                {ALL_SIZES.map(size => (
+                  <TabsContent key={size} value={size}>
+                    <div className="grid grid-cols-3 gap-4 mt-4">
+                      {ANGLES.map(angle => {
+                        const imgSrc = getImageUrl(sizeVariants[size], angle);
+                        return (
+                          <div key={angle} className="glass-card aspect-[3/4] rounded-2xl flex flex-col items-center justify-center relative overflow-hidden group">
+                            <span className="absolute top-3 left-3 text-[10px] font-bold text-muted-foreground/40 uppercase tracking-wider">{angle}</span>
+                            <span className="absolute top-3 right-3 text-[10px] font-bold text-primary/50 uppercase">{size}</span>
+                            {imgSrc ? (
+                              <img src={imgSrc} alt={`${size} ${angle}`} className="w-full h-full object-cover rounded-2xl" />
+                            ) : (
+                              <>
+                                <Image className="w-10 h-10 text-muted-foreground/15" />
+                                <p className="text-xs text-muted-foreground/30 mt-2">No image</p>
+                              </>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </TabsContent>
+                ))}
+              </Tabs>
+            ) : (
+              /* Single size: 3-angle grid */
+              <div className="grid grid-cols-3 gap-4">
+                {ANGLES.map(angle => {
+                  const imgSrc = getImageUrl(result, angle);
+                  return (
+                    <div key={angle} className="glass-card aspect-[3/4] rounded-2xl flex flex-col items-center justify-center relative overflow-hidden group cursor-pointer hover:border-primary/10 transition-all duration-500">
+                      <span className="absolute top-3 left-3 text-[10px] font-bold text-muted-foreground/40 uppercase tracking-wider">{angle}</span>
+                      {imgSrc ? (
+                        <img src={imgSrc} alt={`${angle} view`} className="w-full h-full object-cover rounded-2xl" />
+                      ) : (
+                        <>
+                          <Image className="w-10 h-10 text-muted-foreground/15 group-hover:text-muted-foreground/30 transition-colors duration-500" />
+                          <p className="text-xs text-muted-foreground/30 mt-2">No image generated</p>
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
 
             {/* Generate All Sizes button */}
             {Object.keys(sizeVariants).length === 0 && (
@@ -660,43 +762,15 @@ const Create = () => {
               </Button>
             )}
 
-            {/* Size Variants Grid */}
-            {Object.keys(sizeVariants).length > 0 && (
-              <div className="space-y-4">
-                <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Size Variants — Front View Comparison</p>
-                <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
-                  {ALL_SIZES.map(size => {
-                    const sv = sizeVariants[size];
-                    const img = sv ? (sv.stored_urls?.front || sv.images?.front) : null;
-                    return (
-                      <div key={size} className={`glass-card rounded-xl overflow-hidden ${size === selectedSize ? "border-primary/30 glow-border" : ""}`}>
-                        <div className="aspect-[3/4] flex items-center justify-center bg-muted/10">
-                          {img ? (
-                            <img src={img} alt={`${size} front`} className="w-full h-full object-cover" />
-                          ) : (
-                            <span className="text-xs text-muted-foreground/30">—</span>
-                          )}
-                        </div>
-                        <div className="p-2 text-center">
-                          <p className="text-xs font-bold">{size}</p>
-                          {sv && <p className="text-[10px] text-muted-foreground">Stretch {sv.physics.stretch_factor}</p>}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
             {/* Physics results */}
-            {physics && (
+            {activeResult?.physics && (
               <>
                 <div className="grid grid-cols-4 gap-3">
                   {[
-                    { label: "Stretch Factor", value: physics.stretch_factor || "4×" },
-                    { label: "Compression", value: `${physics.compression_percentage || 85}%` },
-                    { label: "Sweat Absorption", value: `${physics.sweat_absorption || 92}%` },
-                    { label: "Breathability", value: `${physics.breathability_score || 78}%` },
+                    { label: "Stretch Factor", value: activeResult.physics.stretch_factor || "4×" },
+                    { label: "Compression", value: `${activeResult.physics.compression_percentage || 85}%` },
+                    { label: "Sweat Absorption", value: `${activeResult.physics.sweat_absorption || 92}%` },
+                    { label: "Breathability", value: `${activeResult.physics.breathability_score || 78}%` },
                   ].map(m => (
                     <div key={m.label} className="glass-card p-4 text-center">
                       <p className="text-xs text-muted-foreground mb-1">{m.label}</p>
@@ -705,16 +779,16 @@ const Create = () => {
                   ))}
                 </div>
 
-                {!showSimplifiedUI && physics.stress_zones && physics.stress_zones.length > 0 && (
+                {!showSimplifiedUI && activeResult.physics.stress_zones?.length > 0 && (
                   <div className="glass-card p-5">
                     <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3">Stress Zones</p>
                     <div className="flex flex-wrap gap-2">
-                      {physics.stress_zones.map((zone: string) => (
+                      {activeResult.physics.stress_zones.map((zone: string) => (
                         <span key={zone} className="sport-badge">{zone}</span>
                       ))}
                     </div>
-                    {physics.performance_notes && (
-                      <p className="text-xs text-muted-foreground mt-3">{physics.performance_notes}</p>
+                    {activeResult.physics.performance_notes && (
+                      <p className="text-xs text-muted-foreground mt-3">{activeResult.physics.performance_notes}</p>
                     )}
                   </div>
                 )}
@@ -722,11 +796,11 @@ const Create = () => {
             )}
 
             {/* Garment Analysis */}
-            {!showSimplifiedUI && result?.garment_analysis && Object.keys(result.garment_analysis).length > 0 && (
+            {!showSimplifiedUI && activeResult?.garment_analysis && Object.keys(activeResult.garment_analysis).length > 0 && (
               <div className="glass-card p-5">
                 <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3">Garment Analysis</p>
                 <div className="grid grid-cols-2 gap-3 text-sm">
-                  {Object.entries(result.garment_analysis).map(([key, value]) => (
+                  {Object.entries(activeResult.garment_analysis).map(([key, value]) => (
                     <div key={key}>
                       <span className="text-muted-foreground capitalize">{key.replace(/_/g, " ")}:</span>{" "}
                       <span className="font-medium">{Array.isArray(value) ? (value as string[]).join(", ") : String(value)}</span>
@@ -743,39 +817,8 @@ const Create = () => {
                 <Package className="w-4 h-4" /> Create Campaign Pack
               </Button>
               <Button variant="outline" className="rounded-xl border-border hover:bg-muted gap-2 px-6"
-                onClick={async () => {
-                  if (!result) return;
-                  const allImages = { ...result.images, ...result.stored_urls };
-                  const imageEntries = Object.entries(allImages).filter(([, url]) => !!url);
-                  if (imageEntries.length === 0) {
-                    toast({ title: "No images to save", description: "Generation did not produce images.", variant: "destructive" });
-                    return;
-                  }
-                  if (imageEntries.length === 1) {
-                    const a = document.createElement("a");
-                    a.href = imageEntries[0][1]!;
-                    a.download = `${imageEntries[0][0]}.png`;
-                    a.target = "_blank";
-                    a.click();
-                  } else {
-                    const zip = new JSZip();
-                    for (const [angle, url] of imageEntries) {
-                      try {
-                        const resp = await fetch(url!);
-                        const blob = await resp.blob();
-                        zip.file(`${angle}.png`, blob);
-                      } catch { /* skip */ }
-                    }
-                    const content = await zip.generateAsync({ type: "blob" });
-                    const a = document.createElement("a");
-                    a.href = URL.createObjectURL(content);
-                    a.download = `images-${selectedMovement.toLowerCase().replace(/\s+/g, "-")}.zip`;
-                    a.click();
-                    URL.revokeObjectURL(a.href);
-                  }
-                  toast({ title: "Images saved successfully", description: `${imageEntries.length} images downloaded.` });
-                }}>
-                <Download className="w-4 h-4" /> Save Images
+                onClick={handleSaveImages}>
+                <Download className="w-4 h-4" /> Save Images ({collectAllImages.entries.length})
               </Button>
               {showSimplifiedUI && (
                 <Button variant="outline" className="rounded-xl border-secondary/30 text-secondary hover:bg-secondary/10 gap-2 py-5"

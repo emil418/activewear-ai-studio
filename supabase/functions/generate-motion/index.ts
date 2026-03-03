@@ -113,7 +113,8 @@ serve(async (req) => {
       });
     }
 
-    const { garmentName, garmentBase64, gender, size, bodyType, movement, intensity, logoBase64 } = await req.json();
+    const { garmentName, garmentBase64, gender, size, bodyType, movement, intensity, logoBase64, logoPosition } = await req.json();
+    // logoPosition: { x: number, y: number, placement: string } | undefined
 
     // ── Step 0: Pre-process uploads – remove backgrounds ──
     console.log("Step 0: Removing backgrounds from uploaded images...");
@@ -263,15 +264,26 @@ ABSOLUTE RULES:
         try {
           console.log(`Generating ${angle} view (attempt ${attempts})...`);
 
+          const placementLabel = logoPosition?.placement || "chest-center";
+          const isFrontPlacement = placementLabel.startsWith("chest") || placementLabel === "belly-center" || placementLabel === "upper" || placementLabel === "middle";
+          const isBackPlacement = placementLabel.startsWith("back");
+          const isSleevePlacement = placementLabel.startsWith("sleeve");
+
           const logoInstructions = processedLogo ? `
 LOGO RULES (CRITICAL – NO EXCEPTIONS):
 - The brand logo has been provided with its background REMOVED (transparent cutout)
-- Place the logo ONLY on the FRONT CHEST area of the garment – NEVER on back, sides, sleeves, or any other location
-- The logo must appear EXACTLY ONCE on the entire garment
+- The user placed the logo at position: "${placementLabel}"
+- The logo must appear ONLY on that exact location – NEVER duplicate it on other areas
+- For "${angle}" view:
+  ${angle === "front" && isFrontPlacement ? `Show the logo clearly visible at the ${placementLabel} position` : ""}
+  ${angle === "front" && isBackPlacement ? "Do NOT show any logo – it was placed on the back" : ""}
+  ${angle === "front" && isSleevePlacement ? `Show the logo on the ${placementLabel.includes("left") ? "left" : "right"} sleeve from front view` : ""}
+  ${angle === "side" ? (isFrontPlacement ? "Show the logo partially visible from the side if the placement is near the edge, otherwise not visible" : isBackPlacement ? "Do NOT show the logo from the side" : `Show the ${placementLabel} partially visible`) : ""}
+  ${angle === "back" && isBackPlacement ? `Show the logo clearly visible at ${placementLabel}` : ""}
+  ${angle === "back" && !isBackPlacement ? "Do NOT show any logo – it was NOT placed on the back" : ""}
 - Keep the logo's ORIGINAL colors EXACTLY as-is – do NOT recolor, tint, darken, lighten, invert, or blend with garment color
-- If the logo is white, it stays white. If it's black, it stays black. If it's multicolor, keep all colors exact
 - The logo should follow the fabric's natural stretch and movement realistically
-- For "${angle}" view: ${angle === "front" ? "show the logo clearly visible on the chest" : angle === "side" ? "show the logo partially visible from the side angle on the chest only" : "do NOT show any logo – the back has NO logo whatsoever"}` : "";
+- The logo must appear EXACTLY ONCE on the entire garment – no duplication` : "";
 
           const imageResp = await fetch(AI_GATEWAY, {
             method: "POST",
