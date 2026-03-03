@@ -248,15 +248,14 @@ CRITICAL: NEVER return categories like jewelry, cufflinks, metal, accessories, o
       console.error("Physics parse error:", e);
     }
 
-    // ── Step 3: Generate multi-angle images ──
-    console.log("Step 3: Generating motion images...");
+    // ── Step 3: Generate multi-angle images (PARALLEL) ──
+    console.log("Step 3: Generating motion images in parallel...");
     const angles = ["front", "side", "back"];
-    const generatedImages: Record<string, string | null> = {};
     const MAX_RETRIES = 2;
 
-    for (const angle of angles) {
+    async function generateAngle(angle: string): Promise<string | null> {
       let attempts = 0;
-      while (attempts < MAX_RETRIES && !generatedImages[angle]) {
+      while (attempts < MAX_RETRIES) {
         attempts++;
         try {
           console.log(`Generating ${angle} view (attempt ${attempts})...`);
@@ -313,8 +312,8 @@ Requirements:
             const imgUrl = extractImageFromResponse(choice as Record<string, unknown>);
 
             if (imgUrl) {
-              generatedImages[angle] = imgUrl;
               console.log(`Got image for ${angle}`);
+              return imgUrl;
             } else {
               console.warn(`No image in response for ${angle} (attempt ${attempts})`);
             }
@@ -326,11 +325,12 @@ Requirements:
           console.error(`Image gen error for ${angle} (attempt ${attempts}):`, e);
         }
       }
-
-      if (!generatedImages[angle]) {
-        generatedImages[angle] = null;
-      }
+      return null;
     }
+
+    const angleResults = await Promise.all(angles.map(a => generateAngle(a)));
+    const generatedImages: Record<string, string | null> = {};
+    angles.forEach((a, i) => { generatedImages[a] = angleResults[i]; });
 
     // ── Step 4: Store results ──
     console.log("Step 4: Storing results...");

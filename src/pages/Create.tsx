@@ -460,7 +460,8 @@ const Create = () => {
             {/* Multi-angle preview grid */}
             <div className="grid grid-cols-3 gap-4">
               {["front", "side", "back"].map((angle) => {
-                const imgSrc = result?.images?.[angle];
+                // Prefer stored public URLs, fall back to raw base64
+                const imgSrc = result?.stored_urls?.[angle] || result?.images?.[angle] || null;
                 return (
                   <div key={angle} className="glass-card aspect-[3/4] rounded-2xl flex flex-col items-center justify-center relative overflow-hidden group cursor-pointer hover:border-primary/10 transition-all duration-500">
                     <span className="absolute top-3 left-3 text-[10px] font-bold text-muted-foreground/40 uppercase tracking-wider">{angle}</span>
@@ -534,8 +535,9 @@ const Create = () => {
                   try {
                     const zip = new JSZip();
                     const imgFolder = zip.folder("images");
-                    // Add images
-                    for (const [angle, url] of Object.entries(result.images)) {
+                    // Prefer stored URLs for downloads
+                    const allImages = { ...result.images, ...result.stored_urls };
+                    for (const [angle, url] of Object.entries(allImages)) {
                       if (url) {
                         try {
                           const resp = await fetch(url);
@@ -592,7 +594,8 @@ const Create = () => {
               <Button variant="outline" className="rounded-xl border-border hover:bg-muted gap-2 px-6"
                 onClick={async () => {
                   if (!result) return;
-                  const imageEntries = Object.entries(result.images).filter(([, url]) => !!url);
+                  const allImages = { ...result.images, ...result.stored_urls };
+                  const imageEntries = Object.entries(allImages).filter(([, url]) => !!url);
                   if (imageEntries.length === 0) {
                     toast({ title: "No images to save", description: "Generation did not produce images.", variant: "destructive" });
                     return;
