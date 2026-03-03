@@ -272,34 +272,49 @@ ABSOLUTE RULES:
           const isBackPlacement = placementLabel.startsWith("back");
           const isSleevePlacement = placementLabel.startsWith("sleeve");
 
-          const logoInstructions = processedLogo ? `
-LOGO RULES:
-- Logo placed at "${placementLabel}".
-- For "${angle}" view:
-  ${angle === "front" && isFrontPlacement ? `Show logo at ${placementLabel}.` : ""}
-  ${angle === "front" && isBackPlacement ? "No logo visible from front." : ""}
-  ${angle === "front" && isSleevePlacement ? `Logo on ${placementLabel.includes("left") ? "left" : "right"} sleeve.` : ""}
-  ${angle === "side" ? "Logo partially visible or hidden depending on placement." : ""}
-  ${angle === "back" && isBackPlacement ? `Show logo at ${placementLabel}.` : ""}
-  ${angle === "back" && !isBackPlacement ? "No logo visible from back." : ""}
-- Keep logo original colors. No duplication.` : "";
+          // Determine if logo should be visible in this angle
+          const showLogoThisAngle =
+            (angle === "front" && isFrontPlacement) ||
+            (angle === "back" && isBackPlacement) ||
+            (angle === "side" && isSleevePlacement);
 
-          // Build the prompt - simpler on retries for reliability
+          const logoInstructions = processedLogo ? (showLogoThisAngle
+            ? `
+LOGO PLACEMENT (CRITICAL):
+- The brand logo is placed at "${placementLabel}" on the garment.
+- This is the ${angle} view, so the logo IS visible.
+- BLEND the logo INTO the fabric naturally: it should look like a real screen-print or heat-transfer on the fabric.
+- The logo must follow the fabric's texture, wrinkles, stretch, and lighting — NOT look pasted/floating on top.
+- Keep the logo at a NATURAL proportional size (roughly 8-12cm on a real garment, small relative to the chest area).
+- Preserve the logo's EXACT original colors — no tinting, no recoloring, no bleeding.
+- Add subtle fabric texture showing through the logo (like a real print).
+- If the garment is stretching during motion, the logo should distort slightly with the fabric.
+- Do NOT duplicate the logo anywhere else on the garment.`
+            : `
+LOGO VISIBILITY (CRITICAL):
+- The brand logo is placed at "${placementLabel}" which is on the ${isFrontPlacement ? "front" : isBackPlacement ? "back" : "sleeve"} of the garment.
+- This is the ${angle} view — the logo is NOT visible from this angle.
+- Do NOT show any logo, text, emblem, or branding on this view.
+- The garment on this side must be completely plain/blank with no markings.`) : "";
+
+          // Build the prompt
           const mainPrompt = useSimplePrompt
-            ? `Generate a studio photo: ${gender} athlete (${bodyType}, size ${size}) wearing this exact uploaded garment, performing ${movement}, ${angle} view. Dark background, professional sportswear photography.${logoInstructions}`
-            : `CRITICAL INSTRUCTIONS (MUST FOLLOW):
-1. GARMENT REFERENCE: The uploaded garment image has its background REMOVED. Use ONLY the foreground clothing as reference. Preserve exact color and fabric.
-2. NO COLOR BLEEDING: Garment color must stay exactly as uploaded.
-3. STRICT FIDELITY: Athlete must wear THIS EXACT garment – same shape, color, fabric texture.
+            ? `Professional studio photo: ${gender} athlete (${bodyType}, size ${size}) wearing this exact uploaded garment, performing ${movement}, ${angle} camera angle. Dark background, sportswear campaign photography.${logoInstructions}`
+            : `CRITICAL INSTRUCTIONS:
+1. GARMENT REFERENCE: The uploaded garment image is the EXACT reference. Preserve its exact color, fabric texture, seams, and details with 100% fidelity.
+2. NO HALLUCINATION: Do not add patterns, logos, text, or details that are not in the uploaded reference (unless logo instructions below say otherwise).
+3. CAMERA ANGLE: This is a ${angle.toUpperCase()} view — render the garment from the ${angle} perspective.
 
-Generate a professional studio photo of a ${gender} athlete (${bodyType} build, size ${size}) wearing EXACTLY this uploaded garment while performing ${movement} at ${intensity}% intensity. ${angle} view angle.
+Generate a professional studio photo of a ${gender} athlete (${bodyType} build, size ${size}) wearing EXACTLY this uploaded garment while performing ${movement} at ${intensity}% intensity.
 
 Requirements:
-- Garment color and fabric must match uploaded reference EXACTLY
-- Realistic stretch, compression, and motion for the movement
+- ${angle.toUpperCase()} camera angle
+- Garment color and fabric must match uploaded reference EXACTLY — no color shifting
+- Realistic stretch, compression, and motion physics for ${movement}
 - Dark studio background with dramatic lighting
-- Professional sportswear campaign photo quality (Nike/Adidas style)
-- The garment is the HERO${logoInstructions}`;
+- Professional sportswear campaign quality (Nike/Adidas level)
+- The garment is the HERO of the image
+${logoInstructions}`;
 
           const imageResp = await fetch(AI_GATEWAY, {
             method: "POST",
@@ -313,11 +328,12 @@ Requirements:
               messages: [
                 {
                   role: "user",
-                  content: processedGarment
+              content: processedGarment
                     ? [
                         { type: "text", text: mainPrompt },
                         { type: "image_url", image_url: { url: processedGarment } },
-                        ...(processedLogo ? [{ type: "image_url", image_url: { url: processedLogo } }] : []),
+                        // Only include logo image reference when it should be visible in this angle
+                        ...(processedLogo && showLogoThisAngle ? [{ type: "image_url", image_url: { url: processedLogo } }] : []),
                       ]
                     : `Studio photo: ${gender} athlete (${bodyType}, size ${size}) wearing dark athletic activewear performing ${movement} at ${intensity}% intensity. ${angle} view. Dark background, professional sportswear photography.`,
                 },
