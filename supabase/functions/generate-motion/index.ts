@@ -299,12 +299,17 @@ LOGO VISIBILITY (CRITICAL):
 
           const FRAMING = `FRAMING (CRITICAL): Show the COMPLETE athlete from head to toe in every shot. Full-body framing — never crop at the waist or torso. The entire figure, including feet and head, must be visible. Consistent framing across all angles.`;
 
+          // Anti-duplication instructions for back/side views
+          const MOTIF_RULES = angle === "front"
+            ? `EXISTING MOTIFS: The uploaded garment reference image shows the FRONT of the garment. Any prints, motifs, graphics, or text visible in the reference are part of the FRONT ONLY. Reproduce them faithfully in this front view exactly as they appear in the reference — same position, size, colors, and style.`
+            : `MOTIF DUPLICATION BAN (CRITICAL): The uploaded garment reference image shows the FRONT of the garment. Any prints, motifs, graphics, logos, or text visible in that reference are on the FRONT ONLY. This is the ${angle.toUpperCase()} view — you MUST NOT copy, mirror, duplicate, or reproduce ANY front-side prints/motifs/graphics onto the ${angle}. The ${angle} of this garment is COMPLETELY PLAIN with NO prints, NO text, NO graphics, NO logos — just solid fabric matching the base color of the garment. Do NOT hallucinate or invent any design on the ${angle}.`;
+
           // Build the prompt
           const mainPrompt = useSimplePrompt
-            ? `Professional full-body studio photo: ${gender} athlete (${bodyType}, size ${size}) wearing this exact uploaded garment, performing ${movement}, ${angle} camera angle. FULL BODY head-to-toe framing — show entire figure including feet. Dark background, sportswear campaign photography.${logoInstructions}`
+            ? `Professional full-body studio photo: ${gender} athlete (${bodyType}, size ${size}) wearing this exact uploaded garment, performing ${movement}, ${angle} camera angle. FULL BODY head-to-toe framing — show entire figure including feet. Dark background, sportswear campaign photography. ${MOTIF_RULES}${logoInstructions}`
             : `CRITICAL INSTRUCTIONS:
-1. GARMENT REFERENCE: The uploaded garment image is the EXACT reference. Preserve its exact color, fabric texture, seams, and details with 100% fidelity.
-2. NO HALLUCINATION: Do not add patterns, logos, text, or details that are not in the uploaded reference (unless logo instructions below say otherwise).
+1. GARMENT REFERENCE: The uploaded garment image is the EXACT and ONLY reference. Preserve its exact color, fabric texture, seams, and details with 100% fidelity. Do NOT invent, add, or duplicate any prints, motifs, logos, or graphics that are not in the reference.
+2. ${MOTIF_RULES}
 3. CAMERA ANGLE: This is a ${angle.toUpperCase()} view — render the garment from the ${angle} perspective.
 4. ${FRAMING}
 
@@ -314,6 +319,7 @@ Requirements:
 - ${angle.toUpperCase()} camera angle
 - FULL-BODY framing: head to toe visible, never cropped at waist or chest
 - Garment color and fabric must match uploaded reference EXACTLY — no color shifting
+- ${angle !== "front" ? `The ${angle} of the garment must be COMPLETELY PLAIN — no prints, motifs, text, or graphics from the front` : "Faithfully reproduce any existing prints/motifs from the reference"}
 - Realistic stretch, compression, and motion physics for ${movement}
 - Dark studio background with dramatic lighting
 - Professional sportswear campaign quality (Nike/Adidas level)
