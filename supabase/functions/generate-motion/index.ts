@@ -297,18 +297,22 @@ LOGO VISIBILITY (CRITICAL):
 - Do NOT show any logo, text, emblem, or branding on this view.
 - The garment on this side must be completely plain/blank with no markings.`) : "";
 
+          const FRAMING = `FRAMING (CRITICAL): Show the COMPLETE athlete from head to toe in every shot. Full-body framing — never crop at the waist or torso. The entire figure, including feet and head, must be visible. Consistent framing across all angles.`;
+
           // Build the prompt
           const mainPrompt = useSimplePrompt
-            ? `Professional studio photo: ${gender} athlete (${bodyType}, size ${size}) wearing this exact uploaded garment, performing ${movement}, ${angle} camera angle. Dark background, sportswear campaign photography.${logoInstructions}`
+            ? `Professional full-body studio photo: ${gender} athlete (${bodyType}, size ${size}) wearing this exact uploaded garment, performing ${movement}, ${angle} camera angle. FULL BODY head-to-toe framing — show entire figure including feet. Dark background, sportswear campaign photography.${logoInstructions}`
             : `CRITICAL INSTRUCTIONS:
 1. GARMENT REFERENCE: The uploaded garment image is the EXACT reference. Preserve its exact color, fabric texture, seams, and details with 100% fidelity.
 2. NO HALLUCINATION: Do not add patterns, logos, text, or details that are not in the uploaded reference (unless logo instructions below say otherwise).
 3. CAMERA ANGLE: This is a ${angle.toUpperCase()} view — render the garment from the ${angle} perspective.
+4. ${FRAMING}
 
-Generate a professional studio photo of a ${gender} athlete (${bodyType} build, size ${size}) wearing EXACTLY this uploaded garment while performing ${movement} at ${intensity}% intensity.
+Generate a professional FULL-BODY studio photo of a ${gender} athlete (${bodyType} build, size ${size}) wearing EXACTLY this uploaded garment while performing ${movement} at ${intensity}% intensity.
 
 Requirements:
 - ${angle.toUpperCase()} camera angle
+- FULL-BODY framing: head to toe visible, never cropped at waist or chest
 - Garment color and fabric must match uploaded reference EXACTLY — no color shifting
 - Realistic stretch, compression, and motion physics for ${movement}
 - Dark studio background with dramatic lighting
