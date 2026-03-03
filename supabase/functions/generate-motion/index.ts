@@ -264,26 +264,42 @@ ABSOLUTE RULES:
         try {
           console.log(`Generating ${angle} view (attempt ${attempts})...`);
 
+          // On later retries, use a simpler prompt to increase success rate
+          const useSimplePrompt = attempts >= 2;
+
           const placementLabel = logoPosition?.placement || "chest-center";
           const isFrontPlacement = placementLabel.startsWith("chest") || placementLabel === "belly-center" || placementLabel === "upper" || placementLabel === "middle";
           const isBackPlacement = placementLabel.startsWith("back");
           const isSleevePlacement = placementLabel.startsWith("sleeve");
 
           const logoInstructions = processedLogo ? `
-LOGO RULES (CRITICAL – NO EXCEPTIONS):
-- The brand logo has been provided with its background REMOVED (transparent cutout)
-- The user placed the logo at position: "${placementLabel}"
-- The logo must appear ONLY on that exact location – NEVER duplicate it on other areas
+LOGO RULES:
+- Logo placed at "${placementLabel}".
 - For "${angle}" view:
-  ${angle === "front" && isFrontPlacement ? `Show the logo clearly visible at the ${placementLabel} position` : ""}
-  ${angle === "front" && isBackPlacement ? "Do NOT show any logo – it was placed on the back" : ""}
-  ${angle === "front" && isSleevePlacement ? `Show the logo on the ${placementLabel.includes("left") ? "left" : "right"} sleeve from front view` : ""}
-  ${angle === "side" ? (isFrontPlacement ? "Show the logo partially visible from the side if the placement is near the edge, otherwise not visible" : isBackPlacement ? "Do NOT show the logo from the side" : `Show the ${placementLabel} partially visible`) : ""}
-  ${angle === "back" && isBackPlacement ? `Show the logo clearly visible at ${placementLabel}` : ""}
-  ${angle === "back" && !isBackPlacement ? "Do NOT show any logo – it was NOT placed on the back" : ""}
-- Keep the logo's ORIGINAL colors EXACTLY as-is – do NOT recolor, tint, darken, lighten, invert, or blend with garment color
-- The logo should follow the fabric's natural stretch and movement realistically
-- The logo must appear EXACTLY ONCE on the entire garment – no duplication` : "";
+  ${angle === "front" && isFrontPlacement ? `Show logo at ${placementLabel}.` : ""}
+  ${angle === "front" && isBackPlacement ? "No logo visible from front." : ""}
+  ${angle === "front" && isSleevePlacement ? `Logo on ${placementLabel.includes("left") ? "left" : "right"} sleeve.` : ""}
+  ${angle === "side" ? "Logo partially visible or hidden depending on placement." : ""}
+  ${angle === "back" && isBackPlacement ? `Show logo at ${placementLabel}.` : ""}
+  ${angle === "back" && !isBackPlacement ? "No logo visible from back." : ""}
+- Keep logo original colors. No duplication.` : "";
+
+          // Build the prompt - simpler on retries for reliability
+          const mainPrompt = useSimplePrompt
+            ? `Generate a studio photo: ${gender} athlete (${bodyType}, size ${size}) wearing this exact uploaded garment, performing ${movement}, ${angle} view. Dark background, professional sportswear photography.${logoInstructions}`
+            : `CRITICAL INSTRUCTIONS (MUST FOLLOW):
+1. GARMENT REFERENCE: The uploaded garment image has its background REMOVED. Use ONLY the foreground clothing as reference. Preserve exact color and fabric.
+2. NO COLOR BLEEDING: Garment color must stay exactly as uploaded.
+3. STRICT FIDELITY: Athlete must wear THIS EXACT garment – same shape, color, fabric texture.
+
+Generate a professional studio photo of a ${gender} athlete (${bodyType} build, size ${size}) wearing EXACTLY this uploaded garment while performing ${movement} at ${intensity}% intensity. ${angle} view angle.
+
+Requirements:
+- Garment color and fabric must match uploaded reference EXACTLY
+- Realistic stretch, compression, and motion for the movement
+- Dark studio background with dramatic lighting
+- Professional sportswear campaign photo quality (Nike/Adidas style)
+- The garment is the HERO${logoInstructions}`;
 
           const imageResp = await fetch(AI_GATEWAY, {
             method: "POST",
@@ -299,23 +315,11 @@ LOGO RULES (CRITICAL – NO EXCEPTIONS):
                   role: "user",
                   content: processedGarment
                     ? [
-                        { type: "text", text: `CRITICAL INSTRUCTIONS (MUST FOLLOW):
-1. GARMENT REFERENCE: The uploaded garment image has its background REMOVED. Use ONLY the foreground clothing as the strict reference. Do NOT pick up any background color or blend background into the garment. The garment's actual color and fabric must be preserved EXACTLY.
-2. NO COLOR BLEEDING: If the garment is black, it MUST remain black. If white, it MUST remain white. Do NOT let any background, studio lighting, or other element change the garment's true color.
-3. STRICT FIDELITY: The athlete must wear THIS EXACT garment – same shape, color, fabric texture, seams, fit, and all visual details. Do NOT invent, replace, or modify the clothing in any way.
-
-Generate a professional studio photo of a ${gender} athlete (${bodyType} build, size ${size}) wearing EXACTLY this uploaded garment while performing ${movement} at ${intensity}% intensity. ${angle} view angle.
-
-Requirements:
-- The garment color and fabric must match the uploaded reference EXACTLY – no color shifts, no background color contamination
-- Show realistic stretch, compression, and motion appropriate to the movement
-- Dark studio background with dramatic lighting (lighting must NOT wash out or change garment color)
-- Professional sportswear campaign photo quality (Nike/Adidas style)
-- The garment is the HERO – it must be instantly recognizable as the exact same item${logoInstructions}` },
+                        { type: "text", text: mainPrompt },
                         { type: "image_url", image_url: { url: processedGarment } },
                         ...(processedLogo ? [{ type: "image_url", image_url: { url: processedLogo } }] : []),
                       ]
-                    : `Generate a professional studio photo of a ${gender} athlete (${bodyType} build, size ${size}) wearing dark athletic activewear performing ${movement} at ${intensity}% intensity. ${angle} view angle. Dark studio background with dramatic lighting. Professional sportswear campaign photo quality.`,
+                    : `Studio photo: ${gender} athlete (${bodyType}, size ${size}) wearing dark athletic activewear performing ${movement} at ${intensity}% intensity. ${angle} view. Dark background, professional sportswear photography.`,
                 },
               ],
             }),
@@ -336,6 +340,11 @@ Requirements:
             const errText = await imageResp.text();
             console.error(`Image gen failed for ${angle}:`, imageResp.status, errText);
           }
+
+          // Small delay before retry to avoid rate limiting
+          if (attempts < MAX_RETRIES) {
+            await new Promise(r => setTimeout(r, 1500));
+          }
         } catch (e) {
           console.error(`Image gen error for ${angle} (attempt ${attempts}):`, e);
         }
@@ -343,7 +352,12 @@ Requirements:
       return null;
     }
 
-    const angleResults = await Promise.all(angles.map(a => generateAngle(a)));
+    // Generate angles sequentially to avoid rate-limit issues
+    const angleResults: (string | null)[] = [];
+    for (const angle of angles) {
+      const result = await generateAngle(angle);
+      angleResults.push(result);
+    }
     const generatedImages: Record<string, string | null> = {};
     angles.forEach((a, i) => { generatedImages[a] = angleResults[i]; });
 
