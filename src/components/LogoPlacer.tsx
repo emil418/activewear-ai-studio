@@ -107,7 +107,7 @@ export default function LogoPlacer({ garmentPreview, logoPreview, position, onPo
         {/* Logo overlay */}
         <div
           data-logo-handle
-          className={`absolute w-14 h-14 -translate-x-1/2 -translate-y-1/2 cursor-grab active:cursor-grabbing transition-shadow ${
+          className={`absolute w-10 h-10 -translate-x-1/2 -translate-y-1/2 cursor-grab active:cursor-grabbing transition-shadow ${
             dragging ? "ring-2 ring-primary shadow-lg shadow-primary/30" : "ring-1 ring-primary/40"
           }`}
           style={{ left: `${localPos.x}%`, top: `${localPos.y}%` }}
