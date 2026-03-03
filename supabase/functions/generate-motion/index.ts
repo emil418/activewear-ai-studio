@@ -161,16 +161,19 @@ serve(async (req) => {
             {
               role: "system",
               content: `You are an expert activewear and sportswear fabric analyst. You ONLY analyze athletic clothing.
-IMPORTANT: The image may have its background removed (transparent). Focus ONLY on the foreground clothing item. Ignore any background artifacts.
+IMPORTANT: The image background has been removed (transparent). Focus ONLY on the foreground clothing item. Completely ignore any background remnants, artifacts, or transparency.
 Analyze the garment and return JSON with EXACTLY these fields:
-- fabric_type: string (e.g. "High-compression polyester-elastane blend", "Moisture-wicking nylon mesh", "Cotton-polyester training blend")
-- garment_category: string (ONLY one of: "T-Shirt", "Compression T-Shirt", "Leggings", "Shorts", "Sports Bra", "Training Top", "Compression Tights", "Tank Top", "Hoodie", "Joggers")
-- color_palette: array of hex strings (analyze the ACTUAL fabric color, not any background)
+- fabric_type: string – describe the actual fabric composition (e.g. "High-compression polyester-elastane blend", "Moisture-wicking nylon mesh"). Be specific about the material.
+- garment_category: string (ONLY one of: "T-Shirt", "Compression T-Shirt", "Leggings", "Shorts", "Sports Bra", "Training Top", "Compression Tights", "Tank Top", "Hoodie", "Joggers"). Pick the BEST match for the uploaded athletic clothing.
+- color_palette: array of hex strings – analyze the ACTUAL fabric color from the foreground pixels only. If the fabric is black, return ["#1a1a1a"] or similar dark hex. NEVER let background color influence this.
 - stretch_rating: number 1-10
 - compression_level: string ("Light", "Medium", "High", "Ultra-High")
 - breathability_rating: number 1-10
 - recommended_use: array of strings (e.g. ["HIIT", "Strength", "Running", "Yoga", "CrossFit", "Cardio"])
-CRITICAL: NEVER return categories like jewelry, cufflinks, metal, accessories, or non-sportswear items. This is ALWAYS athletic clothing. Return ONLY valid JSON.`,
+ABSOLUTE RULES:
+- This is ALWAYS athletic/sportswear clothing. NEVER categorize as jewelry, metal, cufflinks, accessories, or any non-sportswear item.
+- The color must reflect the ACTUAL garment fabric, not background or transparency.
+- Return ONLY valid JSON, no markdown fences, no extra text.`,
             },
             {
               role: "user",
@@ -251,7 +254,7 @@ CRITICAL: NEVER return categories like jewelry, cufflinks, metal, accessories, o
     // ── Step 3: Generate multi-angle images (PARALLEL) ──
     console.log("Step 3: Generating motion images in parallel...");
     const angles = ["front", "side", "back"];
-    const MAX_RETRIES = 2;
+    const MAX_RETRIES = 3;
 
     async function generateAngle(angle: string): Promise<string | null> {
       let attempts = 0;
