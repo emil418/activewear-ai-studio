@@ -3,7 +3,7 @@ import { Link, useLocation, Outlet, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Home, Zap, Image, CreditCard, Settings,
-  ChevronLeft, ChevronRight, LogOut, Menu, X, Activity
+  ChevronLeft, ChevronRight, LogOut, Menu, X, Activity, Users
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -11,6 +11,7 @@ const navItems = [
   { icon: Home, label: "Home", path: "/dashboard" },
   { icon: Zap, label: "Create", path: "/dashboard/create" },
   { icon: Image, label: "Library", path: "/dashboard/library" },
+  { icon: Users, label: "Athletes", path: "/dashboard/athletes" },
   { divider: true },
   { icon: CreditCard, label: "Billing", path: "/dashboard/billing" },
   { icon: Settings, label: "Settings", path: "/dashboard/settings" },

@@ -1,9 +1,10 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Upload, User, Zap, Download, ArrowRight, ArrowLeft,
-  Check, Image, Activity, Package, Layers, Send, Loader2
+  Check, Image, Activity, Package, Layers, Send, Loader2, Users, Plus
 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -61,6 +62,22 @@ interface GenerationResult {
   model_router: Record<string, string>;
 }
 
+interface AthleteProfile {
+  id: string;
+  name: string;
+  gender: string;
+  height_cm: number;
+  weight_kg: number;
+  body_type: string;
+  muscle_density: number;
+  body_fat_pct: number;
+  skin_tone: string;
+  face_structure: string;
+  hair_style: string;
+  brand_vibe: string;
+  identity_seed: string | null;
+}
+
 const Create = () => {
   const [step, setStep] = useState(0);
   const [garmentFile, setGarmentFile] = useState<File | null>(null);
@@ -79,6 +96,10 @@ const Create = () => {
   const [result, setResult] = useState<GenerationResult | null>(null);
   const [generationError, setGenerationError] = useState<string | null>(null);
 
+  // Athlete selection
+  const [athletes, setAthletes] = useState<AthleteProfile[]>([]);
+  const [selectedAthlete, setSelectedAthlete] = useState<AthleteProfile | null>(null);
+
   // Size variants: maps size -> GenerationResult
   const [sizeVariants, setSizeVariants] = useState<Record<string, GenerationResult | null>>({});
   const [generatingSizes, setGeneratingSizes] = useState(false);
@@ -86,8 +107,20 @@ const Create = () => {
   const [activeSizeTab, setActiveSizeTab] = useState("M");
 
   const { toast } = useToast();
-  const { session: _session } = useAuth();
+  const { session: _session, user } = useAuth();
   const { influencerMode } = useInfluencerMode();
+
+  // Load athletes
+  useEffect(() => {
+    const loadAthletes = async () => {
+      if (!user) return;
+      const { data: brand } = await supabase.from("brands").select("id").eq("owner_id", user.id).limit(1).single();
+      if (!brand) return;
+      const { data } = await supabase.from("athlete_profiles").select("*").eq("brand_id", brand.id).order("created_at", { ascending: false });
+      setAthletes((data as unknown as AthleteProfile[]) || []);
+    };
+    loadAthletes();
+  }, [user]);
 
   const handleFileDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -122,17 +155,33 @@ const Create = () => {
     });
 
   const generateForSize = async (size: string, garmentBase64: string | null, logoBase64: string | null): Promise<GenerationResult> => {
+    const athleteIdentity = selectedAthlete ? {
+      name: selectedAthlete.name,
+      gender: selectedAthlete.gender,
+      height_cm: selectedAthlete.height_cm,
+      weight_kg: selectedAthlete.weight_kg,
+      body_type: selectedAthlete.body_type,
+      muscle_density: selectedAthlete.muscle_density,
+      body_fat_pct: selectedAthlete.body_fat_pct,
+      skin_tone: selectedAthlete.skin_tone,
+      face_structure: selectedAthlete.face_structure,
+      hair_style: selectedAthlete.hair_style,
+      brand_vibe: selectedAthlete.brand_vibe,
+      identity_seed: selectedAthlete.identity_seed,
+    } : undefined;
+
     const response = await supabase.functions.invoke("generate-motion", {
       body: {
         garmentName: garmentFile?.name || "Activewear",
         garmentBase64,
-        gender: selectedGender,
+        gender: selectedAthlete?.gender || selectedGender,
         size,
-        bodyType: selectedBody,
+        bodyType: selectedAthlete?.body_type || selectedBody,
         movement: selectedMovement,
         intensity: intensity[0],
         logoBase64,
         logoPosition: logoPosition || undefined,
+        athleteIdentity,
       },
     });
     if (!response.data || response.data.error) throw new Error(response.data?.error || "Generation failed");
@@ -513,47 +562,105 @@ const Create = () => {
           <motion.div key="athlete" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
             <div>
               <h2 className="font-display text-2xl font-bold tracking-tight mb-1">Choose your athlete</h2>
-              <p className="text-sm text-muted-foreground">Select gender, size, and body type for the simulation.</p>
+              <p className="text-sm text-muted-foreground">Select a saved athlete or customize manually.</p>
             </div>
 
-            <div className="glass-card p-6 space-y-6">
-              <div>
-                <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3">Gender</p>
-                <div className="flex gap-2">
-                  {genders.map(g => (
-                    <button key={g} onClick={() => setSelectedGender(g)}
-                      className={`text-sm px-5 py-2.5 rounded-xl font-semibold transition-all duration-300 ${
-                        selectedGender === g ? "bg-primary/10 text-primary border border-primary/20"
-                          : "bg-muted text-muted-foreground border border-border hover:border-primary/20"
-                      }`}>{g}</button>
-                  ))}
+            {/* Saved athletes picker */}
+            {athletes.length > 0 && (
+              <div className="glass-card p-5 space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Saved Athletes</p>
+                  <Link to="/dashboard/athletes" className="text-xs text-primary hover:underline">Manage</Link>
                 </div>
-              </div>
-
-              <div>
-                <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3">Size</p>
-                <div className="flex gap-2">
-                  {ALL_SIZES.map(s => (
-                    <button key={s} onClick={() => setSelectedSize(s)}
-                      className={`text-sm px-4 py-2.5 rounded-xl font-semibold transition-all duration-300 ${
-                        selectedSize === s ? "bg-primary/10 text-primary border border-primary/20"
-                          : "bg-muted text-muted-foreground border border-border hover:border-primary/20"
-                      }`}>{s}</button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3">Body Type</p>
                 <div className="flex flex-wrap gap-2">
-                  {bodyTypes.map(b => (
-                    <button key={b} onClick={() => setSelectedBody(b)}
-                      className={`text-sm px-4 py-2.5 rounded-xl font-semibold transition-all duration-300 ${
-                        selectedBody === b ? "bg-primary/10 text-primary border border-primary/20"
+                  <button onClick={() => setSelectedAthlete(null)}
+                    className={`flex items-center gap-2 text-sm px-4 py-2.5 rounded-xl font-semibold transition-all duration-300 ${
+                      !selectedAthlete ? "bg-primary/10 text-primary border border-primary/20"
+                        : "bg-muted text-muted-foreground border border-border hover:border-primary/20"
+                    }`}>
+                    <User className="w-3.5 h-3.5" /> Custom
+                  </button>
+                  {athletes.map(a => (
+                    <button key={a.id} onClick={() => {
+                      setSelectedAthlete(a);
+                      setSelectedGender(a.gender);
+                      setSelectedBody(a.body_type);
+                    }}
+                      className={`flex items-center gap-2 text-sm px-4 py-2.5 rounded-xl font-semibold transition-all duration-300 ${
+                        selectedAthlete?.id === a.id ? "bg-primary/10 text-primary border border-primary/20"
                           : "bg-muted text-muted-foreground border border-border hover:border-primary/20"
-                      }`}>{b}</button>
+                      }`}>
+                      <Users className="w-3.5 h-3.5" />
+                      {a.name}
+                      <span className="text-[10px] text-muted-foreground/60 capitalize">{a.body_type}</span>
+                    </button>
                   ))}
                 </div>
+                {selectedAthlete && (
+                  <div className="mt-2 p-3 rounded-xl bg-primary/[0.04] border border-primary/10 text-xs text-muted-foreground space-y-1">
+                    <p className="text-primary font-semibold text-sm">{selectedAthlete.name}</p>
+                    <p className="capitalize">{selectedAthlete.gender} · {selectedAthlete.height_cm}cm · {selectedAthlete.weight_kg}kg · {selectedAthlete.body_type}</p>
+                    <p className="capitalize">Skin: {selectedAthlete.skin_tone} · Face: {selectedAthlete.face_structure} · Hair: {selectedAthlete.hair_style}</p>
+                    <p className="capitalize">Muscle: {selectedAthlete.muscle_density}/10 · BF: {selectedAthlete.body_fat_pct}% · Vibe: {selectedAthlete.brand_vibe}</p>
+                    {selectedAthlete.identity_seed && <p className="text-primary/40 text-[10px]">Identity locked — consistent across all generations</p>}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {athletes.length === 0 && (
+              <div className="glass-card p-4 flex items-center justify-between">
+                <p className="text-xs text-muted-foreground">Create persistent athletes for consistent brand imagery.</p>
+                <Link to="/dashboard/athletes">
+                  <Button variant="outline" size="sm" className="rounded-xl gap-1.5 text-xs">
+                    <Plus className="w-3.5 h-3.5" /> Create Athlete
+                  </Button>
+                </Link>
+              </div>
+            )}
+
+            {/* Manual controls (shown when no athlete selected) */}
+            {!selectedAthlete && (
+              <div className="glass-card p-6 space-y-6">
+                <div>
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3">Gender</p>
+                  <div className="flex gap-2">
+                    {genders.map(g => (
+                      <button key={g} onClick={() => setSelectedGender(g)}
+                        className={`text-sm px-5 py-2.5 rounded-xl font-semibold transition-all duration-300 ${
+                          selectedGender === g ? "bg-primary/10 text-primary border border-primary/20"
+                            : "bg-muted text-muted-foreground border border-border hover:border-primary/20"
+                        }`}>{g}</button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3">Body Type</p>
+                  <div className="flex flex-wrap gap-2">
+                    {bodyTypes.map(b => (
+                      <button key={b} onClick={() => setSelectedBody(b)}
+                        className={`text-sm px-4 py-2.5 rounded-xl font-semibold transition-all duration-300 ${
+                          selectedBody === b ? "bg-primary/10 text-primary border border-primary/20"
+                            : "bg-muted text-muted-foreground border border-border hover:border-primary/20"
+                        }`}>{b}</button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Size always visible */}
+            <div className="glass-card p-6">
+              <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3">Size</p>
+              <div className="flex gap-2">
+                {ALL_SIZES.map(s => (
+                  <button key={s} onClick={() => setSelectedSize(s)}
+                    className={`text-sm px-4 py-2.5 rounded-xl font-semibold transition-all duration-300 ${
+                      selectedSize === s ? "bg-primary/10 text-primary border border-primary/20"
+                        : "bg-muted text-muted-foreground border border-border hover:border-primary/20"
+                    }`}>{s}</button>
+                ))}
               </div>
             </div>
           </motion.div>

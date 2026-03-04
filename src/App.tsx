@@ -18,6 +18,7 @@ import Create from "./pages/Create";
 import Library from "./pages/Library";
 import Billing from "./pages/Billing";
 import BrandSettings from "./pages/BrandSettings";
+import AthleteLibrary from "./pages/AthleteLibrary";
 
 const queryClient = new QueryClient();
 
@@ -39,6 +40,7 @@ const App = () => (
                 <Route index element={<DashboardHome />} />
                 <Route path="create" element={<Create />} />
                 <Route path="library" element={<Library />} />
+                <Route path="athletes" element={<AthleteLibrary />} />
                 <Route path="billing" element={<Billing />} />
                 <Route path="settings" element={<BrandSettings />} />
               </Route>
