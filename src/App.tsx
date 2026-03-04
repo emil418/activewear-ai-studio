@@ -19,6 +19,7 @@ import Library from "./pages/Library";
 import Billing from "./pages/Billing";
 import BrandSettings from "./pages/BrandSettings";
 import AthleteLibrary from "./pages/AthleteLibrary";
+import Templates from "./pages/Templates";
 
 const queryClient = new QueryClient();
 
@@ -41,6 +42,7 @@ const App = () => (
                 <Route path="create" element={<Create />} />
                 <Route path="library" element={<Library />} />
                 <Route path="athletes" element={<AthleteLibrary />} />
+                <Route path="templates" element={<Templates />} />
                 <Route path="billing" element={<Billing />} />
                 <Route path="settings" element={<BrandSettings />} />
               </Route>

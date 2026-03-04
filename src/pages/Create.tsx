@@ -2,7 +2,7 @@ import { useState, useCallback, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Upload, User, Zap, Download, ArrowRight, ArrowLeft,
-  Check, Image, Activity, Package, Layers, Send, Loader2, Users, Plus
+  Check, Image, Activity, Package, Layers, Send, Loader2, Users, Plus, FileText, Video
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -78,6 +78,29 @@ interface AthleteProfile {
   identity_seed: string | null;
 }
 
+interface TemplateData {
+  id: string;
+  template_name: string;
+  athlete_id: string | null;
+  movement_set: string[];
+  intensity: number;
+  camera_presets: string[];
+  output_type: string;
+  influencer_locked: boolean;
+}
+
+interface BrandKitData {
+  id: string;
+  primary_color: string;
+  secondary_color: string;
+  accent_color: string;
+  font_primary: string;
+  font_secondary: string;
+  vibe: string;
+  logo_primary_url: string | null;
+  watermark_opacity: number;
+}
+
 const Create = () => {
   const [step, setStep] = useState(0);
   const [garmentFile, setGarmentFile] = useState<File | null>(null);
@@ -100,26 +123,40 @@ const Create = () => {
   const [athletes, setAthletes] = useState<AthleteProfile[]>([]);
   const [selectedAthlete, setSelectedAthlete] = useState<AthleteProfile | null>(null);
 
+  // Template selection
+  const [templates, setTemplates] = useState<TemplateData[]>([]);
+  const [selectedTemplate, setSelectedTemplate] = useState<TemplateData | null>(null);
+  const [brandKit, setBrandKit] = useState<BrandKitData | null>(null);
+
   // Size variants: maps size -> GenerationResult
   const [sizeVariants, setSizeVariants] = useState<Record<string, GenerationResult | null>>({});
   const [generatingSizes, setGeneratingSizes] = useState(false);
   const [sizeProgress, setSizeProgress] = useState("");
   const [activeSizeTab, setActiveSizeTab] = useState("M");
+  const [generatingVideo, setGeneratingVideo] = useState(false);
 
   const { toast } = useToast();
   const { session: _session, user } = useAuth();
   const { influencerMode } = useInfluencerMode();
 
-  // Load athletes
+  // Load athletes + templates + brand kit
   useEffect(() => {
-    const loadAthletes = async () => {
+    const load = async () => {
       if (!user) return;
       const { data: brand } = await supabase.from("brands").select("id").eq("owner_id", user.id).limit(1).single();
       if (!brand) return;
-      const { data } = await supabase.from("athlete_profiles").select("*").eq("brand_id", brand.id).order("created_at", { ascending: false });
-      setAthletes((data as unknown as AthleteProfile[]) || []);
+
+      const [athleteRes, templateRes, kitRes] = await Promise.all([
+        supabase.from("athlete_profiles").select("*").eq("brand_id", brand.id).order("created_at", { ascending: false }),
+        supabase.from("templates").select("*").eq("brand_id", brand.id).order("created_at", { ascending: false }),
+        supabase.from("brand_kits").select("*").eq("brand_id", brand.id).limit(1).single(),
+      ]);
+
+      setAthletes((athleteRes.data as unknown as AthleteProfile[]) || []);
+      setTemplates((templateRes.data as unknown as TemplateData[]) || []);
+      if (kitRes.data) setBrandKit(kitRes.data as unknown as BrandKitData);
     };
-    loadAthletes();
+    load();
   }, [user]);
 
   const handleFileDrop = useCallback((e: React.DragEvent) => {
@@ -301,14 +338,17 @@ const Create = () => {
 
   const buildCampaignPack = async () => {
     if (!result) return;
-    toast({ title: "Preparing Campaign Pack...", description: "Generating PDF and bundling assets." });
+    toast({ title: "Preparing Campaign Pack...", description: "Generating branded PDF lookbook and bundling all assets." });
     try {
       const zip = new JSZip();
       const { entries, garmentName } = collectAllImages;
+      const bk = brandKit;
+      const athleteName = selectedAthlete?.name || "Custom Athlete";
+      const dateStr = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
 
-      // Images organized by size
+      // ── Images organized by size ──
       for (const { size, angle, url } of entries) {
-        const folder = zip.folder(size);
+        const folder = zip.folder(`images/${size}`);
         try {
           const resp = await fetch(url);
           const blob = await resp.blob();
@@ -316,7 +356,7 @@ const Create = () => {
         } catch { /* skip */ }
       }
 
-      // Reels thumbnails from front views
+      // ── Reels thumbnails ──
       const reelsFolder = zip.folder("reels-thumbnails");
       for (const { size, angle, url } of entries) {
         if (angle !== "front") continue;
@@ -327,71 +367,194 @@ const Create = () => {
         } catch { /* skip */ }
       }
 
-      // PDF lookbook
+      // ── E-commerce clean images (front views only) ──
+      const ecomFolder = zip.folder("ecommerce");
+      for (const { size, angle, url } of entries) {
+        if (angle !== "front") continue;
+        try {
+          const resp = await fetch(url);
+          const blob = await resp.blob();
+          ecomFolder?.file(`${garmentName}_${size}_ecom.png`, blob);
+        } catch { /* skip */ }
+      }
+
+      // ── Helper: hex to RGB ──
+      const hexToRgb = (hex: string) => {
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+        return [r, g, b] as const;
+      };
+
+      const primaryRgb = hexToRgb(bk?.primary_color || "#00FF85");
+      const accentRgb = hexToRgb(bk?.accent_color || "#FF3D6E");
+
+      // ── PDF Lookbook — Professional branded design ──
       const pdf = new jsPDF();
-      pdf.setFontSize(28);
-      pdf.text("ActiveForge", 20, 25);
-      pdf.setFontSize(14);
-      pdf.setTextColor(100);
-      pdf.text("Campaign Lookbook", 20, 35);
-      pdf.setDrawColor(0, 255, 133);
-      pdf.line(20, 40, 190, 40);
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
 
-      pdf.setTextColor(0);
+      // --- COVER PAGE ---
+      pdf.setFillColor(10, 10, 10);
+      pdf.rect(0, 0, pageW, pageH, "F");
+
+      // Brand accent line
+      pdf.setFillColor(...primaryRgb);
+      pdf.rect(0, 0, pageW, 4, "F");
+
+      // Title block
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFontSize(36);
+      pdf.text("CAMPAIGN", 20, 60);
+      pdf.text("LOOKBOOK", 20, 78);
+
       pdf.setFontSize(12);
-      pdf.text(`Garment: ${garmentFile?.name || "Activewear"}`, 20, 55);
-      pdf.text(`Movement: ${selectedMovement} at ${intensity[0]}% intensity`, 20, 65);
-      pdf.text(`Athlete: ${selectedGender}, ${selectedSize}, ${selectedBody}`, 20, 75);
-      pdf.text(`Generated: ${new Date().toLocaleDateString()}`, 20, 85);
-      if (logoPosition) pdf.text(`Logo Position: ${logoPosition.placement}`, 20, 95);
+      pdf.setTextColor(...primaryRgb);
+      pdf.text("ACTIVEFORGE", 20, 95);
 
-      pdf.setFontSize(16);
-      pdf.text("Performance Metrics", 20, 115);
+      pdf.setFontSize(10);
+      pdf.setTextColor(150, 150, 150);
+      pdf.text(`Garment: ${garmentFile?.name || "Activewear"}`, 20, 115);
+      pdf.text(`Movement: ${selectedMovement} · ${intensity[0]}% intensity`, 20, 125);
+      pdf.text(`Athlete: ${athleteName} · ${selectedGender} · ${selectedBody}`, 20, 135);
+      pdf.text(`Size: ${selectedSize}`, 20, 145);
+      pdf.text(`Generated: ${dateStr}`, 20, 155);
+      if (selectedTemplate) pdf.text(`Template: ${selectedTemplate.template_name}`, 20, 165);
+      if (bk) pdf.text(`Brand Vibe: ${bk.vibe}`, 20, selectedTemplate ? 175 : 165);
+
+      // Footer watermark
+      pdf.setFontSize(8);
+      pdf.setTextColor(60, 60, 60);
+      pdf.text("Powered by ActiveForge — Performance Visualization Platform", 20, pageH - 15);
+
+      // --- MOVEMENT BREAKDOWN PAGE ---
+      pdf.addPage();
+      pdf.setFillColor(10, 10, 10);
+      pdf.rect(0, 0, pageW, pageH, "F");
+      pdf.setFillColor(...primaryRgb);
+      pdf.rect(0, 0, pageW, 3, "F");
+
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFontSize(20);
+      pdf.text("MOVEMENT BREAKDOWN", 20, 30);
+
       pdf.setFontSize(11);
+      pdf.setTextColor(200, 200, 200);
+      pdf.text(`Movement: ${selectedMovement}`, 20, 50);
+      pdf.text(`Intensity: ${intensity[0]}%`, 20, 60);
+      pdf.text(`Camera Angles: Front, Side, Back`, 20, 70);
+
+      // --- PERFORMANCE METRICS PAGE ---
+      pdf.addPage();
+      pdf.setFillColor(10, 10, 10);
+      pdf.rect(0, 0, pageW, pageH, "F");
+      pdf.setFillColor(...primaryRgb);
+      pdf.rect(0, 0, pageW, 3, "F");
+
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFontSize(20);
+      pdf.text("PERFORMANCE METRICS", 20, 30);
+
       const p = result.physics;
-      [
+      const metrics = [
         ["Stretch Factor", p.stretch_factor],
         ["Compression", `${p.compression_percentage}%`],
         ["Sweat Absorption", `${p.sweat_absorption}%`],
         ["Breathability", `${p.breathability_score}%`],
-      ].forEach(([label, val], i) => {
-        pdf.text(`${label}: ${val}`, 20, 130 + i * 10);
-      });
-      if (p.stress_zones?.length) pdf.text(`Stress Zones: ${p.stress_zones.join(", ")}`, 20, 175);
-      if (p.performance_notes) { pdf.text("Notes:", 20, 190); pdf.text(p.performance_notes, 20, 200, { maxWidth: 170 }); }
+      ];
 
-      // Garment analysis page
-      pdf.addPage();
-      pdf.setFontSize(16);
-      pdf.text("Garment Analysis", 20, 25);
       pdf.setFontSize(11);
-      let y = 40;
-      for (const [key, val] of Object.entries(result.garment_analysis)) {
-        const display = Array.isArray(val) ? (val as string[]).join(", ") : String(val);
-        pdf.text(`${key.replace(/_/g, " ")}: ${display}`, 20, y);
-        y += 10;
-        if (y > 280) { pdf.addPage(); y = 20; }
+      metrics.forEach(([label, val], i) => {
+        const yPos = 50 + i * 22;
+        pdf.setTextColor(...primaryRgb);
+        pdf.text(String(label), 20, yPos);
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFontSize(16);
+        pdf.text(String(val), 20, yPos + 10);
+        pdf.setFontSize(11);
+      });
+
+      if (p.stress_zones?.length) {
+        pdf.setTextColor(...accentRgb);
+        pdf.setFontSize(12);
+        pdf.text("STRESS ZONES", 20, 150);
+        pdf.setTextColor(200, 200, 200);
+        pdf.setFontSize(10);
+        pdf.text(p.stress_zones.join("  ·  "), 20, 162);
       }
 
-      // Size variants summary
+      if (p.performance_notes) {
+        pdf.setTextColor(150, 150, 150);
+        pdf.setFontSize(10);
+        pdf.text("Performance Notes:", 20, 182);
+        pdf.setTextColor(200, 200, 200);
+        pdf.text(p.performance_notes, 20, 194, { maxWidth: 170 });
+      }
+
+      // --- GARMENT ANALYSIS PAGE ---
+      pdf.addPage();
+      pdf.setFillColor(10, 10, 10);
+      pdf.rect(0, 0, pageW, pageH, "F");
+      pdf.setFillColor(...primaryRgb);
+      pdf.rect(0, 0, pageW, 3, "F");
+
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFontSize(20);
+      pdf.text("GARMENT ANALYSIS", 20, 30);
+
+      pdf.setFontSize(10);
+      let y = 50;
+      for (const [key, val] of Object.entries(result.garment_analysis)) {
+        const display = Array.isArray(val) ? (val as string[]).join(", ") : String(val);
+        pdf.setTextColor(...primaryRgb);
+        pdf.text(key.replace(/_/g, " ").toUpperCase(), 20, y);
+        pdf.setTextColor(200, 200, 200);
+        pdf.text(display, 20, y + 8);
+        y += 20;
+        if (y > 270) { pdf.addPage(); pdf.setFillColor(10, 10, 10); pdf.rect(0, 0, pageW, pageH, "F"); y = 20; }
+      }
+
+      // --- SIZE VARIANTS PAGE ---
       if (Object.keys(sizeVariants).length > 0) {
         pdf.addPage();
-        pdf.setFontSize(16);
-        pdf.text("Size Variants Summary", 20, 25);
-        pdf.setFontSize(11);
-        let sy = 40;
+        pdf.setFillColor(10, 10, 10);
+        pdf.rect(0, 0, pageW, pageH, "F");
+        pdf.setFillColor(...primaryRgb);
+        pdf.rect(0, 0, pageW, 3, "F");
+
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFontSize(20);
+        pdf.text("SIZE VISUALIZATION", 20, 30);
+
+        pdf.setFontSize(10);
+        let sy = 50;
         for (const size of ALL_SIZES) {
           const sv = sizeVariants[size];
-          if (!sv) { pdf.text(`${size}: Not generated`, 20, sy); sy += 10; continue; }
+          if (!sv) {
+            pdf.setTextColor(80, 80, 80);
+            pdf.text(`${size}: Not generated`, 20, sy);
+            sy += 12;
+            continue;
+          }
           const count = ANGLES.filter(a => getImageUrl(sv, a)).length;
-          pdf.text(`${size}: ${count}/3 angles — Stretch ${sv.physics.stretch_factor}, Compression ${sv.physics.compression_percentage}%`, 20, sy);
-          sy += 10;
-          if (sy > 280) { pdf.addPage(); sy = 20; }
+          pdf.setTextColor(...primaryRgb);
+          pdf.text(size, 20, sy);
+          pdf.setTextColor(200, 200, 200);
+          pdf.text(`${count}/3 angles · Stretch ${sv.physics.stretch_factor} · Compression ${sv.physics.compression_percentage}%`, 35, sy);
+          sy += 12;
         }
       }
 
+      // Footer on last page
+      pdf.setFontSize(8);
+      pdf.setTextColor(60, 60, 60);
+      pdf.text(`© ${new Date().getFullYear()} — Generated by ActiveForge`, 20, pageH - 10);
+
       zip.file("lookbook.pdf", pdf.output("blob"));
       zip.file("performance-metrics.json", JSON.stringify({
+        brand_kit: bk ? { vibe: bk.vibe, primary_color: bk.primary_color, secondary_color: bk.secondary_color } : null,
+        template: selectedTemplate?.template_name || null,
+        athlete: athleteName,
         physics: result.physics,
         garment_analysis: result.garment_analysis,
         logo_position: logoPosition,
@@ -403,13 +566,15 @@ const Create = () => {
       }, null, 2));
 
       const content = await zip.generateAsync({ type: "blob" });
-      const dateStr = new Date().toISOString().split("T")[0];
       const a = document.createElement("a");
       a.href = URL.createObjectURL(content);
-      a.download = `ActiveForge-${garmentName}-${selectedMovement.replace(/\s+/g, "-")}-${dateStr}.zip`;
+      a.download = `ActiveForge-${garmentName}-${selectedMovement.replace(/\s+/g, "-")}-${new Date().toISOString().split("T")[0]}.zip`;
       a.click();
       URL.revokeObjectURL(a.href);
-      toast({ title: "Campaign Pack downloaded", description: `${entries.length} images across ${Object.keys(Object.keys(sizeVariants).length > 0 ? sizeVariants : { [selectedSize]: result }).length} size(s) bundled.` });
+      toast({
+        title: "✅ Campaign Pack downloaded",
+        description: `${entries.length} images, branded PDF lookbook, e-commerce assets, and performance data bundled.`,
+      });
     } catch (err) {
       toast({ title: "Export failed", description: String(err), variant: "destructive" });
     }
@@ -460,10 +625,46 @@ const Create = () => {
 
   return (
     <div className="p-6 lg:p-10 max-w-4xl mx-auto space-y-8">
-      {/* Influencer mode banner */}
+      {/* Influencer mode banner + template selector */}
       {showSimplifiedUI && (
-        <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-secondary/10 border border-secondary/20 text-secondary text-xs font-bold uppercase tracking-wider">
-          <Zap className="w-3.5 h-3.5" /> Creator Mode Active
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-secondary/10 border border-secondary/20 text-secondary text-xs font-bold uppercase tracking-wider">
+            <Zap className="w-3.5 h-3.5" /> Creator Mode Active
+          </div>
+          {templates.filter(t => t.influencer_locked || true).length > 0 && (
+            <div className="glass-card p-5 space-y-3">
+              <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Quick Templates</p>
+              <div className="flex flex-wrap gap-2">
+                <button onClick={() => setSelectedTemplate(null)}
+                  className={`text-sm px-4 py-2.5 rounded-xl font-semibold transition-all duration-300 ${
+                    !selectedTemplate ? "bg-primary/10 text-primary border border-primary/20"
+                      : "bg-muted text-muted-foreground border border-border hover:border-primary/20"
+                  }`}>Custom</button>
+                {templates.map(t => (
+                  <button key={t.id} onClick={() => {
+                    setSelectedTemplate(t);
+                    if (t.movement_set.length > 0) setSelectedMovement(t.movement_set[0]);
+                    if (t.intensity) setIntensity([t.intensity]);
+                    if (t.athlete_id) {
+                      const a = athletes.find(a => a.id === t.athlete_id);
+                      if (a) { setSelectedAthlete(a); setSelectedGender(a.gender); setSelectedBody(a.body_type); }
+                    }
+                  }}
+                    className={`text-sm px-4 py-2.5 rounded-xl font-semibold flex items-center gap-1.5 transition-all duration-300 ${
+                      selectedTemplate?.id === t.id ? "bg-primary/10 text-primary border border-primary/20"
+                        : "bg-muted text-muted-foreground border border-border hover:border-primary/20"
+                    }`}>
+                    <FileText className="w-3 h-3" /> {t.template_name}
+                  </button>
+                ))}
+              </div>
+              {selectedTemplate && (
+                <p className="text-xs text-muted-foreground">
+                  {selectedTemplate.movement_set.length} movements · {selectedTemplate.intensity}% intensity · {selectedTemplate.output_type}
+                </p>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -918,21 +1119,63 @@ const Create = () => {
             )}
 
             {/* Export */}
-            <div className={`flex gap-3 ${showSimplifiedUI ? "flex-col" : ""}`}>
-              <Button className={`rounded-xl font-bold gap-2 glow-border ${showSimplifiedUI ? "py-6 text-base" : "flex-1 py-5"}`}
-                onClick={buildCampaignPack}>
-                <Package className="w-4 h-4" /> Create Campaign Pack
-              </Button>
-              <Button variant="outline" className="rounded-xl border-border hover:bg-muted gap-2 px-6"
-                onClick={handleSaveImages}>
-                <Download className="w-4 h-4" /> Save Images ({collectAllImages.entries.length})
-              </Button>
-              {showSimplifiedUI && (
-                <Button variant="outline" className="rounded-xl border-secondary/30 text-secondary hover:bg-secondary/10 gap-2 py-5"
-                  onClick={handleSendToBrand}>
-                  <Send className="w-4 h-4" /> Send to Brand
+            <div className={`space-y-3 ${showSimplifiedUI ? "" : ""}`}>
+              <div className={`flex gap-3 ${showSimplifiedUI ? "flex-col" : ""}`}>
+                <Button className={`rounded-xl font-bold gap-2 glow-border ${showSimplifiedUI ? "py-6 text-base" : "flex-1 py-5"}`}
+                  onClick={buildCampaignPack}>
+                  <Package className="w-4 h-4" /> Create Campaign Pack
                 </Button>
-              )}
+                <Button variant="outline" className="rounded-xl border-border hover:bg-muted gap-2 px-6"
+                  onClick={handleSaveImages}>
+                  <Download className="w-4 h-4" /> Save Images ({collectAllImages.entries.length})
+                </Button>
+              </div>
+              <div className={`flex gap-3 ${showSimplifiedUI ? "flex-col" : ""}`}>
+                <Button variant="outline" disabled={generatingVideo}
+                  className="rounded-xl border-primary/20 text-primary hover:bg-primary/10 gap-2 flex-1 py-4 font-bold"
+                  onClick={async () => {
+                    setGeneratingVideo(true);
+                    toast({ title: "Generating motion video...", description: "Creating 5-second Reels-ready loop from front view." });
+                    try {
+                      const frontUrl = getImageUrl(result, "front");
+                      if (!frontUrl) throw new Error("No front image available");
+                      const response = await supabase.functions.invoke("generate-motion", {
+                        body: {
+                          garmentName: garmentFile?.name || "Activewear",
+                          garmentBase64: frontUrl,
+                          gender: selectedAthlete?.gender || selectedGender,
+                          size: selectedSize,
+                          bodyType: selectedAthlete?.body_type || selectedBody,
+                          movement: selectedMovement,
+                          intensity: intensity[0],
+                          videoMode: true,
+                        },
+                      });
+                      if (response.data?.video_url) {
+                        const a = document.createElement("a");
+                        a.href = response.data.video_url;
+                        a.download = `ActiveForge-${selectedMovement}-reel.mp4`;
+                        a.click();
+                        toast({ title: "✅ Video downloaded", description: "1080x1920 Reels-ready video." });
+                      } else {
+                        toast({ title: "Video generation in progress", description: "Video will be available in your library shortly." });
+                      }
+                    } catch (err) {
+                      toast({ title: "Video generation failed", description: String(err), variant: "destructive" });
+                    } finally {
+                      setGeneratingVideo(false);
+                    }
+                  }}>
+                  {generatingVideo ? <Loader2 className="w-4 h-4 animate-spin" /> : <Video className="w-4 h-4" />}
+                  {generatingVideo ? "Generating Video..." : "Generate Reel (9:16)"}
+                </Button>
+                {showSimplifiedUI && (
+                  <Button variant="outline" className="rounded-xl border-secondary/30 text-secondary hover:bg-secondary/10 gap-2 py-5"
+                    onClick={handleSendToBrand}>
+                    <Send className="w-4 h-4" /> Send to Brand
+                  </Button>
+                )}
+              </div>
             </div>
           </motion.div>
         )}

@@ -163,34 +163,64 @@ export type Database = {
       }
       brand_kits: {
         Row: {
+          accent_color: string | null
           brand_id: string
           colors: Json | null
           created_at: string
+          font_primary: string | null
+          font_secondary: string | null
           fonts: Json | null
           guidelines: string | null
           id: string
+          logo_primary_url: string | null
+          logo_secondary_url: string | null
           logo_variants: Json | null
+          overlay_style: string | null
+          primary_color: string | null
+          secondary_color: string | null
           updated_at: string
+          vibe: string | null
+          watermark_opacity: number | null
         }
         Insert: {
+          accent_color?: string | null
           brand_id: string
           colors?: Json | null
           created_at?: string
+          font_primary?: string | null
+          font_secondary?: string | null
           fonts?: Json | null
           guidelines?: string | null
           id?: string
+          logo_primary_url?: string | null
+          logo_secondary_url?: string | null
           logo_variants?: Json | null
+          overlay_style?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
           updated_at?: string
+          vibe?: string | null
+          watermark_opacity?: number | null
         }
         Update: {
+          accent_color?: string | null
           brand_id?: string
           colors?: Json | null
           created_at?: string
+          font_primary?: string | null
+          font_secondary?: string | null
           fonts?: Json | null
           guidelines?: string | null
           id?: string
+          logo_primary_url?: string | null
+          logo_secondary_url?: string | null
           logo_variants?: Json | null
+          overlay_style?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
           updated_at?: string
+          vibe?: string | null
+          watermark_opacity?: number | null
         }
         Relationships: [
           {
@@ -393,6 +423,76 @@ export type Database = {
             columns: ["brand_id"]
             isOneToOne: false
             referencedRelation: "brands"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      templates: {
+        Row: {
+          athlete_id: string | null
+          brand_id: string
+          brand_kit_id: string | null
+          camera_presets: Json | null
+          created_at: string
+          id: string
+          influencer_locked: boolean | null
+          intensity: number | null
+          movement_set: Json | null
+          output_type: string | null
+          phase_set: Json | null
+          template_name: string
+          updated_at: string
+        }
+        Insert: {
+          athlete_id?: string | null
+          brand_id: string
+          brand_kit_id?: string | null
+          camera_presets?: Json | null
+          created_at?: string
+          id?: string
+          influencer_locked?: boolean | null
+          intensity?: number | null
+          movement_set?: Json | null
+          output_type?: string | null
+          phase_set?: Json | null
+          template_name: string
+          updated_at?: string
+        }
+        Update: {
+          athlete_id?: string | null
+          brand_id?: string
+          brand_kit_id?: string | null
+          camera_presets?: Json | null
+          created_at?: string
+          id?: string
+          influencer_locked?: boolean | null
+          intensity?: number | null
+          movement_set?: Json | null
+          output_type?: string | null
+          phase_set?: Json | null
+          template_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "templates_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "athlete_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "templates_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "brands"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "templates_brand_kit_id_fkey"
+            columns: ["brand_kit_id"]
+            isOneToOne: false
+            referencedRelation: "brand_kits"
             referencedColumns: ["id"]
           },
         ]
