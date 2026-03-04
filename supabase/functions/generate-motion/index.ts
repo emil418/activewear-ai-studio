@@ -113,8 +113,9 @@ serve(async (req) => {
       });
     }
 
-    const { garmentName, garmentBase64, gender, size, bodyType, movement, intensity, logoBase64, logoPosition } = await req.json();
+    const { garmentName, garmentBase64, gender, size, bodyType, movement, intensity, logoBase64, logoPosition, athleteIdentity } = await req.json();
     // logoPosition: { x: number, y: number, placement: string } | undefined
+    // athleteIdentity: { name, gender, height_cm, weight_kg, body_type, muscle_density, body_fat_pct, skin_tone, face_structure, hair_style, brand_vibe, identity_seed } | undefined
 
     // ── Step 0: Pre-process uploads – remove backgrounds ──
     console.log("Step 0: Removing backgrounds from uploaded images...");
@@ -304,16 +305,35 @@ LOGO VISIBILITY (CRITICAL):
             ? `EXISTING MOTIFS: The uploaded garment reference image shows the FRONT of the garment. Any prints, motifs, graphics, or text visible in the reference are part of the FRONT ONLY. Reproduce them faithfully in this front view exactly as they appear in the reference — same position, size, colors, and style.`
             : `MOTIF DUPLICATION BAN (CRITICAL): The uploaded garment reference image shows the FRONT of the garment. Any prints, motifs, graphics, logos, or text visible in that reference are on the FRONT ONLY. This is the ${angle.toUpperCase()} view — you MUST NOT copy, mirror, duplicate, or reproduce ANY front-side prints/motifs/graphics onto the ${angle}. The ${angle} of this garment is COMPLETELY PLAIN with NO prints, NO text, NO graphics, NO logos — just solid fabric matching the base color of the garment. Do NOT hallucinate or invent any design on the ${angle}.`;
 
+          // Build athlete description
+          const athleteDesc = athleteIdentity
+            ? `ATHLETE IDENTITY (CRITICAL — MUST be consistent across ALL angles and sizes):
+- Name/Seed: "${athleteIdentity.name}" (identity_seed: ${athleteIdentity.identity_seed || 'N/A'})
+- Gender: ${athleteIdentity.gender}
+- Height: ${athleteIdentity.height_cm}cm, Weight: ${athleteIdentity.weight_kg}kg
+- Body Type: ${athleteIdentity.body_type}, Muscle Density: ${athleteIdentity.muscle_density}/10, Body Fat: ${athleteIdentity.body_fat_pct}%
+- Skin Tone: ${athleteIdentity.skin_tone}
+- Face Structure: ${athleteIdentity.face_structure}
+- Hair Style: ${athleteIdentity.hair_style}
+- Brand Vibe: ${athleteIdentity.brand_vibe}
+You MUST render this EXACT same person in every image. Same face, same body proportions, same skin tone, same hair. No variations allowed. This is a persistent brand athlete — consistency is paramount.`
+            : "";
+
+          const athleteLabel = athleteIdentity
+            ? `${athleteIdentity.gender} athlete named "${athleteIdentity.name}" (${athleteIdentity.body_type} build, ${athleteIdentity.height_cm}cm, ${athleteIdentity.weight_kg}kg, ${athleteIdentity.skin_tone} skin, ${athleteIdentity.face_structure} face, ${athleteIdentity.hair_style} hair, muscle density ${athleteIdentity.muscle_density}/10, body fat ${athleteIdentity.body_fat_pct}%)`
+            : `${gender} athlete (${bodyType}, size ${size})`;
+
           // Build the prompt
           const mainPrompt = useSimplePrompt
-            ? `Professional full-body studio photo: ${gender} athlete (${bodyType}, size ${size}) wearing this exact uploaded garment, performing ${movement}, ${angle} camera angle. FULL BODY head-to-toe framing — show entire figure including feet. Dark background, sportswear campaign photography. ${MOTIF_RULES}${logoInstructions}`
+            ? `Professional full-body studio photo: ${athleteLabel} wearing this exact uploaded garment, performing ${movement}, ${angle} camera angle. FULL BODY head-to-toe framing — show entire figure including feet. Dark background, sportswear campaign photography. ${athleteDesc} ${MOTIF_RULES}${logoInstructions}`
             : `CRITICAL INSTRUCTIONS:
 1. GARMENT REFERENCE: The uploaded garment image is the EXACT and ONLY reference. Preserve its exact color, fabric texture, seams, and details with 100% fidelity. Do NOT invent, add, or duplicate any prints, motifs, logos, or graphics that are not in the reference.
 2. ${MOTIF_RULES}
 3. CAMERA ANGLE: This is a ${angle.toUpperCase()} view — render the garment from the ${angle} perspective.
 4. ${FRAMING}
+${athleteDesc ? `5. ${athleteDesc}` : ""}
 
-Generate a professional FULL-BODY studio photo of a ${gender} athlete (${bodyType} build, size ${size}) wearing EXACTLY this uploaded garment while performing ${movement} at ${intensity}% intensity.
+Generate a professional FULL-BODY studio photo of ${athleteLabel}, size ${size}, wearing EXACTLY this uploaded garment while performing ${movement} at ${intensity}% intensity.
 
 Requirements:
 - ${angle.toUpperCase()} camera angle
@@ -324,6 +344,7 @@ Requirements:
 - Dark studio background with dramatic lighting
 - Professional sportswear campaign quality (Nike/Adidas level)
 - The garment is the HERO of the image
+${athleteIdentity ? `- The athlete must look EXACTLY like the described identity — same face, skin, hair, proportions in every image` : ""}
 ${logoInstructions}`;
 
           const imageResp = await fetch(AI_GATEWAY, {

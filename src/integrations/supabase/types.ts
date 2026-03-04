@@ -93,6 +93,74 @@ export type Database = {
           },
         ]
       }
+      athlete_profiles: {
+        Row: {
+          body_fat_pct: number
+          body_type: string
+          brand_id: string
+          brand_vibe: string
+          created_at: string
+          face_structure: string
+          gender: string
+          hair_style: string
+          height_cm: number
+          id: string
+          identity_seed: string | null
+          muscle_density: number
+          name: string
+          reference_portrait_url: string | null
+          skin_tone: string
+          updated_at: string
+          weight_kg: number
+        }
+        Insert: {
+          body_fat_pct?: number
+          body_type?: string
+          brand_id: string
+          brand_vibe?: string
+          created_at?: string
+          face_structure?: string
+          gender?: string
+          hair_style?: string
+          height_cm?: number
+          id?: string
+          identity_seed?: string | null
+          muscle_density?: number
+          name: string
+          reference_portrait_url?: string | null
+          skin_tone?: string
+          updated_at?: string
+          weight_kg?: number
+        }
+        Update: {
+          body_fat_pct?: number
+          body_type?: string
+          brand_id?: string
+          brand_vibe?: string
+          created_at?: string
+          face_structure?: string
+          gender?: string
+          hair_style?: string
+          height_cm?: number
+          id?: string
+          identity_seed?: string | null
+          muscle_density?: number
+          name?: string
+          reference_portrait_url?: string | null
+          skin_tone?: string
+          updated_at?: string
+          weight_kg?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "athlete_profiles_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "brands"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       brand_kits: {
         Row: {
           brand_id: string
