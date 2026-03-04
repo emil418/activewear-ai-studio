@@ -134,6 +134,9 @@ const Create = () => {
   const [sizeProgress, setSizeProgress] = useState("");
   const [activeSizeTab, setActiveSizeTab] = useState("M");
   const [generatingVideo, setGeneratingVideo] = useState(false);
+  const [videoFrames, setVideoFrames] = useState<string[]>([]);
+  const [videoPhases, setVideoPhases] = useState<string[]>([]);
+  const [activeFrame, setActiveFrame] = useState(0);
 
   const { toast } = useToast();
   const { session: _session, user } = useAuth();
@@ -1135,30 +1138,44 @@ const Create = () => {
                   className="rounded-xl border-primary/20 text-primary hover:bg-primary/10 gap-2 flex-1 py-4 font-bold"
                   onClick={async () => {
                     setGeneratingVideo(true);
-                    toast({ title: "Generating motion video...", description: "Creating 5-second Reels-ready loop from front view." });
+                    setVideoFrames([]);
+                    setVideoPhases([]);
+                    toast({ title: "Generating motion frames...", description: "Creating 5-frame motion sequence. This takes ~60s." });
                     try {
-                      const frontUrl = getImageUrl(result, "front");
-                      if (!frontUrl) throw new Error("No front image available");
+                      const garmentBase64Data = garmentFile ? await fileToBase64(garmentFile) : null;
                       const response = await supabase.functions.invoke("generate-motion", {
                         body: {
                           garmentName: garmentFile?.name || "Activewear",
-                          garmentBase64: frontUrl,
+                          garmentBase64: garmentBase64Data,
                           gender: selectedAthlete?.gender || selectedGender,
                           size: selectedSize,
                           bodyType: selectedAthlete?.body_type || selectedBody,
                           movement: selectedMovement,
                           intensity: intensity[0],
                           videoMode: true,
+                          athleteIdentity: selectedAthlete ? {
+                            name: selectedAthlete.name,
+                            gender: selectedAthlete.gender,
+                            height_cm: selectedAthlete.height_cm,
+                            weight_kg: selectedAthlete.weight_kg,
+                            body_type: selectedAthlete.body_type,
+                            muscle_density: selectedAthlete.muscle_density,
+                            body_fat_pct: selectedAthlete.body_fat_pct,
+                            skin_tone: selectedAthlete.skin_tone,
+                            face_structure: selectedAthlete.face_structure,
+                            hair_style: selectedAthlete.hair_style,
+                            brand_vibe: selectedAthlete.brand_vibe,
+                            identity_seed: selectedAthlete.identity_seed,
+                          } : undefined,
                         },
                       });
-                      if (response.data?.video_url) {
-                        const a = document.createElement("a");
-                        a.href = response.data.video_url;
-                        a.download = `ActiveForge-${selectedMovement}-reel.mp4`;
-                        a.click();
-                        toast({ title: "✅ Video downloaded", description: "1080x1920 Reels-ready video." });
+                      if (response.data?.frame_urls?.length > 0) {
+                        setVideoFrames(response.data.frame_urls);
+                        setVideoPhases(response.data.phases || []);
+                        setActiveFrame(0);
+                        toast({ title: "✅ Motion frames generated", description: `${response.data.frame_urls.length} frames ready for preview.` });
                       } else {
-                        toast({ title: "Video generation in progress", description: "Video will be available in your library shortly." });
+                        toast({ title: "No frames generated", description: "Please try again.", variant: "destructive" });
                       }
                     } catch (err) {
                       toast({ title: "Video generation failed", description: String(err), variant: "destructive" });
@@ -1167,7 +1184,7 @@ const Create = () => {
                     }
                   }}>
                   {generatingVideo ? <Loader2 className="w-4 h-4 animate-spin" /> : <Video className="w-4 h-4" />}
-                  {generatingVideo ? "Generating Video..." : "Generate Reel (9:16)"}
+                  {generatingVideo ? "Generating Frames..." : "Generate Motion Reel"}
                 </Button>
                 {showSimplifiedUI && (
                   <Button variant="outline" className="rounded-xl border-secondary/30 text-secondary hover:bg-secondary/10 gap-2 py-5"
@@ -1176,6 +1193,94 @@ const Create = () => {
                   </Button>
                 )}
               </div>
+
+              {/* Video Frame Preview */}
+              {videoFrames.length > 0 && (
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="glass-card p-5 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Video className="w-4 h-4 text-primary" />
+                      <p className="text-sm font-bold">Motion Sequence — {videoFrames.length} Frames</p>
+                    </div>
+                    <Button variant="outline" size="sm" className="rounded-xl text-xs gap-1.5"
+                      onClick={async () => {
+                        const zip = new JSZip();
+                        for (let i = 0; i < videoFrames.length; i++) {
+                          try {
+                            const resp = await fetch(videoFrames[i]);
+                            const blob = await resp.blob();
+                            zip.file(`frame_${i + 1}_${videoPhases[i]?.replace(/\s+/g, "-") || i}.png`, blob);
+                          } catch { /* skip */ }
+                        }
+                        const content = await zip.generateAsync({ type: "blob" });
+                        const a = document.createElement("a");
+                        a.href = URL.createObjectURL(content);
+                        a.download = `ActiveForge-${selectedMovement}-motion-frames.zip`;
+                        a.click();
+                        URL.revokeObjectURL(a.href);
+                        toast({ title: "Motion frames downloaded" });
+                      }}>
+                      <Download className="w-3 h-3" /> Download Frames
+                    </Button>
+                  </div>
+
+                  {/* Large active frame */}
+                  <div className="relative aspect-[9/16] max-h-[500px] mx-auto rounded-xl overflow-hidden bg-muted/20">
+                    <AnimatePresence mode="wait">
+                      <motion.img
+                        key={activeFrame}
+                        src={videoFrames[activeFrame]}
+                        alt={`Frame ${activeFrame + 1}`}
+                        className="w-full h-full object-cover"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.3 }}
+                      />
+                    </AnimatePresence>
+                    <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
+                      <span className="text-[10px] px-2 py-1 rounded-lg bg-background/80 backdrop-blur text-foreground font-bold">
+                        Frame {activeFrame + 1}/{videoFrames.length}
+                      </span>
+                      {videoPhases[activeFrame] && (
+                        <span className="text-[10px] px-2 py-1 rounded-lg bg-primary/20 backdrop-blur text-primary font-bold capitalize">
+                          {videoPhases[activeFrame]}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Frame timeline */}
+                  <div className="flex gap-2">
+                    {videoFrames.map((url, i) => (
+                      <button key={i} onClick={() => setActiveFrame(i)}
+                        className={`flex-1 aspect-[9/16] rounded-lg overflow-hidden border-2 transition-all duration-300 ${
+                          i === activeFrame ? "border-primary" : "border-transparent opacity-60 hover:opacity-100"
+                        }`}>
+                        <img src={url} alt={`Frame ${i + 1}`} className="w-full h-full object-cover" />
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Auto-play toggle */}
+                  <div className="flex items-center justify-center">
+                    <Button variant="outline" size="sm" className="rounded-xl text-xs gap-1.5"
+                      onClick={() => {
+                        let frame = 0;
+                        const interval = setInterval(() => {
+                          frame = (frame + 1) % videoFrames.length;
+                          setActiveFrame(frame);
+                          if (frame === 0) {
+                            // Loop completed twice, stop
+                            setTimeout(() => clearInterval(interval), videoFrames.length * 800);
+                          }
+                        }, 800);
+                      }}>
+                      <Zap className="w-3 h-3" /> Play Loop
+                    </Button>
+                  </div>
+                </motion.div>
+              )}
             </div>
           </motion.div>
         )}
