@@ -129,6 +129,7 @@ serve(async (req) => {
       bodyType,
       athleteIdentity,
       cameraStyle,  // "static" | "slow_tracking"
+      referenceImageUrl, // URL of generated front image to use as identity/garment reference
     } = await req.json();
 
     const FRAME_COUNT = 10;
@@ -159,9 +160,16 @@ serve(async (req) => {
       const phase = phases[i];
       console.log(`Frame ${i + 1}/${FRAME_COUNT}: ${phase.pct}% movement progression`);
 
+      const hasReference = !!referenceImageUrl;
       const framePrompt = `MOTION SEQUENCE FRAME ${i + 1} of ${FRAME_COUNT} — CONTINUOUS ATHLETIC MOVEMENT
 
 This is one frame in a smooth, continuous motion sequence. Every frame must look like it belongs to a single unbroken video of an athlete performing "${movement}".
+
+${hasReference ? `CRITICAL REFERENCE IMAGE: A reference image of this EXACT athlete wearing this EXACT garment is provided. You MUST match:
+- The athlete's face, skin tone, body shape, hair EXACTLY as shown in the reference
+- The garment's exact color, pattern, logo placement, fabric texture, and design details
+- The lighting style and studio environment from the reference
+- This is the ground truth — every frame must look like the same person in the same clothes` : ""}
 
 ${athleteLabel}
 
@@ -185,16 +193,21 @@ FORMAT: Full body, head to toe, 9:16 vertical portrait (1080x1920)
 BACKGROUND: Dark studio, matte black or deep charcoal
 
 CRITICAL IDENTITY RULES:
-- The athlete's face, body, skin, hair must be IDENTICAL to all other frames
+- The athlete's face, body, skin, hair must be IDENTICAL to all other frames${hasReference ? " AND to the reference image" : ""}
 - ONLY the pose changes between frames — identity NEVER changes
 - If this frame were placed next to any other frame, the person must be unmistakably the same individual
 - Natural anatomical proportions must be maintained throughout
+- The garment must be the EXACT same garment in every frame — same color, same logo, same design
 
 DO NOT include: text, watermarks, UI elements, other people, props (except implied barbell for deadlifts)`;
 
       const contentParts: Array<Record<string, unknown>> = [
         { type: "text", text: framePrompt },
       ];
+      // Include reference image first (strongest conditioning signal)
+      if (referenceImageUrl) {
+        contentParts.push({ type: "image_url", image_url: { url: referenceImageUrl } });
+      }
       if (garmentBase64 && garmentBase64.startsWith("data:")) {
         contentParts.push({ type: "image_url", image_url: { url: garmentBase64 } });
       }

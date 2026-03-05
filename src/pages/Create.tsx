@@ -681,10 +681,14 @@ const Create = () => {
     if (videoUrl) { URL.revokeObjectURL(videoUrl); setVideoUrl(null); }
     setVideoProgress(0);
 
-    toast({ title: "🎬 Generating motion video...", description: "Creating 10-frame micro-pose sequence for continuous motion. ~90s." });
+    toast({ title: "🎬 Generating motion video...", description: "Using generated images as reference for identity-locked motion. ~90s." });
 
     try {
       const garmentBase64Data = await fileToBase64(garmentFile);
+
+      // Get the best front image as reference for identity/garment consistency
+      const frontImageUrl = getImageUrl(result, "front") || getImageUrl(result, "side") || getImageUrl(result, "back");
+
       const response = await supabase.functions.invoke("generate-video", {
         body: {
           garmentName: garmentFile?.name || "Activewear",
@@ -695,6 +699,7 @@ const Create = () => {
           movement: selectedMovement,
           intensity: intensity[0],
           cameraStyle,
+          referenceImageUrl: frontImageUrl || undefined,
           athleteIdentity: selectedAthlete ? {
             name: selectedAthlete.name,
             gender: selectedAthlete.gender,
@@ -1354,9 +1359,9 @@ const Create = () => {
               {!videoFrames.length && !generatingVideo && !encodingVideo && (
                 <div className="flex gap-3">
                   <Button variant="outline" disabled={generatingVideo}
-                    className="rounded-xl border-primary/20 text-primary hover:bg-primary/10 gap-2 flex-1 py-4 font-bold"
+                    className="rounded-xl border-primary/20 text-primary hover:bg-primary/10 gap-2 flex-1 py-5 font-bold text-base"
                     onClick={handleGenerateVideo}>
-                    <Video className="w-4 h-4" /> Premium Motion Visualization
+                    <Video className="w-5 h-5" /> Generate Motion Video (4-6 sec)
                   </Button>
                   {showSimplifiedUI && (
                     <Button variant="outline" className="rounded-xl border-secondary/30 text-secondary hover:bg-secondary/10 gap-2 py-5"
