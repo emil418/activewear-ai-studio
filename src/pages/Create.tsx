@@ -140,6 +140,7 @@ const Create = () => {
   const [videoPhases, setVideoPhases] = useState<string[]>([]);
   const [activeFrame, setActiveFrame] = useState(0);
   const [enableVideo, setEnableVideo] = useState(false);
+  const [cameraStyle, setCameraStyle] = useState<"static" | "slow_tracking">("static");
   const [videoBlob, setVideoBlob] = useState<Blob | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [videoProgress, setVideoProgress] = useState(0);
@@ -670,21 +671,21 @@ const Create = () => {
     });
   };
 
-  // ── Video Generation Pipeline ──
+  // ── Video Generation Pipeline (True Motion) ──
   const handleGenerateVideo = async () => {
     if (!garmentFile) return;
     setGeneratingVideo(true);
     setVideoFrames([]);
     setVideoPhases([]);
     setVideoBlob(null);
-    setVideoUrl(null);
+    if (videoUrl) { URL.revokeObjectURL(videoUrl); setVideoUrl(null); }
     setVideoProgress(0);
 
-    toast({ title: "🎬 Generating motion frames...", description: "Creating identity-locked keyframe sequence. ~60s." });
+    toast({ title: "🎬 Generating motion video...", description: "Creating 10-frame micro-pose sequence for continuous motion. ~90s." });
 
     try {
       const garmentBase64Data = await fileToBase64(garmentFile);
-      const response = await supabase.functions.invoke("generate-motion", {
+      const response = await supabase.functions.invoke("generate-video", {
         body: {
           garmentName: garmentFile?.name || "Activewear",
           garmentBase64: garmentBase64Data,
@@ -693,7 +694,7 @@ const Create = () => {
           bodyType: selectedAthlete?.body_type || selectedBody,
           movement: selectedMovement,
           intensity: intensity[0],
-          videoMode: true,
+          cameraStyle,
           athleteIdentity: selectedAthlete ? {
             name: selectedAthlete.name,
             gender: selectedAthlete.gender,
@@ -717,22 +718,21 @@ const Create = () => {
       }
 
       const frameUrls = response.data.frame_urls as string[];
-      const phases = (response.data.phases || []) as string[];
+      const phases = (response.data.phase_labels || []) as string[];
       setVideoFrames(frameUrls);
       setVideoPhases(phases);
       setActiveFrame(0);
-      toast({ title: "✅ Frames ready", description: `${frameUrls.length} keyframes generated. Encoding video...` });
+      toast({ title: "✅ Motion frames synthesized", description: `${frameUrls.length} micro-pose keyframes captured. Encoding continuous video...` });
 
-      // Encode to MP4/WebM
+      // Encode to WebM with advanced interpolation
       setEncodingVideo(true);
       const overlay = brandKit ? {
         logoUrl: brandKit.logo_primary_url || undefined,
         accentColor: brandKit.accent_color || brandKit.primary_color || undefined,
         watermarkOpacity: brandKit.watermark_opacity ?? 0.6,
-        brandName: undefined as string | undefined, // We'll fetch brand name
+        brandName: undefined as string | undefined,
       } : undefined;
 
-      // Fetch brand name for overlay
       if (overlay && user) {
         const { data: brand } = await supabase.from("brands").select("name").eq("owner_id", user.id).limit(1).single();
         if (brand) overlay.brandName = brand.name;
@@ -743,7 +743,7 @@ const Create = () => {
         width: 1080,
         height: 1920,
         fps: 24,
-        durationPerFrame: 1.4,
+        durationPerFrame: 0.7, // 10 frames × 0.7s = ~7s + holds = ~8s total
         loops: 1,
         brandOverlay: overlay,
         onProgress: setVideoProgress,
@@ -754,7 +754,7 @@ const Create = () => {
       setVideoUrl(url);
       setEncodingVideo(false);
 
-      toast({ title: "🎥 Motion video ready", description: "9:16 vertical video encoded. Preview and download below." });
+      toast({ title: "🎥 Premium Motion Video ready", description: "Continuous motion video encoded. 9:16 vertical, 24fps." });
     } catch (err) {
       toast({ title: "Video generation failed", description: String(err), variant: "destructive" });
     } finally {
@@ -1113,7 +1113,7 @@ const Create = () => {
               </div>
             </div>
 
-            {/* ── Video Toggle (Premium) ── */}
+            {/* ── Premium Motion Visualization Toggle ── */}
             <div className="glass-card p-5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -1121,8 +1121,8 @@ const Create = () => {
                     <Video className="w-4 h-4 text-primary" />
                   </div>
                   <div>
-                    <p className="text-sm font-bold">Generate Motion Video</p>
-                    <p className="text-xs text-muted-foreground">9:16 vertical · 5-8s loop · Identity-locked frames</p>
+                    <p className="text-sm font-bold">Premium Motion Visualization</p>
+                    <p className="text-xs text-muted-foreground">9:16 vertical · 5-8s continuous motion · 10 micro-pose frames</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -1131,13 +1131,33 @@ const Create = () => {
                 </div>
               </div>
               {enableVideo && (
-                <div className="mt-3 pt-3 border-t border-border space-y-1">
+                <div className="mt-3 pt-3 border-t border-border space-y-3">
                   <p className="text-xs text-muted-foreground">
-                    After images generate, the system will create a {selectedMovement ? `"${selectedMovement}"` : "movement"} motion sequence 
-                    with {brandKit ? "Brand Kit overlay (watermark + lower-third)" : "clean output"}.
+                    The system will generate a continuous {selectedMovement ? `"${selectedMovement}"` : "movement"} motion video with 
+                    realistic fabric behavior, muscle tension progression, and {brandKit ? "Brand Kit overlay" : "clean output"}.
                   </p>
-                  <div className="flex flex-wrap gap-1.5 mt-2">
-                    {["Identity Lock", "Fabric Physics", brandKit ? "Brand Overlay" : "Clean Export", "24fps"].map(tag => (
+
+                  {/* Camera style selector */}
+                  <div>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Camera</p>
+                    <div className="flex gap-2">
+                      {([
+                        { value: "static" as const, label: "Static", desc: "Locked tripod" },
+                        { value: "slow_tracking" as const, label: "Cinematic", desc: "Slow tracking" },
+                      ]).map(cam => (
+                        <button key={cam.value} onClick={() => setCameraStyle(cam.value)}
+                          className={`text-xs px-3 py-2 rounded-lg font-semibold transition-all duration-300 ${
+                            cameraStyle === cam.value ? "bg-primary/10 text-primary border border-primary/20"
+                              : "bg-muted text-muted-foreground border border-border hover:border-primary/20"
+                          }`}>
+                          {cam.label} <span className="text-muted-foreground/50 font-normal">— {cam.desc}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-1.5">
+                    {["Identity Lock", "Fabric Physics", "Muscle Tension", "10 Micro-Poses", cameraStyle === "static" ? "Static Camera" : "Cinematic", brandKit ? "Brand Overlay" : "Clean Export", "24fps"].map(tag => (
                       <span key={tag} className="text-[10px] px-2 py-0.5 rounded-md bg-primary/[0.06] text-primary/70 font-semibold">{tag}</span>
                     ))}
                   </div>
@@ -1149,11 +1169,11 @@ const Create = () => {
               <div className="glass-card p-6">
                 <p className="text-sm font-semibold mb-3">Smart Model Router will use:</p>
                 <div className="flex flex-wrap gap-2">
-                  {["Garment Analysis (Flash)", "Physics Engine (Flash)", "Image Gen (Pro Image)", ...(enableVideo ? ["Video Keyframes (Pro Image)"] : [])].map(f => (
+                  {["Garment Analysis (Flash)", "Physics Engine (Flash)", "Image Gen (Pro Image)", ...(enableVideo ? ["Motion Synthesis (10-frame)"] : [])].map(f => (
                     <span key={f} className="feature-badge">{f}</span>
                   ))}
                 </div>
-                <p className="text-xs text-muted-foreground mt-3">{enableVideo ? "4" : "3"} AI models working in sync — auto-selected for each task.</p>
+                <p className="text-xs text-muted-foreground mt-3">{enableVideo ? "4 AI models + motion synthesis engine" : "3 AI models"} working in sync — auto-selected for each task.</p>
               </div>
             )}
 
@@ -1336,7 +1356,7 @@ const Create = () => {
                   <Button variant="outline" disabled={generatingVideo}
                     className="rounded-xl border-primary/20 text-primary hover:bg-primary/10 gap-2 flex-1 py-4 font-bold"
                     onClick={handleGenerateVideo}>
-                    <Video className="w-4 h-4" /> Generate Motion Video (Premium)
+                    <Video className="w-4 h-4" /> Premium Motion Visualization
                   </Button>
                   {showSimplifiedUI && (
                     <Button variant="outline" className="rounded-xl border-secondary/30 text-secondary hover:bg-secondary/10 gap-2 py-5"
@@ -1353,9 +1373,9 @@ const Create = () => {
                   <div className="flex items-center gap-3">
                     <Loader2 className="w-5 h-5 text-primary animate-spin" />
                     <div>
-                      <p className="text-sm font-bold">{generatingVideo ? "Generating keyframes..." : "Encoding video..."}</p>
+                      <p className="text-sm font-bold">{generatingVideo ? "Synthesizing motion frames..." : "Encoding continuous video..."}</p>
                       <p className="text-xs text-muted-foreground">
-                        {generatingVideo ? "Creating identity-locked motion sequence" : `${Math.round(videoProgress * 100)}% — Interpolating frames to 24fps video`}
+                        {generatingVideo ? "Generating 10 micro-pose frames with fabric physics" : `${Math.round(videoProgress * 100)}% — Building continuous motion from keyframes`}
                       </p>
                     </div>
                   </div>
@@ -1373,7 +1393,7 @@ const Create = () => {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Video className="w-4 h-4 text-primary" />
-                      <p className="text-sm font-bold">Motion Video — {videoUrl ? "Ready" : `${videoFrames.length} Frames`}</p>
+                      <p className="text-sm font-bold">Premium Motion Video — {videoUrl ? "Ready" : `${videoFrames.length} Micro-Poses`}</p>
                     </div>
                     <div className="flex gap-2">
                       {videoUrl && (
