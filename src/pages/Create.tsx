@@ -1380,7 +1380,7 @@ const Create = () => {
                     <div>
                       <p className="text-sm font-bold">{generatingVideo ? "Synthesizing motion frames..." : "Encoding continuous video..."}</p>
                       <p className="text-xs text-muted-foreground">
-                        {generatingVideo ? "Generating 10 micro-pose frames with fabric physics" : `${Math.round(videoProgress * 100)}% — Building continuous motion from keyframes`}
+                        {generatingVideo ? "Generating realistic motion video... (30-60 seconds)" : `${Math.round(videoProgress * 100)}% — Encoding continuous motion video`}
                       </p>
                     </div>
                   </div>
