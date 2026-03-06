@@ -269,7 +269,7 @@ DO NOT include: text, watermarks, UI elements, other people, props (except impli
       framePhaseLabels.push(`${phase.pct}% — ${phase.pose.split("(")[0].trim()}`);
 
       // Delay between frames to avoid rate limiting
-      if (i < FRAME_COUNT - 1) await new Promise(r => setTimeout(r, 1500));
+      if (i < FRAME_COUNT - 1) await new Promise(r => setTimeout(r, 1000));
     }
 
     // Log usage
