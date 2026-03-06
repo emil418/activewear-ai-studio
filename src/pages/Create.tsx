@@ -149,6 +149,11 @@ const Create = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const playIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Runway AI Video state
+  const [generatingRunwayVideo, setGeneratingRunwayVideo] = useState(false);
+  const [runwayVideoUrl, setRunwayVideoUrl] = useState<string | null>(null);
+  const runwayVideoRef = useRef<HTMLVideoElement>(null);
+
   const { toast } = useToast();
   const { session: _session, user } = useAuth();
   const { influencerMode } = useInfluencerMode();
@@ -247,6 +252,7 @@ const Create = () => {
     setVideoFrames([]);
     setVideoPhases([]);
     setVideoBlob(null);
+    setRunwayVideoUrl(null);
     if (videoUrl) { URL.revokeObjectURL(videoUrl); setVideoUrl(null); }
 
     const interval = setInterval(() => {
@@ -765,6 +771,46 @@ const Create = () => {
     } finally {
       setGeneratingVideo(false);
       setEncodingVideo(false);
+    }
+  };
+
+  // ── Runway AI Video Generation (True Motion) ──
+  const handleGenerateRunwayVideo = async () => {
+    const frontUrl = getImageUrl(result, "front") || getImageUrl(result, "side") || getImageUrl(result, "back");
+    if (!frontUrl) {
+      toast({ title: "No reference image", description: "Generate images first, then generate motion video.", variant: "destructive" });
+      return;
+    }
+
+    setGeneratingRunwayVideo(true);
+    setRunwayVideoUrl(null);
+    toast({ title: "🎬 Generating realistic motion video...", description: "Using Runway AI. This takes 30-90 seconds." });
+
+    try {
+      const response = await supabase.functions.invoke("generate-runway-video", {
+        body: {
+          referenceImageUrl: frontUrl,
+          movement: selectedMovement,
+          intensity: intensity[0],
+          gender: selectedAthlete?.gender || selectedGender,
+          bodyType: selectedAthlete?.body_type || selectedBody,
+          cameraStyle,
+          duration: 5,
+        },
+      });
+
+      if (response.error) throw new Error(response.error.message || "Runway video generation failed");
+      if (!response.data?.success || !response.data?.video_url) {
+        throw new Error(response.data?.error || "No video URL returned");
+      }
+
+      setRunwayVideoUrl(response.data.video_url);
+      toast({ title: "🎥 AI Motion Video ready!", description: `${response.data.duration}s video generated with Runway AI. Download or preview below.` });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Video generation failed";
+      toast({ title: "Video generation failed", description: message, variant: "destructive" });
+    } finally {
+      setGeneratingRunwayVideo(false);
     }
   };
 
@@ -1355,16 +1401,88 @@ const Create = () => {
                 </Button>
               </div>
 
-              {/* Video section */}
-              {!videoFrames.length && !generatingVideo && !encodingVideo && (
+              {/* Runway AI Video — True Motion */}
+              {!runwayVideoUrl && !generatingRunwayVideo && (
+                <Button
+                  variant="outline"
+                  disabled={generatingRunwayVideo}
+                  className="w-full rounded-xl border-primary/30 text-primary hover:bg-primary/10 gap-2 py-6 font-bold text-base"
+                  onClick={handleGenerateRunwayVideo}>
+                  <Video className="w-5 h-5" /> Generate Motion Video (4-6 sec)
+                </Button>
+              )}
+
+              {generatingRunwayVideo && (
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="glass-card p-6 space-y-3">
+                  <div className="flex items-center gap-3">
+                    <Loader2 className="w-5 h-5 text-primary animate-spin" />
+                    <div>
+                      <p className="text-sm font-bold">Generating realistic motion video...</p>
+                      <p className="text-xs text-muted-foreground">Using Runway AI — this takes 30-90 seconds</p>
+                    </div>
+                  </div>
+                  <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden">
+                    <motion.div
+                      className="h-full bg-primary rounded-full"
+                      initial={{ width: "5%" }}
+                      animate={{ width: "85%" }}
+                      transition={{ duration: 60, ease: "linear" }}
+                    />
+                  </div>
+                </motion.div>
+              )}
+
+              {runwayVideoUrl && (
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="glass-card p-5 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Video className="w-4 h-4 text-primary" />
+                      <p className="text-sm font-bold">AI Motion Video — Ready</p>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/20 text-primary font-bold">Runway AI</span>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" className="rounded-xl text-xs gap-1.5"
+                        onClick={() => {
+                          const a = document.createElement("a");
+                          a.href = runwayVideoUrl;
+                          a.download = `ActiveForge-${selectedMovement.replace(/\s+/g, "-")}-runway.mp4`;
+                          a.target = "_blank";
+                          a.click();
+                        }}>
+                        <Download className="w-3 h-3" /> Download MP4
+                      </Button>
+                      <Button variant="outline" size="sm" className="rounded-xl text-xs gap-1.5 border-destructive/20 text-muted-foreground hover:text-foreground"
+                        onClick={handleGenerateRunwayVideo}>
+                        <Zap className="w-3 h-3" /> Retry
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="relative aspect-[9/16] max-h-[500px] mx-auto rounded-xl overflow-hidden bg-muted/20">
+                    <video
+                      ref={runwayVideoRef}
+                      src={runwayVideoUrl}
+                      controls
+                      loop
+                      playsInline
+                      className="w-full h-full object-cover"
+                    />
+                    <span className="absolute top-3 right-3 text-[10px] px-2 py-1 rounded-lg bg-primary/20 backdrop-blur text-primary font-bold">
+                      9:16 · MP4 · Runway AI
+                    </span>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Legacy frame-based video */}
+              {!videoFrames.length && !generatingVideo && !encodingVideo && !runwayVideoUrl && !generatingRunwayVideo && (
                 <div className="flex gap-3">
-                  <Button variant="outline" disabled={generatingVideo}
-                    className="rounded-xl border-primary/20 text-primary hover:bg-primary/10 gap-2 flex-1 py-5 font-bold text-base"
+                  <Button variant="ghost" disabled={generatingVideo}
+                    className="rounded-xl text-muted-foreground hover:text-foreground gap-2 flex-1 py-4 text-sm"
                     onClick={handleGenerateVideo}>
-                    <Video className="w-5 h-5" /> Generate Motion Video (4-6 sec)
+                    <Layers className="w-4 h-4" /> Frame-based Motion (Legacy)
                   </Button>
                   {showSimplifiedUI && (
-                    <Button variant="outline" className="rounded-xl border-secondary/30 text-secondary hover:bg-secondary/10 gap-2 py-5"
+                    <Button variant="outline" className="rounded-xl border-secondary/30 text-secondary hover:bg-secondary/10 gap-2 py-4"
                       onClick={handleSendToBrand}>
                       <Send className="w-4 h-4" /> Send to Brand
                     </Button>
