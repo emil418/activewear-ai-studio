@@ -681,7 +681,7 @@ const Create = () => {
     if (videoUrl) { URL.revokeObjectURL(videoUrl); setVideoUrl(null); }
     setVideoProgress(0);
 
-    toast({ title: "🎬 Generating motion video...", description: "Using generated images as reference for identity-locked motion. ~90s." });
+    toast({ title: "🎬 Generating realistic motion video...", description: "Using generated images as reference. This takes 30-60 seconds." });
 
     try {
       const garmentBase64Data = await fileToBase64(garmentFile);
@@ -727,7 +727,7 @@ const Create = () => {
       setVideoFrames(frameUrls);
       setVideoPhases(phases);
       setActiveFrame(0);
-      toast({ title: "✅ Motion frames synthesized", description: `${frameUrls.length} micro-pose keyframes captured. Encoding continuous video...` });
+      toast({ title: "✅ Motion frames generated", description: `${frameUrls.length} keyframes captured. Encoding video...` });
 
       // Encode to WebM with advanced interpolation
       setEncodingVideo(true);
@@ -748,7 +748,7 @@ const Create = () => {
         width: 1080,
         height: 1920,
         fps: 24,
-        durationPerFrame: 0.7, // 10 frames × 0.7s = ~7s + holds = ~8s total
+        durationPerFrame: 1.0, // 6 frames × 1.0s = ~6s + holds
         loops: 1,
         brandOverlay: overlay,
         onProgress: setVideoProgress,
@@ -1378,9 +1378,9 @@ const Create = () => {
                   <div className="flex items-center gap-3">
                     <Loader2 className="w-5 h-5 text-primary animate-spin" />
                     <div>
-                      <p className="text-sm font-bold">{generatingVideo ? "Synthesizing motion frames..." : "Encoding continuous video..."}</p>
+                      <p className="text-sm font-bold">{generatingVideo ? "Generating realistic motion video..." : "Encoding video..."}</p>
                       <p className="text-xs text-muted-foreground">
-                        {generatingVideo ? "Generating 10 micro-pose frames with fabric physics" : `${Math.round(videoProgress * 100)}% — Building continuous motion from keyframes`}
+                        {generatingVideo ? "Generating realistic motion video... (30-60 seconds)" : `${Math.round(videoProgress * 100)}% — Encoding continuous motion video`}
                       </p>
                     </div>
                   </div>
