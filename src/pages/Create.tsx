@@ -748,7 +748,7 @@ const Create = () => {
         width: 1080,
         height: 1920,
         fps: 24,
-        durationPerFrame: 0.7, // 10 frames × 0.7s = ~7s + holds = ~8s total
+        durationPerFrame: 1.0, // 6 frames × 1.0s = ~6s + holds
         loops: 1,
         brandOverlay: overlay,
         onProgress: setVideoProgress,
