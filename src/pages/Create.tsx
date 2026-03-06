@@ -727,7 +727,7 @@ const Create = () => {
       setVideoFrames(frameUrls);
       setVideoPhases(phases);
       setActiveFrame(0);
-      toast({ title: "✅ Motion frames synthesized", description: `${frameUrls.length} micro-pose keyframes captured. Encoding continuous video...` });
+      toast({ title: "✅ Motion frames generated", description: `${frameUrls.length} keyframes captured. Encoding video...` });
 
       // Encode to WebM with advanced interpolation
       setEncodingVideo(true);
