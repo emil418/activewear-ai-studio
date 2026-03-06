@@ -1378,7 +1378,7 @@ const Create = () => {
                   <div className="flex items-center gap-3">
                     <Loader2 className="w-5 h-5 text-primary animate-spin" />
                     <div>
-                      <p className="text-sm font-bold">{generatingVideo ? "Synthesizing motion frames..." : "Encoding continuous video..."}</p>
+                      <p className="text-sm font-bold">{generatingVideo ? "Generating realistic motion video..." : "Encoding video..."}</p>
                       <p className="text-xs text-muted-foreground">
                         {generatingVideo ? "Generating realistic motion video... (30-60 seconds)" : `${Math.round(videoProgress * 100)}% — Encoding continuous motion video`}
                       </p>
