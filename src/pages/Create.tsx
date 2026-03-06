@@ -149,6 +149,11 @@ const Create = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const playIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Runway AI Video state
+  const [generatingRunwayVideo, setGeneratingRunwayVideo] = useState(false);
+  const [runwayVideoUrl, setRunwayVideoUrl] = useState<string | null>(null);
+  const runwayVideoRef = useRef<HTMLVideoElement>(null);
+
   const { toast } = useToast();
   const { session: _session, user } = useAuth();
   const { influencerMode } = useInfluencerMode();
