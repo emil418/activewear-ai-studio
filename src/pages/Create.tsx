@@ -681,7 +681,7 @@ const Create = () => {
     if (videoUrl) { URL.revokeObjectURL(videoUrl); setVideoUrl(null); }
     setVideoProgress(0);
 
-    toast({ title: "🎬 Generating motion video...", description: "Using generated images as reference for identity-locked motion. ~90s." });
+    toast({ title: "🎬 Generating realistic motion video...", description: "Using generated images as reference. This takes 30-60 seconds." });
 
     try {
       const garmentBase64Data = await fileToBase64(garmentFile);
