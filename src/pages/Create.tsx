@@ -774,6 +774,46 @@ const Create = () => {
     }
   };
 
+  // ── Runway AI Video Generation (True Motion) ──
+  const handleGenerateRunwayVideo = async () => {
+    const frontUrl = getImageUrl(result, "front") || getImageUrl(result, "side") || getImageUrl(result, "back");
+    if (!frontUrl) {
+      toast({ title: "No reference image", description: "Generate images first, then generate motion video.", variant: "destructive" });
+      return;
+    }
+
+    setGeneratingRunwayVideo(true);
+    setRunwayVideoUrl(null);
+    toast({ title: "🎬 Generating realistic motion video...", description: "Using Runway AI. This takes 30-90 seconds." });
+
+    try {
+      const response = await supabase.functions.invoke("generate-runway-video", {
+        body: {
+          referenceImageUrl: frontUrl,
+          movement: selectedMovement,
+          intensity: intensity[0],
+          gender: selectedAthlete?.gender || selectedGender,
+          bodyType: selectedAthlete?.body_type || selectedBody,
+          cameraStyle,
+          duration: 5,
+        },
+      });
+
+      if (response.error) throw new Error(response.error.message || "Runway video generation failed");
+      if (!response.data?.success || !response.data?.video_url) {
+        throw new Error(response.data?.error || "No video URL returned");
+      }
+
+      setRunwayVideoUrl(response.data.video_url);
+      toast({ title: "🎥 AI Motion Video ready!", description: `${response.data.duration}s video generated with Runway AI. Download or preview below.` });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Video generation failed";
+      toast({ title: "Video generation failed", description: message, variant: "destructive" });
+    } finally {
+      setGeneratingRunwayVideo(false);
+    }
+  };
+
   const toggleFramePlayback = () => {
     if (isPlaying) {
       if (playIntervalRef.current) clearInterval(playIntervalRef.current);
