@@ -252,6 +252,7 @@ const Create = () => {
     setVideoFrames([]);
     setVideoPhases([]);
     setVideoBlob(null);
+    setRunwayVideoUrl(null);
     if (videoUrl) { URL.revokeObjectURL(videoUrl); setVideoUrl(null); }
 
     const interval = setInterval(() => {
