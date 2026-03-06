@@ -132,8 +132,11 @@ serve(async (req) => {
       referenceImageUrl, // URL of generated front image to use as identity/garment reference
     } = await req.json();
 
-    const FRAME_COUNT = 6;
-    const phases = getMovementPhases(movement, intensity).filter((_, i) => i % 2 === 0 || i === 0).slice(0, FRAME_COUNT);
+    const allPhases = getMovementPhases(movement, intensity);
+    // Pick 6 evenly-spaced phases from the 10 available
+    const phaseIndices = [0, 2, 4, 6, 8, 9];
+    const phases = phaseIndices.map(i => allPhases[i]);
+    const FRAME_COUNT = phases.length;
     const cameraLabel = cameraStyle === "slow_tracking"
       ? "Very slow, subtle cinematic tracking — camera drifts imperceptibly during the movement"
       : "Completely static camera, locked tripod, zero camera movement";
