@@ -1488,7 +1488,7 @@ const Create = () => {
                     </Button>
                   )}
                 </div>
-              )
+              )}
 
               {/* Video generating / encoding progress */}
               {(generatingVideo || encodingVideo) && (
