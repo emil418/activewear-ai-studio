@@ -1183,7 +1183,7 @@ const Create = () => {
               <div className={`flex gap-3 ${showSimplifiedUI ? "flex-col" : ""}`}>
                 <Button className={`rounded-xl font-bold gap-2 glow-border ${showSimplifiedUI ? "py-6 text-base" : "flex-1 py-5"}`}
                   onClick={buildCampaignPack}>
-                  <Package className="w-4 h-4" /> Create Campaign Pack {videoBlob ? "(+ Video)" : ""}
+                  <Package className="w-4 h-4" /> Create Campaign Pack {runwayVideoUrl ? "(+ Video)" : ""}
                 </Button>
                 <Button variant="outline" className="rounded-xl border-border hover:bg-muted gap-2 px-6"
                   onClick={handleSaveImages}>
