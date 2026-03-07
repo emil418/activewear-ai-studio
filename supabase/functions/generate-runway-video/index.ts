@@ -9,10 +9,32 @@ const corsHeaders = {
 
 const RUNWAY_API_BASE = "https://api.dev.runwayml.com/v1";
 
+/** Predefined motion descriptions for supported exercises */
+const MOTION_DESCRIPTIONS: Record<string, string> = {
+  "squats": "performing a deep barbell back squat — lowering into a full squat position with controlled descent, then driving upward explosively through the hips and knees, maintaining upright torso",
+  "deadlifts": "performing a conventional deadlift — hinging at the hips to grip the barbell, then pulling it from the floor to full lockout with straight back, squeezing glutes at the top",
+  "bench press": "performing a flat barbell bench press — lowering the bar to mid-chest with controlled tempo, then pressing it upward to full arm extension with stable shoulder blades",
+  "running": "sprinting in a professional studio — powerful arm drive, high knee lift, explosive ground contact with each stride, athletic running form",
+  "jumping": "performing an explosive vertical box jump — crouching into a quarter squat, then launching upward with full arm swing, landing softly with bent knees",
+  "push-ups": "performing push-ups with strict form — lowering chest to floor with elbows tracking back, then pressing up to full arm extension, maintaining rigid plank throughout",
+  "sprint": "sprinting at full speed — explosive arm pump, driving knees high, powerful foot strikes with forward lean",
+  "burpees": "performing a burpee — dropping into a push-up, then explosively jumping upward with arms overhead",
+  "lunges": "performing walking lunges — stepping forward into a deep lunge, driving back up through the front heel",
+  "pull-ups": "performing strict pull-ups — hanging from a bar then pulling chin above the bar with controlled movement",
+  "high knees": "performing high knees in place — rapidly driving knees upward alternately with athletic posture",
+  "mountain climbers": "performing mountain climbers — in plank position, rapidly alternating driving knees toward chest",
+  "box jumps": "performing explosive box jumps — jumping onto a plyo box and landing with soft knees",
+  "squat jumps": "performing explosive squat jumps — dropping into a squat then leaping vertically",
+  "kettlebell swings": "performing kettlebell swings — hinging at hips, driving the kettlebell forward and overhead with hip snap",
+  "warrior pose": "flowing through warrior pose — stepping into a wide stance with arms extended, holding with controlled breathing",
+  "downward dog": "transitioning into downward dog — pressing hips high, straightening arms and legs, pressing heels toward floor",
+  "plank": "holding a forearm plank with perfect alignment — core braced, body forming a straight line from head to heels",
+};
+
 /**
- * Runway Gen-3 Image-to-Video edge function.
- * Takes a reference image URL and generates a 4-6 second MP4 video
- * of an athlete performing a movement while wearing the garment.
+ * Runway Gen-4 Turbo Image-to-Video edge function.
+ * Takes a reference image URL and generates a 3-5 second continuous MP4 video
+ * of an athlete performing a movement naturally — NOT frame interpolation.
  */
 
 serve(async (req) => {
