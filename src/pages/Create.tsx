@@ -558,30 +558,14 @@ const Create = () => {
 
       zip.file("lookbook.pdf", pdf.output("blob"));
 
-      // ── Video assets ──
-      if (videoBlob) {
+      // ── Video assets (Runway AI MP4) ──
+      if (runwayVideoUrl) {
         const videoFolder = zip.folder("video");
-        videoFolder?.file(`${garmentName}-motion.webm`, videoBlob);
-
-        // Auto-generated thumbnail stills
-        const thumbs = getThumbnailFrames(videoFrames, 3);
-        const thumbFolder = zip.folder("video/thumbnails");
-        for (let i = 0; i < thumbs.length; i++) {
-          try {
-            const resp = await fetch(thumbs[i]);
-            const blob = await resp.blob();
-            thumbFolder?.file(`thumbnail_${i + 1}.png`, blob);
-          } catch { /* skip */ }
-        }
-
-        // Branded cover frame (first frame)
-        if (videoFrames[0]) {
-          try {
-            const resp = await fetch(videoFrames[0]);
-            const blob = await resp.blob();
-            videoFolder?.file("cover-frame.png", blob);
-          } catch { /* skip */ }
-        }
+        try {
+          const resp = await fetch(runwayVideoUrl);
+          const blob = await resp.blob();
+          videoFolder?.file(`${garmentName}-motion.mp4`, blob);
+        } catch { /* skip */ }
       }
 
       zip.file("performance-metrics.json", JSON.stringify({
@@ -591,8 +575,7 @@ const Create = () => {
         physics: result.physics,
         garment_analysis: result.garment_analysis,
         logo_position: logoPosition,
-        has_video: !!videoBlob,
-        video_frames: videoFrames.length,
+        has_video: !!runwayVideoUrl,
         sizes: Object.fromEntries(
           Object.entries(Object.keys(sizeVariants).length > 0 ? sizeVariants : { [selectedSize]: result })
             .filter(([, v]) => v)
@@ -608,7 +591,7 @@ const Create = () => {
       URL.revokeObjectURL(a.href);
       toast({
         title: "✅ Campaign Pack downloaded",
-        description: `${entries.length} images${videoBlob ? ", motion video" : ""}, branded PDF lookbook, and performance data bundled.`,
+        description: `${entries.length} images${runwayVideoUrl ? ", AI motion video" : ""}, branded PDF lookbook, and performance data bundled.`,
       });
     } catch (err) {
       toast({ title: "Export failed", description: String(err), variant: "destructive" });
