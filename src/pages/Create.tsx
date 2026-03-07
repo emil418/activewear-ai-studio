@@ -135,21 +135,8 @@ const Create = () => {
   const [generatingSizes, setGeneratingSizes] = useState(false);
   const [sizeProgress, setSizeProgress] = useState("");
   const [activeSizeTab, setActiveSizeTab] = useState("M");
-  const [generatingVideo, setGeneratingVideo] = useState(false);
-  const [videoFrames, setVideoFrames] = useState<string[]>([]);
-  const [videoPhases, setVideoPhases] = useState<string[]>([]);
-  const [activeFrame, setActiveFrame] = useState(0);
-  const [enableVideo, setEnableVideo] = useState(false);
-  const [cameraStyle, setCameraStyle] = useState<"static" | "slow_tracking">("static");
-  const [videoBlob, setVideoBlob] = useState<Blob | null>(null);
-  const [videoUrl, setVideoUrl] = useState<string | null>(null);
-  const [videoProgress, setVideoProgress] = useState(0);
-  const [encodingVideo, setEncodingVideo] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const playIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Runway AI Video state
+  // AI Video state (Runway)
   const [generatingRunwayVideo, setGeneratingRunwayVideo] = useState(false);
   const [runwayVideoUrl, setRunwayVideoUrl] = useState<string | null>(null);
   const runwayVideoRef = useRef<HTMLVideoElement>(null);
