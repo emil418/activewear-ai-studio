@@ -2,7 +2,7 @@ import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Upload, User, Zap, Download, ArrowRight, ArrowLeft,
-  Check, Image, Activity, Package, Layers, Send, Loader2, Users, Plus, FileText, Video, Play, Pause
+  Check, Image, Activity, Package, Layers, Send, Loader2, Users, Plus, FileText, Video, Download as DownloadIcon
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
