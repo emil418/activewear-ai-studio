@@ -1198,7 +1198,7 @@ const Create = () => {
                   disabled={generatingRunwayVideo}
                   className="w-full rounded-xl border-primary/30 text-primary hover:bg-primary/10 gap-2 py-6 font-bold text-base"
                   onClick={handleGenerateRunwayVideo}>
-                  <Video className="w-5 h-5" /> Generate Motion Video (4-6 sec)
+                  <Video className="w-5 h-5" /> Generate Motion Video (3-5 sec)
                 </Button>
               )}
 
