@@ -78,12 +78,14 @@ serve(async (req) => {
       });
     }
 
+    const movementKey = (movement || "squats").toLowerCase();
+    const motionDesc = MOTION_DESCRIPTIONS[movementKey] || `performing ${movement || "squats"} with controlled, athletic form`;
     const intensityLabel = intensity > 70 ? "explosive, powerful" : intensity > 40 ? "controlled, athletic" : "slow, deliberate";
     const cameraDesc = cameraStyle === "slow_tracking"
       ? "very slow, subtle cinematic tracking shot"
       : "stable tripod shot with minimal camera movement";
 
-    const motionPrompt = `A ${gender || "female"} athlete with a ${bodyType || "athletic"} build performing ${movement || "squats"} in a professional dark studio. The movement is ${intensityLabel} with natural fluid motion. Show realistic fabric physics — the activewear stretches, compresses, and moves naturally with the body. ${cameraDesc}. Professional sports campaign lighting. Vertical 9:16 format. Smooth continuous motion, photorealistic quality.`;
+    const motionPrompt = `A ${gender || "female"} athlete with a ${bodyType || "athletic"} build ${motionDesc} in a professional dark studio. The movement is ${intensityLabel} with natural fluid motion. The activewear stretches, compresses, wrinkles and moves naturally with the body — realistic fabric physics showing stretch under load, compression at joints, and natural folds. ${cameraDesc}. Professional sports campaign lighting. Vertical 9:16 format. Smooth continuous motion throughout the entire clip, photorealistic quality, natural body mechanics.`;
 
     console.log(`RUNWAY: Starting video generation for "${movement}" — prompt: ${motionPrompt.substring(0, 100)}...`);
 
