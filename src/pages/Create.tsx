@@ -14,7 +14,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useInfluencerMode } from "@/hooks/useInfluencerMode";
 import { supabase } from "@/integrations/supabase/client";
 import LogoPlacer, { type LogoPosition } from "@/components/LogoPlacer";
-import { encodeVideo, getThumbnailFrames } from "@/lib/videoEncoder";
+import JSZip from "jszip";
 import JSZip from "jszip";
 import { jsPDF } from "jspdf";
 
