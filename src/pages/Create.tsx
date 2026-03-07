@@ -235,11 +235,7 @@ const Create = () => {
     setGenerationError(null);
     setLoadingMsg(0);
     setSizeVariants({});
-    setVideoFrames([]);
-    setVideoPhases([]);
-    setVideoBlob(null);
     setRunwayVideoUrl(null);
-    if (videoUrl) { URL.revokeObjectURL(videoUrl); setVideoUrl(null); }
 
     const interval = setInterval(() => {
       setLoadingMsg(prev => prev >= loadingMessages.length - 1 ? prev : prev + 1);
@@ -262,15 +258,9 @@ const Create = () => {
       const garmentLabel = analysis?.garment_category || "Garment";
 
       toast({
-        title: `✅ Generation complete${enableVideo ? " — video starting..." : " — ready for export"}`,
+        title: "✅ Generation complete — ready for export",
         description: `${garmentLabel} rendered in ${successCount}/3 angles. ${successCount === 3 ? "All views generated successfully." : "Some views may need retry."}`,
       });
-
-      // Auto-trigger video generation if enabled
-      if (enableVideo) {
-        // Defer to after state updates render
-        setTimeout(() => handleGenerateVideo(), 500);
-      }
     } catch (err: unknown) {
       clearInterval(interval);
       const message = err instanceof Error ? err.message : "Generation failed. Please try again.";
