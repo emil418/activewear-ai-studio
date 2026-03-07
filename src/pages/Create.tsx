@@ -15,7 +15,6 @@ import { useInfluencerMode } from "@/hooks/useInfluencerMode";
 import { supabase } from "@/integrations/supabase/client";
 import LogoPlacer, { type LogoPosition } from "@/components/LogoPlacer";
 import JSZip from "jszip";
-import JSZip from "jszip";
 import { jsPDF } from "jspdf";
 
 /* ─── Step config ─── */
