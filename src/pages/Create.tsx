@@ -317,7 +317,7 @@ const Create = () => {
   };
   const back = () => { if (step > 0) setStep(step - 1); };
 
-  const physics = result?.physics;
+  const _physics = result?.physics;
   const showSimplifiedUI = influencerMode;
 
   // Helper: get image URL for a given result
