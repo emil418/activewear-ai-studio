@@ -1006,67 +1006,15 @@ const Create = () => {
               </div>
             </div>
 
-            {/* ── Premium Motion Visualization Toggle ── */}
-            <div className="glass-card p-5">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-primary/[0.06] flex items-center justify-center">
-                    <Video className="w-4 h-4 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold">Premium Motion Visualization</p>
-                    <p className="text-xs text-muted-foreground">9:16 vertical · 5-8s continuous motion · 10 micro-pose frames</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-bold text-primary/60 uppercase tracking-wider">Premium</span>
-                  <Switch checked={enableVideo} onCheckedChange={setEnableVideo} />
-                </div>
-              </div>
-              {enableVideo && (
-                <div className="mt-3 pt-3 border-t border-border space-y-3">
-                  <p className="text-xs text-muted-foreground">
-                    The system will generate a continuous {selectedMovement ? `"${selectedMovement}"` : "movement"} motion video with 
-                    realistic fabric behavior, muscle tension progression, and {brandKit ? "Brand Kit overlay" : "clean output"}.
-                  </p>
-
-                  {/* Camera style selector */}
-                  <div>
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Camera</p>
-                    <div className="flex gap-2">
-                      {([
-                        { value: "static" as const, label: "Static", desc: "Locked tripod" },
-                        { value: "slow_tracking" as const, label: "Cinematic", desc: "Slow tracking" },
-                      ]).map(cam => (
-                        <button key={cam.value} onClick={() => setCameraStyle(cam.value)}
-                          className={`text-xs px-3 py-2 rounded-lg font-semibold transition-all duration-300 ${
-                            cameraStyle === cam.value ? "bg-primary/10 text-primary border border-primary/20"
-                              : "bg-muted text-muted-foreground border border-border hover:border-primary/20"
-                          }`}>
-                          {cam.label} <span className="text-muted-foreground/50 font-normal">— {cam.desc}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap gap-1.5">
-                    {["Identity Lock", "Fabric Physics", "Muscle Tension", "10 Micro-Poses", cameraStyle === "static" ? "Static Camera" : "Cinematic", brandKit ? "Brand Overlay" : "Clean Export", "24fps"].map(tag => (
-                      <span key={tag} className="text-[10px] px-2 py-0.5 rounded-md bg-primary/[0.06] text-primary/70 font-semibold">{tag}</span>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
             {!showSimplifiedUI && (
               <div className="glass-card p-6">
                 <p className="text-sm font-semibold mb-3">Smart Model Router will use:</p>
                 <div className="flex flex-wrap gap-2">
-                  {["Garment Analysis (Flash)", "Physics Engine (Flash)", "Image Gen (Pro Image)", ...(enableVideo ? ["Motion Synthesis (10-frame)"] : [])].map(f => (
+                  {["Garment Analysis (Flash)", "Physics Engine (Flash)", "Image Gen (Pro Image)"].map(f => (
                     <span key={f} className="feature-badge">{f}</span>
                   ))}
                 </div>
-                <p className="text-xs text-muted-foreground mt-3">{enableVideo ? "4 AI models + motion synthesis engine" : "3 AI models"} working in sync — auto-selected for each task.</p>
+                <p className="text-xs text-muted-foreground mt-3">3 AI models working in sync — auto-selected for each task.</p>
               </div>
             )}
 
@@ -1086,7 +1034,7 @@ const Create = () => {
             ) : (
               <Button onClick={handleGenerate} size="lg"
                 className={`w-full rounded-xl font-bold gap-2 glow-border ${showSimplifiedUI ? "py-8 text-lg" : "py-6 text-base"}`}>
-                <Zap className="w-5 h-5" /> {enableVideo ? "Generate Images + Motion Video" : "Generate Performance Simulation"}
+                <Zap className="w-5 h-5" /> Generate Performance Simulation
               </Button>
             )}
           </motion.div>
