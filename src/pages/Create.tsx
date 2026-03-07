@@ -636,104 +636,9 @@ const Create = () => {
     });
   };
 
-  // ── Video Generation Pipeline (True Motion) ──
-  const handleGenerateVideo = async () => {
-    if (!garmentFile) return;
-    setGeneratingVideo(true);
-    setVideoFrames([]);
-    setVideoPhases([]);
-    setVideoBlob(null);
-    if (videoUrl) { URL.revokeObjectURL(videoUrl); setVideoUrl(null); }
-    setVideoProgress(0);
+  // ── AI Video Generation (Runway Gen-4 Turbo) ──
+  const [cameraStyle, setCameraStyle] = useState<"static" | "slow_tracking">("static");
 
-    toast({ title: "🎬 Generating realistic motion video...", description: "Using generated images as reference. This takes 30-60 seconds." });
-
-    try {
-      const garmentBase64Data = await fileToBase64(garmentFile);
-
-      // Get the best front image as reference for identity/garment consistency
-      const frontImageUrl = getImageUrl(result, "front") || getImageUrl(result, "side") || getImageUrl(result, "back");
-
-      const response = await supabase.functions.invoke("generate-video", {
-        body: {
-          garmentName: garmentFile?.name || "Activewear",
-          garmentBase64: garmentBase64Data,
-          gender: selectedAthlete?.gender || selectedGender,
-          size: selectedSize,
-          bodyType: selectedAthlete?.body_type || selectedBody,
-          movement: selectedMovement,
-          intensity: intensity[0],
-          cameraStyle,
-          referenceImageUrl: frontImageUrl || undefined,
-          athleteIdentity: selectedAthlete ? {
-            name: selectedAthlete.name,
-            gender: selectedAthlete.gender,
-            height_cm: selectedAthlete.height_cm,
-            weight_kg: selectedAthlete.weight_kg,
-            body_type: selectedAthlete.body_type,
-            muscle_density: selectedAthlete.muscle_density,
-            body_fat_pct: selectedAthlete.body_fat_pct,
-            skin_tone: selectedAthlete.skin_tone,
-            face_structure: selectedAthlete.face_structure,
-            hair_style: selectedAthlete.hair_style,
-            brand_vibe: selectedAthlete.brand_vibe,
-            identity_seed: selectedAthlete.identity_seed,
-          } : undefined,
-        },
-      });
-
-      if (!response.data?.frame_urls?.length) {
-        toast({ title: "No frames generated", description: "Please try again.", variant: "destructive" });
-        return;
-      }
-
-      const frameUrls = response.data.frame_urls as string[];
-      const phases = (response.data.phase_labels || []) as string[];
-      setVideoFrames(frameUrls);
-      setVideoPhases(phases);
-      setActiveFrame(0);
-      toast({ title: "✅ Motion frames generated", description: `${frameUrls.length} keyframes captured. Encoding video...` });
-
-      // Encode to WebM with advanced interpolation
-      setEncodingVideo(true);
-      const overlay = brandKit ? {
-        logoUrl: brandKit.logo_primary_url || undefined,
-        accentColor: brandKit.accent_color || brandKit.primary_color || undefined,
-        watermarkOpacity: brandKit.watermark_opacity ?? 0.6,
-        brandName: undefined as string | undefined,
-      } : undefined;
-
-      if (overlay && user) {
-        const { data: brand } = await supabase.from("brands").select("name").eq("owner_id", user.id).limit(1).single();
-        if (brand) overlay.brandName = brand.name;
-      }
-
-      const blob = await encodeVideo({
-        frames: frameUrls,
-        width: 1080,
-        height: 1920,
-        fps: 24,
-        durationPerFrame: 1.0, // 6 frames × 1.0s = ~6s + holds
-        loops: 1,
-        brandOverlay: overlay,
-        onProgress: setVideoProgress,
-      });
-
-      const url = URL.createObjectURL(blob);
-      setVideoBlob(blob);
-      setVideoUrl(url);
-      setEncodingVideo(false);
-
-      toast({ title: "🎥 Premium Motion Video ready", description: "Continuous motion video encoded. 9:16 vertical, 24fps." });
-    } catch (err) {
-      toast({ title: "Video generation failed", description: String(err), variant: "destructive" });
-    } finally {
-      setGeneratingVideo(false);
-      setEncodingVideo(false);
-    }
-  };
-
-  // ── Runway AI Video Generation (True Motion) ──
   const handleGenerateRunwayVideo = async () => {
     const frontUrl = getImageUrl(result, "front") || getImageUrl(result, "side") || getImageUrl(result, "back");
     if (!frontUrl) {
@@ -743,7 +648,7 @@ const Create = () => {
 
     setGeneratingRunwayVideo(true);
     setRunwayVideoUrl(null);
-    toast({ title: "🎬 Generating true AI motion video...", description: "Using Runway AI for continuous, fluid motion. This takes 30-90 seconds." });
+    toast({ title: "🎬 Generating true AI motion video...", description: "Creating continuous, fluid motion — 30-90 seconds." });
 
     try {
       const response = await supabase.functions.invoke("generate-runway-video", {
@@ -758,13 +663,13 @@ const Create = () => {
         },
       });
 
-      if (response.error) throw new Error(response.error.message || "Runway video generation failed");
+      if (response.error) throw new Error(response.error.message || "Video generation failed");
       if (!response.data?.success || !response.data?.video_url) {
         throw new Error(response.data?.error || "No video URL returned");
       }
 
       setRunwayVideoUrl(response.data.video_url);
-      toast({ title: "🎥 AI Motion Video ready!", description: `${response.data.duration}s video generated with Runway AI. Download or preview below.` });
+      toast({ title: "🎥 AI Motion Video ready!", description: `${response.data.duration}s continuous video generated. Download or preview below.` });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Video generation failed";
       toast({ title: "Video generation failed", description: message, variant: "destructive" });
@@ -772,28 +677,6 @@ const Create = () => {
       setGeneratingRunwayVideo(false);
     }
   };
-
-  const toggleFramePlayback = () => {
-    if (isPlaying) {
-      if (playIntervalRef.current) clearInterval(playIntervalRef.current);
-      playIntervalRef.current = null;
-      setIsPlaying(false);
-    } else {
-      setIsPlaying(true);
-      let frame = activeFrame;
-      playIntervalRef.current = setInterval(() => {
-        frame = (frame + 1) % videoFrames.length;
-        setActiveFrame(frame);
-      }, 600);
-    }
-  };
-
-  // Cleanup play interval
-  useEffect(() => {
-    return () => {
-      if (playIntervalRef.current) clearInterval(playIntervalRef.current);
-    };
-  }, []);
 
   // Current active result for preview (size tab or primary)
   const activeResult = Object.keys(sizeVariants).length > 0
