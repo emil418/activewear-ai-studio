@@ -1227,8 +1227,8 @@ const Create = () => {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Video className="w-4 h-4 text-primary" />
-                      <p className="text-sm font-bold">AI Motion Video — Ready</p>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/20 text-primary font-bold">Runway AI</span>
+                      <p className="text-sm font-bold">Motion Video Preview — Ready</p>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/20 text-primary font-bold">AI Generated</span>
                     </div>
                     <div className="flex gap-2">
                       <Button variant="outline" size="sm" className="rounded-xl text-xs gap-1.5"
