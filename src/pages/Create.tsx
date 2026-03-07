@@ -2,19 +2,18 @@ import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Upload, User, Zap, Download, ArrowRight, ArrowLeft,
-  Check, Image, Activity, Package, Layers, Send, Loader2, Users, Plus, FileText, Video, Play, Pause
+  Check, Image, Activity, Package, Layers, Send, Loader2, Users, Plus, FileText, Video
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { Switch } from "@/components/ui/switch";
+
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useInfluencerMode } from "@/hooks/useInfluencerMode";
 import { supabase } from "@/integrations/supabase/client";
 import LogoPlacer, { type LogoPosition } from "@/components/LogoPlacer";
-import { encodeVideo, getThumbnailFrames } from "@/lib/videoEncoder";
 import JSZip from "jszip";
 import { jsPDF } from "jspdf";
 
@@ -135,21 +134,8 @@ const Create = () => {
   const [generatingSizes, setGeneratingSizes] = useState(false);
   const [sizeProgress, setSizeProgress] = useState("");
   const [activeSizeTab, setActiveSizeTab] = useState("M");
-  const [generatingVideo, setGeneratingVideo] = useState(false);
-  const [videoFrames, setVideoFrames] = useState<string[]>([]);
-  const [videoPhases, setVideoPhases] = useState<string[]>([]);
-  const [activeFrame, setActiveFrame] = useState(0);
-  const [enableVideo, setEnableVideo] = useState(false);
-  const [cameraStyle, setCameraStyle] = useState<"static" | "slow_tracking">("static");
-  const [videoBlob, setVideoBlob] = useState<Blob | null>(null);
-  const [videoUrl, setVideoUrl] = useState<string | null>(null);
-  const [videoProgress, setVideoProgress] = useState(0);
-  const [encodingVideo, setEncodingVideo] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const playIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Runway AI Video state
+  // AI Video state (Runway)
   const [generatingRunwayVideo, setGeneratingRunwayVideo] = useState(false);
   const [runwayVideoUrl, setRunwayVideoUrl] = useState<string | null>(null);
   const runwayVideoRef = useRef<HTMLVideoElement>(null);
@@ -249,11 +235,7 @@ const Create = () => {
     setGenerationError(null);
     setLoadingMsg(0);
     setSizeVariants({});
-    setVideoFrames([]);
-    setVideoPhases([]);
-    setVideoBlob(null);
     setRunwayVideoUrl(null);
-    if (videoUrl) { URL.revokeObjectURL(videoUrl); setVideoUrl(null); }
 
     const interval = setInterval(() => {
       setLoadingMsg(prev => prev >= loadingMessages.length - 1 ? prev : prev + 1);
@@ -276,15 +258,9 @@ const Create = () => {
       const garmentLabel = analysis?.garment_category || "Garment";
 
       toast({
-        title: `✅ Generation complete${enableVideo ? " — video starting..." : " — ready for export"}`,
+        title: "✅ Generation complete — ready for export",
         description: `${garmentLabel} rendered in ${successCount}/3 angles. ${successCount === 3 ? "All views generated successfully." : "Some views may need retry."}`,
       });
-
-      // Auto-trigger video generation if enabled
-      if (enableVideo) {
-        // Defer to after state updates render
-        setTimeout(() => handleGenerateVideo(), 500);
-      }
     } catch (err: unknown) {
       clearInterval(interval);
       const message = err instanceof Error ? err.message : "Generation failed. Please try again.";
@@ -341,7 +317,7 @@ const Create = () => {
   };
   const back = () => { if (step > 0) setStep(step - 1); };
 
-  const physics = result?.physics;
+  const _physics = result?.physics;
   const showSimplifiedUI = influencerMode;
 
   // Helper: get image URL for a given result
@@ -582,30 +558,14 @@ const Create = () => {
 
       zip.file("lookbook.pdf", pdf.output("blob"));
 
-      // ── Video assets ──
-      if (videoBlob) {
+      // ── Video assets (Runway AI MP4) ──
+      if (runwayVideoUrl) {
         const videoFolder = zip.folder("video");
-        videoFolder?.file(`${garmentName}-motion.webm`, videoBlob);
-
-        // Auto-generated thumbnail stills
-        const thumbs = getThumbnailFrames(videoFrames, 3);
-        const thumbFolder = zip.folder("video/thumbnails");
-        for (let i = 0; i < thumbs.length; i++) {
-          try {
-            const resp = await fetch(thumbs[i]);
-            const blob = await resp.blob();
-            thumbFolder?.file(`thumbnail_${i + 1}.png`, blob);
-          } catch { /* skip */ }
-        }
-
-        // Branded cover frame (first frame)
-        if (videoFrames[0]) {
-          try {
-            const resp = await fetch(videoFrames[0]);
-            const blob = await resp.blob();
-            videoFolder?.file("cover-frame.png", blob);
-          } catch { /* skip */ }
-        }
+        try {
+          const resp = await fetch(runwayVideoUrl);
+          const blob = await resp.blob();
+          videoFolder?.file(`${garmentName}-motion.mp4`, blob);
+        } catch { /* skip */ }
       }
 
       zip.file("performance-metrics.json", JSON.stringify({
@@ -615,8 +575,7 @@ const Create = () => {
         physics: result.physics,
         garment_analysis: result.garment_analysis,
         logo_position: logoPosition,
-        has_video: !!videoBlob,
-        video_frames: videoFrames.length,
+        has_video: !!runwayVideoUrl,
         sizes: Object.fromEntries(
           Object.entries(Object.keys(sizeVariants).length > 0 ? sizeVariants : { [selectedSize]: result })
             .filter(([, v]) => v)
@@ -632,7 +591,7 @@ const Create = () => {
       URL.revokeObjectURL(a.href);
       toast({
         title: "✅ Campaign Pack downloaded",
-        description: `${entries.length} images${videoBlob ? ", motion video" : ""}, branded PDF lookbook, and performance data bundled.`,
+        description: `${entries.length} images${runwayVideoUrl ? ", AI motion video" : ""}, branded PDF lookbook, and performance data bundled.`,
       });
     } catch (err) {
       toast({ title: "Export failed", description: String(err), variant: "destructive" });
@@ -677,104 +636,9 @@ const Create = () => {
     });
   };
 
-  // ── Video Generation Pipeline (True Motion) ──
-  const handleGenerateVideo = async () => {
-    if (!garmentFile) return;
-    setGeneratingVideo(true);
-    setVideoFrames([]);
-    setVideoPhases([]);
-    setVideoBlob(null);
-    if (videoUrl) { URL.revokeObjectURL(videoUrl); setVideoUrl(null); }
-    setVideoProgress(0);
+  // ── AI Video Generation (Runway Gen-4 Turbo) ──
+  const [cameraStyle, setCameraStyle] = useState<"static" | "slow_tracking">("static");
 
-    toast({ title: "🎬 Generating realistic motion video...", description: "Using generated images as reference. This takes 30-60 seconds." });
-
-    try {
-      const garmentBase64Data = await fileToBase64(garmentFile);
-
-      // Get the best front image as reference for identity/garment consistency
-      const frontImageUrl = getImageUrl(result, "front") || getImageUrl(result, "side") || getImageUrl(result, "back");
-
-      const response = await supabase.functions.invoke("generate-video", {
-        body: {
-          garmentName: garmentFile?.name || "Activewear",
-          garmentBase64: garmentBase64Data,
-          gender: selectedAthlete?.gender || selectedGender,
-          size: selectedSize,
-          bodyType: selectedAthlete?.body_type || selectedBody,
-          movement: selectedMovement,
-          intensity: intensity[0],
-          cameraStyle,
-          referenceImageUrl: frontImageUrl || undefined,
-          athleteIdentity: selectedAthlete ? {
-            name: selectedAthlete.name,
-            gender: selectedAthlete.gender,
-            height_cm: selectedAthlete.height_cm,
-            weight_kg: selectedAthlete.weight_kg,
-            body_type: selectedAthlete.body_type,
-            muscle_density: selectedAthlete.muscle_density,
-            body_fat_pct: selectedAthlete.body_fat_pct,
-            skin_tone: selectedAthlete.skin_tone,
-            face_structure: selectedAthlete.face_structure,
-            hair_style: selectedAthlete.hair_style,
-            brand_vibe: selectedAthlete.brand_vibe,
-            identity_seed: selectedAthlete.identity_seed,
-          } : undefined,
-        },
-      });
-
-      if (!response.data?.frame_urls?.length) {
-        toast({ title: "No frames generated", description: "Please try again.", variant: "destructive" });
-        return;
-      }
-
-      const frameUrls = response.data.frame_urls as string[];
-      const phases = (response.data.phase_labels || []) as string[];
-      setVideoFrames(frameUrls);
-      setVideoPhases(phases);
-      setActiveFrame(0);
-      toast({ title: "✅ Motion frames generated", description: `${frameUrls.length} keyframes captured. Encoding video...` });
-
-      // Encode to WebM with advanced interpolation
-      setEncodingVideo(true);
-      const overlay = brandKit ? {
-        logoUrl: brandKit.logo_primary_url || undefined,
-        accentColor: brandKit.accent_color || brandKit.primary_color || undefined,
-        watermarkOpacity: brandKit.watermark_opacity ?? 0.6,
-        brandName: undefined as string | undefined,
-      } : undefined;
-
-      if (overlay && user) {
-        const { data: brand } = await supabase.from("brands").select("name").eq("owner_id", user.id).limit(1).single();
-        if (brand) overlay.brandName = brand.name;
-      }
-
-      const blob = await encodeVideo({
-        frames: frameUrls,
-        width: 1080,
-        height: 1920,
-        fps: 24,
-        durationPerFrame: 1.0, // 6 frames × 1.0s = ~6s + holds
-        loops: 1,
-        brandOverlay: overlay,
-        onProgress: setVideoProgress,
-      });
-
-      const url = URL.createObjectURL(blob);
-      setVideoBlob(blob);
-      setVideoUrl(url);
-      setEncodingVideo(false);
-
-      toast({ title: "🎥 Premium Motion Video ready", description: "Continuous motion video encoded. 9:16 vertical, 24fps." });
-    } catch (err) {
-      toast({ title: "Video generation failed", description: String(err), variant: "destructive" });
-    } finally {
-      setGeneratingVideo(false);
-      setEncodingVideo(false);
-    }
-  };
-
-  // ── Runway AI Video Generation (True Motion) ──
   const handleGenerateRunwayVideo = async () => {
     const frontUrl = getImageUrl(result, "front") || getImageUrl(result, "side") || getImageUrl(result, "back");
     if (!frontUrl) {
@@ -784,7 +648,7 @@ const Create = () => {
 
     setGeneratingRunwayVideo(true);
     setRunwayVideoUrl(null);
-    toast({ title: "🎬 Generating true AI motion video...", description: "Using Runway AI for continuous, fluid motion. This takes 30-90 seconds." });
+    toast({ title: "🎬 Generating true AI motion video...", description: "Creating continuous, fluid motion — 30-90 seconds." });
 
     try {
       const response = await supabase.functions.invoke("generate-runway-video", {
@@ -799,13 +663,13 @@ const Create = () => {
         },
       });
 
-      if (response.error) throw new Error(response.error.message || "Runway video generation failed");
+      if (response.error) throw new Error(response.error.message || "Video generation failed");
       if (!response.data?.success || !response.data?.video_url) {
         throw new Error(response.data?.error || "No video URL returned");
       }
 
       setRunwayVideoUrl(response.data.video_url);
-      toast({ title: "🎥 AI Motion Video ready!", description: `${response.data.duration}s video generated with Runway AI. Download or preview below.` });
+      toast({ title: "🎥 AI Motion Video ready!", description: `${response.data.duration}s continuous video generated. Download or preview below.` });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Video generation failed";
       toast({ title: "Video generation failed", description: message, variant: "destructive" });
@@ -813,28 +677,6 @@ const Create = () => {
       setGeneratingRunwayVideo(false);
     }
   };
-
-  const toggleFramePlayback = () => {
-    if (isPlaying) {
-      if (playIntervalRef.current) clearInterval(playIntervalRef.current);
-      playIntervalRef.current = null;
-      setIsPlaying(false);
-    } else {
-      setIsPlaying(true);
-      let frame = activeFrame;
-      playIntervalRef.current = setInterval(() => {
-        frame = (frame + 1) % videoFrames.length;
-        setActiveFrame(frame);
-      }, 600);
-    }
-  };
-
-  // Cleanup play interval
-  useEffect(() => {
-    return () => {
-      if (playIntervalRef.current) clearInterval(playIntervalRef.current);
-    };
-  }, []);
 
   // Current active result for preview (size tab or primary)
   const activeResult = Object.keys(sizeVariants).length > 0
@@ -1164,67 +1006,15 @@ const Create = () => {
               </div>
             </div>
 
-            {/* ── Premium Motion Visualization Toggle ── */}
-            <div className="glass-card p-5">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-primary/[0.06] flex items-center justify-center">
-                    <Video className="w-4 h-4 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold">Premium Motion Visualization</p>
-                    <p className="text-xs text-muted-foreground">9:16 vertical · 5-8s continuous motion · 10 micro-pose frames</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-bold text-primary/60 uppercase tracking-wider">Premium</span>
-                  <Switch checked={enableVideo} onCheckedChange={setEnableVideo} />
-                </div>
-              </div>
-              {enableVideo && (
-                <div className="mt-3 pt-3 border-t border-border space-y-3">
-                  <p className="text-xs text-muted-foreground">
-                    The system will generate a continuous {selectedMovement ? `"${selectedMovement}"` : "movement"} motion video with 
-                    realistic fabric behavior, muscle tension progression, and {brandKit ? "Brand Kit overlay" : "clean output"}.
-                  </p>
-
-                  {/* Camera style selector */}
-                  <div>
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Camera</p>
-                    <div className="flex gap-2">
-                      {([
-                        { value: "static" as const, label: "Static", desc: "Locked tripod" },
-                        { value: "slow_tracking" as const, label: "Cinematic", desc: "Slow tracking" },
-                      ]).map(cam => (
-                        <button key={cam.value} onClick={() => setCameraStyle(cam.value)}
-                          className={`text-xs px-3 py-2 rounded-lg font-semibold transition-all duration-300 ${
-                            cameraStyle === cam.value ? "bg-primary/10 text-primary border border-primary/20"
-                              : "bg-muted text-muted-foreground border border-border hover:border-primary/20"
-                          }`}>
-                          {cam.label} <span className="text-muted-foreground/50 font-normal">— {cam.desc}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap gap-1.5">
-                    {["Identity Lock", "Fabric Physics", "Muscle Tension", "10 Micro-Poses", cameraStyle === "static" ? "Static Camera" : "Cinematic", brandKit ? "Brand Overlay" : "Clean Export", "24fps"].map(tag => (
-                      <span key={tag} className="text-[10px] px-2 py-0.5 rounded-md bg-primary/[0.06] text-primary/70 font-semibold">{tag}</span>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
             {!showSimplifiedUI && (
               <div className="glass-card p-6">
                 <p className="text-sm font-semibold mb-3">Smart Model Router will use:</p>
                 <div className="flex flex-wrap gap-2">
-                  {["Garment Analysis (Flash)", "Physics Engine (Flash)", "Image Gen (Pro Image)", ...(enableVideo ? ["Motion Synthesis (10-frame)"] : [])].map(f => (
+                  {["Garment Analysis (Flash)", "Physics Engine (Flash)", "Image Gen (Pro Image)"].map(f => (
                     <span key={f} className="feature-badge">{f}</span>
                   ))}
                 </div>
-                <p className="text-xs text-muted-foreground mt-3">{enableVideo ? "4 AI models + motion synthesis engine" : "3 AI models"} working in sync — auto-selected for each task.</p>
+                <p className="text-xs text-muted-foreground mt-3">3 AI models working in sync — auto-selected for each task.</p>
               </div>
             )}
 
@@ -1244,7 +1034,7 @@ const Create = () => {
             ) : (
               <Button onClick={handleGenerate} size="lg"
                 className={`w-full rounded-xl font-bold gap-2 glow-border ${showSimplifiedUI ? "py-8 text-lg" : "py-6 text-base"}`}>
-                <Zap className="w-5 h-5" /> {enableVideo ? "Generate Images + Motion Video" : "Generate Performance Simulation"}
+                <Zap className="w-5 h-5" /> Generate Performance Simulation
               </Button>
             )}
           </motion.div>
@@ -1393,7 +1183,7 @@ const Create = () => {
               <div className={`flex gap-3 ${showSimplifiedUI ? "flex-col" : ""}`}>
                 <Button className={`rounded-xl font-bold gap-2 glow-border ${showSimplifiedUI ? "py-6 text-base" : "flex-1 py-5"}`}
                   onClick={buildCampaignPack}>
-                  <Package className="w-4 h-4" /> Create Campaign Pack {videoBlob ? "(+ Video)" : ""}
+                  <Package className="w-4 h-4" /> Create Campaign Pack {runwayVideoUrl ? "(+ Video)" : ""}
                 </Button>
                 <Button variant="outline" className="rounded-xl border-border hover:bg-muted gap-2 px-6"
                   onClick={handleSaveImages}>
@@ -1408,7 +1198,7 @@ const Create = () => {
                   disabled={generatingRunwayVideo}
                   className="w-full rounded-xl border-primary/30 text-primary hover:bg-primary/10 gap-2 py-6 font-bold text-base"
                   onClick={handleGenerateRunwayVideo}>
-                  <Video className="w-5 h-5" /> Generate Motion Video (4-6 sec)
+                  <Video className="w-5 h-5" /> Generate Motion Video (3-5 sec)
                 </Button>
               )}
 
@@ -1437,8 +1227,8 @@ const Create = () => {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Video className="w-4 h-4 text-primary" />
-                      <p className="text-sm font-bold">AI Motion Video — Ready</p>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/20 text-primary font-bold">Runway AI</span>
+                      <p className="text-sm font-bold">Motion Video Preview — Ready</p>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/20 text-primary font-bold">AI Generated</span>
                     </div>
                     <div className="flex gap-2">
                       <Button variant="outline" size="sm" className="rounded-xl text-xs gap-1.5"
@@ -1473,170 +1263,12 @@ const Create = () => {
                 </motion.div>
               )}
 
-              {/* Legacy frame-based video */}
-              {!videoFrames.length && !generatingVideo && !encodingVideo && !runwayVideoUrl && !generatingRunwayVideo && (
-                <div className="flex gap-3">
-                  <Button variant="ghost" disabled={generatingVideo}
-                    className="rounded-xl text-muted-foreground hover:text-foreground gap-2 flex-1 py-4 text-sm"
-                    onClick={handleGenerateVideo}>
-                    <Layers className="w-4 h-4" /> Frame-based Motion (Legacy)
-                  </Button>
-                  {showSimplifiedUI && (
-                    <Button variant="outline" className="rounded-xl border-secondary/30 text-secondary hover:bg-secondary/10 gap-2 py-4"
-                      onClick={handleSendToBrand}>
-                      <Send className="w-4 h-4" /> Send to Brand
-                    </Button>
-                  )}
-                </div>
-              )}
-
-              {/* Video generating / encoding progress */}
-              {(generatingVideo || encodingVideo) && (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="glass-card p-6 space-y-4">
-                  <div className="flex items-center gap-3">
-                    <Loader2 className="w-5 h-5 text-primary animate-spin" />
-                    <div>
-                      <p className="text-sm font-bold">{generatingVideo ? "Generating realistic motion video..." : "Encoding video..."}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {generatingVideo ? "Generating realistic motion video... (30-60 seconds)" : `${Math.round(videoProgress * 100)}% — Encoding continuous motion video`}
-                      </p>
-                    </div>
-                  </div>
-                  {encodingVideo && (
-                    <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden">
-                      <div className="h-full bg-primary rounded-full transition-all duration-300" style={{ width: `${videoProgress * 100}%` }} />
-                    </div>
-                  )}
-                </motion.div>
-              )}
-
-              {/* Video Preview */}
-              {videoFrames.length > 0 && !generatingVideo && (
-                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="glass-card p-5 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Video className="w-4 h-4 text-primary" />
-                      <p className="text-sm font-bold">Premium Motion Video — {videoUrl ? "Ready" : `${videoFrames.length} Micro-Poses`}</p>
-                    </div>
-                    <div className="flex gap-2">
-                      {videoUrl && (
-                        <Button variant="outline" size="sm" className="rounded-xl text-xs gap-1.5"
-                          onClick={() => {
-                            const a = document.createElement("a");
-                            a.href = videoUrl;
-                            a.download = `ActiveForge-${selectedMovement.replace(/\s+/g, "-")}-motion.webm`;
-                            a.click();
-                          }}>
-                          <Download className="w-3 h-3" /> Download Video
-                        </Button>
-                      )}
-                      <Button variant="outline" size="sm" className="rounded-xl text-xs gap-1.5"
-                        onClick={async () => {
-                          const zip = new JSZip();
-                          for (let i = 0; i < videoFrames.length; i++) {
-                            try {
-                              const resp = await fetch(videoFrames[i]);
-                              const blob = await resp.blob();
-                              zip.file(`frame_${i + 1}_${videoPhases[i]?.replace(/\s+/g, "-") || i}.png`, blob);
-                            } catch { /* skip */ }
-                          }
-                          const content = await zip.generateAsync({ type: "blob" });
-                          const a = document.createElement("a");
-                          a.href = URL.createObjectURL(content);
-                          a.download = `ActiveForge-${selectedMovement}-motion-frames.zip`;
-                          a.click();
-                          URL.revokeObjectURL(a.href);
-                          toast({ title: "Motion frames downloaded" });
-                        }}>
-                        <Download className="w-3 h-3" /> Frames
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Encoded video player */}
-                  {videoUrl ? (
-                    <div className="relative aspect-[9/16] max-h-[500px] mx-auto rounded-xl overflow-hidden bg-muted/20">
-                      <video
-                        ref={videoRef}
-                        src={videoUrl}
-                        loop
-                        playsInline
-                        className="w-full h-full object-cover"
-                        onClick={() => {
-                          if (videoRef.current?.paused) videoRef.current.play();
-                          else videoRef.current?.pause();
-                        }}
-                      />
-                      <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
-                        <Button variant="ghost" size="sm" className="rounded-lg bg-background/80 backdrop-blur text-xs gap-1 px-3"
-                          onClick={() => {
-                            if (videoRef.current?.paused) videoRef.current.play();
-                            else videoRef.current?.pause();
-                          }}>
-                          {videoRef.current?.paused !== false ? <Play className="w-3 h-3" /> : <Pause className="w-3 h-3" />}
-                          {videoRef.current?.paused !== false ? "Play" : "Pause"}
-                        </Button>
-                        <span className="text-[10px] px-2 py-1 rounded-lg bg-primary/20 backdrop-blur text-primary font-bold">
-                          9:16 · 24fps · {brandKit ? "Branded" : "Clean"}
-                        </span>
-                      </div>
-                    </div>
-                  ) : (
-                    /* Frame-based preview (fallback when encoding not complete) */
-                    <>
-                      <div className="relative aspect-[9/16] max-h-[500px] mx-auto rounded-xl overflow-hidden bg-muted/20">
-                        <AnimatePresence mode="wait">
-                          <motion.img
-                            key={activeFrame}
-                            src={videoFrames[activeFrame]}
-                            alt={`Frame ${activeFrame + 1}`}
-                            className="w-full h-full object-cover"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.3 }}
-                          />
-                        </AnimatePresence>
-                        <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
-                          <span className="text-[10px] px-2 py-1 rounded-lg bg-background/80 backdrop-blur text-foreground font-bold">
-                            Frame {activeFrame + 1}/{videoFrames.length}
-                          </span>
-                          {videoPhases[activeFrame] && (
-                            <span className="text-[10px] px-2 py-1 rounded-lg bg-primary/20 backdrop-blur text-primary font-bold capitalize">
-                              {videoPhases[activeFrame]}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </>
-                  )}
-
-                  {/* Frame timeline */}
-                  <div className="flex gap-2">
-                    {videoFrames.map((url, i) => (
-                      <button key={i} onClick={() => setActiveFrame(i)}
-                        className={`flex-1 aspect-[9/16] rounded-lg overflow-hidden border-2 transition-all duration-300 ${
-                          i === activeFrame ? "border-primary" : "border-transparent opacity-60 hover:opacity-100"
-                        }`}>
-                        <img src={url} alt={`Frame ${i + 1}`} className="w-full h-full object-cover" />
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Playback controls */}
-                  <div className="flex items-center justify-center gap-3">
-                    {!videoUrl && (
-                      <Button variant="outline" size="sm" className="rounded-xl text-xs gap-1.5" onClick={toggleFramePlayback}>
-                        {isPlaying ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
-                        {isPlaying ? "Pause" : "Play Frames"}
-                      </Button>
-                    )}
-                    <Button variant="outline" size="sm" className="rounded-xl text-xs gap-1.5 border-destructive/20 text-muted-foreground hover:text-foreground"
-                      onClick={handleGenerateVideo}>
-                      <Zap className="w-3 h-3" /> Retry Video
-                    </Button>
-                  </div>
-                </motion.div>
+              {/* Send to Brand (creator mode) */}
+              {showSimplifiedUI && (
+                <Button variant="outline" className="w-full rounded-xl border-secondary/30 text-secondary hover:bg-secondary/10 gap-2 py-4"
+                  onClick={handleSendToBrand}>
+                  <Send className="w-4 h-4" /> Send to Brand
+                </Button>
               )}
             </div>
           </motion.div>
