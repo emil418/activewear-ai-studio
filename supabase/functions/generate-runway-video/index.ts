@@ -111,7 +111,7 @@ serve(async (req) => {
         promptImage: referenceImageUrl,
         promptText: motionPrompt,
         duration: duration || 5,
-        ratio: "9:16",
+        ratio: "720:1280",
       }),
     });
 
