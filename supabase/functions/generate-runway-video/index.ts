@@ -185,11 +185,23 @@ const REALISTIC_MOTION: Record<string, string> = {
   "jumping": "REAL HUMAN JUMP — must look like actual gym footage, NOT CGI. Athletic squat loading position, arms drawn back with visible tension. Explosive vertical jump with full triple extension — visible power and effort. Arms drive overhead. Full body extension at peak. CONTROLLED SOFT LANDING absorbing impact back into squat — NOT bouncing like a rubber ball. REALISTIC HUMAN TEMPO — visible loading effort, genuine explosive power, natural landing absorption with balance adjustments. NOT elastic, NOT springy, NOT weightless.",
 };
 
+// Camera angle descriptions for video generation
+const CAMERA_ANGLE_PROMPTS: Record<string, string> = {
+  "front": "Camera positioned directly in front of the athlete, straight-on frontal view, stable and centered.",
+  "side-left": "Camera positioned to the LEFT side of the athlete, full left profile view showing the movement from the side, stable.",
+  "side-right": "Camera positioned to the RIGHT side of the athlete, full right profile view showing the movement from the side, stable.",
+  "back": "Camera positioned directly BEHIND the athlete, rear view showing back muscles and movement from behind, stable.",
+  "45-overhead": "Camera positioned at a 45-degree elevated angle looking DOWN at the athlete, overhead perspective showing the full movement from above, stable.",
+  "low-angle": "Camera positioned at GROUND LEVEL looking UP at the athlete, dramatic low angle emphasizing power and height, stable.",
+  "dynamic-follow": "Camera SLOWLY ORBITING around the athlete during the movement, gentle cinematic tracking arc from front to side, smooth steady movement.",
+};
+
 function buildMotionPrompt(
   movement: string,
   intensity: number,
   gender: string,
   bodyType: string,
+  cameraAngle?: string,
 ): string {
   const key = movement.toLowerCase().replace(/-/g, " ");
   const def = EXERCISE_DEFS[key];
@@ -200,14 +212,16 @@ function buildMotionPrompt(
   // Realistic human motion is the #1 priority
   const humanMotion = REALISTIC_MOTION[key] || `Natural ${movement} with proper form — controlled tempo, real muscle engagement, natural breathing and weight shift. Movement should look like real gym footage of a trained athlete.`;
 
-  // Core realism micro-cues — these make video indistinguishable from real footage
+  // Core realism micro-cues
   const realismCues = `REALISM RULES: This must look like REAL GYM FOOTAGE shot on a cinema camera, NOT AI-generated video. Natural muscle tension visible under skin — flexion on concentric, stretch on eccentric. Subtle breathing movement in torso between reps. Realistic momentum and deceleration — weight has mass, movements have follow-through. Slight natural imperfections: micro-adjustments in balance, natural grip shifts, subtle facial effort. Skin shows natural texture with light perspiration sheen.`;
 
   // Fabric behavior
   const fabricCue = def?.fabricCue || "Garment stretches and compresses naturally with each movement phase — fabric pulls taut over active muscles, wrinkles at joint creases, shows real textile behavior.";
 
-  // Framing
-  const framing = def?.camera || "WIDE full-body shot head to toe with space around athlete, stable camera with subtle cinematic drift";
+  // Camera angle — override exercise default if specified
+  const cameraKey = cameraAngle || "front";
+  const cameraPrompt = CAMERA_ANGLE_PROMPTS[cameraKey] || CAMERA_ANGLE_PROMPTS["front"];
+  const framing = `WIDE full-body shot head to toe with space around athlete. ${cameraPrompt}`;
 
   // Build prompt with strict priority order
   const parts: string[] = [];
@@ -215,7 +229,7 @@ function buildMotionPrompt(
   parts.push(humanMotion);
   parts.push(realismCues);
   parts.push(fabricCue);
-  parts.push(`${framing}. Preserve exact identity, garment, and logo from reference image. Dark gym/studio environment, cinematic 3-point lighting.`);
+  parts.push(`${framing} Preserve exact identity, garment, and logo from reference image. Dark gym/studio environment, cinematic 3-point lighting.`);
 
   let prompt = parts.join(" ");
 
@@ -229,7 +243,7 @@ function buildMotionPrompt(
     }
   }
 
-  console.log(`RUNWAY PROMPT (${prompt.length} chars): ${prompt}`);
+  console.log(`RUNWAY PROMPT (${prompt.length} chars, angle: ${cameraKey}): ${prompt}`);
   return prompt;
 }
 
@@ -275,7 +289,7 @@ serve(async (req) => {
       intensity,
       gender,
       bodyType,
-      cameraStyle,
+      cameraAngle,
       duration,
     } = await req.json();
 
@@ -286,7 +300,7 @@ serve(async (req) => {
       });
     }
 
-    let motionPrompt = buildMotionPrompt(movement || "squats", intensity || 50, gender || "Female", bodyType || "athletic");
+    let motionPrompt = buildMotionPrompt(movement || "squats", intensity || 50, gender || "Female", bodyType || "athletic", cameraAngle || "front");
 
     // Hard cap at 1000 characters for Runway API
     const MAX_PROMPT = 1000;
@@ -404,7 +418,7 @@ serve(async (req) => {
         brand_id: brand.id,
         action: "generate_runway_video",
         credits_used: 5,
-        metadata: { movement, intensity, gender, bodyType, duration: duration || 5, camera: cameraStyle || "static", task_id: taskId },
+        metadata: { movement, intensity, gender, bodyType, duration: duration || 5, cameraAngle: cameraAngle || "front", task_id: taskId },
       });
     }
 
