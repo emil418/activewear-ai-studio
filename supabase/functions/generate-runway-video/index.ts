@@ -171,11 +171,11 @@ function buildMotionPrompt(
   const def = EXERCISE_DEFS[key];
   const intensityLabel = intensity > 70 ? "explosive, powerful" : intensity > 40 ? "controlled, athletic" : "slow, deliberate";
 
-  // Core realism instructions baked into every prompt
-  const realismCore = "Real human motion: natural muscle tension, weight shift, breathing rhythm. Fluid and smooth, never robotic or stiff. Photorealistic cinematic footage.";
+  // Core realism + framing instructions baked into every prompt
+  const realismCore = "Real human motion: natural muscle tension, weight shift, breathing rhythm. Fluid and smooth, never robotic or stiff. Photorealistic cinematic footage. WIDE full-body framing showing complete athlete head to toe throughout entire clip — NEVER crop body or equipment. Focus on how the garment stretches, compresses, and moves with the body.";
 
   if (!def) {
-    return `${gender || "Female"} ${bodyType || "athletic"} athlete performs ${movement}, ${intensityLabel}. ${realismCore} Preserve exact identity and clothing from reference image. Stable camera, full body, dark studio.`;
+    return `${gender || "Female"} ${bodyType || "athletic"} athlete performs ${movement}, ${intensityLabel}. ${realismCore} Preserve exact identity and clothing from reference image. Stable camera, WIDE full-body shot head to toe, dark studio.`;
   }
 
   // Build condensed prompt prioritizing motion quality within 1000 chars
