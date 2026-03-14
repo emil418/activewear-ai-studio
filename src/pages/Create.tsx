@@ -647,7 +647,7 @@ const Create = () => {
 
     setGeneratingRunwayVideo(true);
     setRunwayVideoUrl(null);
-    toast({ title: "🎬 Generating true AI motion video...", description: "Creating continuous, fluid motion — 30-90 seconds." });
+    toast({ title: "🎬 Generating realistic human motion video (Runway Gen-4 Turbo)...", description: "Creating natural, fluid athlete movement — 30-90 seconds." });
 
     try {
       const response = await supabase.functions.invoke("generate-runway-video", {
@@ -1206,8 +1206,8 @@ const Create = () => {
                   <div className="flex items-center gap-3">
                     <Loader2 className="w-5 h-5 text-primary animate-spin" />
                     <div>
-                      <p className="text-sm font-bold">Generating true AI motion video...</p>
-                      <p className="text-xs text-muted-foreground">Runway AI is creating continuous, fluid motion — 30-90 seconds</p>
+                      <p className="text-sm font-bold">Generating realistic human motion video (Runway Gen-4 Turbo)...</p>
+                      <p className="text-xs text-muted-foreground">Creating natural athlete movement with real muscle tension and fluid motion — 30-90 seconds</p>
                     </div>
                   </div>
                   <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden">
