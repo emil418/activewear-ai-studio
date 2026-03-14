@@ -102,14 +102,6 @@ const EXERCISE_DEFS: Record<string, ExerciseMotionDef> = {
     camera: "Stable medium shot, thighs to head, locked camera",
     fabricCue: "Leggings stretch at hip with each knee drive, shirt bounces with rapid movement",
   },
-  "mountain climbers": {
-    start: { position: "High plank position, arms extended, body straight", joints: "Shoulders over wrists, core engaged", weight: "Hands and toes" },
-    mid: { position: "One knee driving toward chest, other leg extended", joints: "Drive knee toward chest, hip flexion", weight: "Hands and one foot" },
-    peak: { position: "Knee at chest, rapid switch to other leg", joints: "Maximum hip flexion on drive leg", weight: "Dynamic alternating" },
-    sceneRules: ["No equipment", "Plank position on floor", "Full body visible"],
-    camera: "Stable low-angle side shot, full body in plank",
-    fabricCue: "Shirt stretches across back, leggings show dynamic stretch at hip flexors",
-  },
   "box jumps": {
     start: { position: "Quarter squat, arms drawn back, ready to explode", joints: "Knees 130°, hips 120°", weight: "Balls of feet" },
     mid: { position: "Airborne, body rising, knees tucking slightly", joints: "Full extension transitioning to tuck", weight: "Airborne" },
