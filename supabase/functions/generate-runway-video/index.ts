@@ -31,10 +31,10 @@ interface ExerciseMotionDef {
 
 const EXERCISE_DEFS: Record<string, ExerciseMotionDef> = {
   "squats": {
-    start: { position: "Standing tall, feet shoulder-width, barbell resting on upper traps if weighted, hands gripping bar wide", joints: "Knees straight, hips neutral, spine braced", weight: "Centered on both feet, core tight" },
-    mid: { position: "Controlled descent, hips breaking parallel, knees tracking over toes, torso upright with slight forward lean", joints: "Knees 90°, hips below parallel, deep crease", weight: "Heels loaded, glutes stretching under tension" },
-    peak: { position: "Explosive drive upward from the hole, hips and knees extending simultaneously, chest rising", joints: "Full lockout, hips forward, glutes squeezed hard", weight: "Driving through mid-foot, weight shifting upward" },
-    sceneRules: ["WIDE full-body shot head to toe", "Natural gym environment or dark studio", "Barbell on back if weighted exercise", "Garment stretch at quads and glutes clearly visible"],
+    start: { position: "Standing tall, feet shoulder-width apart, arms extended forward for balance, NO equipment in hands or on body", joints: "Knees straight, hips neutral, spine braced", weight: "Centered on both feet, core tight" },
+    mid: { position: "Controlled descent, hips breaking parallel, knees tracking over toes, torso upright with slight forward lean, arms forward for balance", joints: "Knees 90°, hips below parallel, deep crease", weight: "Heels loaded, glutes stretching under tension" },
+    peak: { position: "Explosive drive upward from the hole, hips and knees extending simultaneously, chest rising, arms still forward", joints: "Full lockout, hips forward, glutes squeezed hard", weight: "Driving through mid-foot, weight shifting upward" },
+    sceneRules: ["WIDE full-body shot head to toe", "Dark studio environment", "STRICTLY NO BARBELL — NO WEIGHTS — NO EQUIPMENT OF ANY KIND", "This is a BODYWEIGHT squat ONLY", "Garment stretch at quads and glutes clearly visible", "If a barbell appears the video is WRONG"],
     camera: "WIDE full-body shot head to toe with space around athlete, slight low angle, slow cinematic drift",
     fabricCue: "Leggings stretch visibly at quads and glutes under load, fabric compresses at knee crease during descent — garment performance clearly visible",
   },
