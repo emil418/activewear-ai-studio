@@ -9,11 +9,19 @@ const corsHeaders = {
 
 const AI_GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
+// ── Smart Model Router ──
+// Each task is routed to the best-performing model for that specific job
 const MODEL_ROUTER: Record<string, string> = {
+  // Garment analysis — fast vision model for structured JSON extraction
   analyze: "google/gemini-3-flash-preview",
-  generate_image: "google/gemini-2.5-flash-image",
+  // Reference image generation — PRO model for maximum detail & realism
+  generate_image: "google/gemini-3-pro-image-preview",
+  // Physics simulation text — fast reasoning model
   describe_physics: "google/gemini-2.5-flash",
-  remove_bg: "google/gemini-2.5-flash-image",
+  // Background removal — fast image model for clean cutouts
+  remove_bg: "google/gemini-3.1-flash-image-preview",
+  // Image quality validation — fast vision model to detect hallucinations
+  validate_image: "google/gemini-3-flash-preview",
 };
 
 // ---------------------------------------------------------------------------
