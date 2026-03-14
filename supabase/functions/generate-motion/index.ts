@@ -349,27 +349,33 @@ serve(async (req) => {
     // ── Step 0: Pre-process uploads – remove backgrounds ──
     console.log("Step 0: Removing backgrounds from uploaded images...");
 
-    const bgRemovalPromises: Promise<string>[] = [];
-    bgRemovalPromises.push(
-      garmentBase64
-        ? removeBackground(garmentBase64, LOVABLE_API_KEY, "garment/clothing")
-        : Promise.resolve("")
-    );
-    bgRemovalPromises.push(
-      logoBase64
-        ? removeBackground(logoBase64, LOVABLE_API_KEY, "brand logo")
-        : Promise.resolve("")
-    );
+    // For generate_angle mode, use pre-processed images passed from client
+    let processedGarment = body.processedGarment || garmentBase64;
+    let processedLogo = body.processedLogo || logoBase64;
 
-    const [cleanGarment, cleanLogo] = await Promise.all(bgRemovalPromises);
-    const processedGarment = cleanGarment || garmentBase64;
-    const processedLogo = cleanLogo || logoBase64;
+    if (mode === "analyze" || mode === "full") {
+      const bgRemovalPromises: Promise<string>[] = [];
+      bgRemovalPromises.push(
+        garmentBase64
+          ? removeBackground(garmentBase64, LOVABLE_API_KEY, "garment/clothing")
+          : Promise.resolve("")
+      );
+      bgRemovalPromises.push(
+        logoBase64
+          ? removeBackground(logoBase64, LOVABLE_API_KEY, "brand logo")
+          : Promise.resolve("")
+      );
+
+      const [cleanGarment, cleanLogo] = await Promise.all(bgRemovalPromises);
+      processedGarment = cleanGarment || garmentBase64;
+      processedLogo = cleanLogo || logoBase64;
+    }
 
     console.log("Background removal complete.");
 
     // ── Step 1: Analyze garment ──
     console.log("Step 1: Analyzing garment...");
-    let garmentAnalysis: Record<string, unknown> = {
+    let garmentAnalysis: Record<string, unknown> = body.garmentAnalysis || {
       fabric_type: "High-compression polyester-elastane blend",
       garment_category: "Training T-Shirt",
       color_palette: ["#1a1a1a"],
@@ -379,19 +385,20 @@ serve(async (req) => {
       recommended_use: ["HIIT", "Strength", "CrossFit"],
     };
 
-    try {
-      const analysisResp = await fetch(AI_GATEWAY, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: MODEL_ROUTER.analyze,
-          messages: [
-            {
-              role: "system",
-              content: `You are an expert activewear and sportswear fabric analyst. You ONLY analyze athletic clothing.
+    if (mode === "analyze" || mode === "full") {
+      try {
+        const analysisResp = await fetch(AI_GATEWAY, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: MODEL_ROUTER.analyze,
+            messages: [
+              {
+                role: "system",
+                content: `You are an expert activewear and sportswear fabric analyst. You ONLY analyze athletic clothing.
 IMPORTANT: The image background has been removed (transparent). Focus ONLY on the foreground clothing item. Completely ignore any background remnants, artifacts, or transparency.
 Analyze the garment and return JSON with EXACTLY these fields:
 - fabric_type: string – describe the actual fabric composition (e.g. "High-compression polyester-elastane blend", "Moisture-wicking nylon mesh"). Be specific about the material.
@@ -405,42 +412,43 @@ ABSOLUTE RULES:
 - This is ALWAYS athletic/sportswear clothing. NEVER categorize as jewelry, metal, cufflinks, accessories, or any non-sportswear item.
 - The color must reflect the ACTUAL garment fabric, not background or transparency.
 - Return ONLY valid JSON, no markdown fences, no extra text.`,
-            },
-            {
-              role: "user",
-              content: processedGarment
-                ? [
-                    { type: "text", text: `Analyze this uploaded activewear/sportswear garment called "${garmentName}". The background has been removed – focus ONLY on the clothing item itself. This is ALWAYS athletic training clothing. Identify the actual fabric color (ignore background), fabric composition, stretch, compression, breathability. Categorize as one of: T-Shirt, Compression T-Shirt, Leggings, Shorts, Sports Bra, Training Top, Tank Top, Hoodie, Joggers. NEVER categorize as jewelry, metal, cufflinks, or non-sportswear.` },
-                    { type: "image_url", image_url: { url: processedGarment } },
-                  ]
-                : `Analyze an activewear garment called "${garmentName}". Categorize as activewear. Return analysis JSON.`,
-            },
-          ],
-        }),
-      });
+              },
+              {
+                role: "user",
+                content: processedGarment
+                  ? [
+                      { type: "text", text: `Analyze this uploaded activewear/sportswear garment called "${garmentName}". The background has been removed – focus ONLY on the clothing item itself. This is ALWAYS athletic training clothing. Identify the actual fabric color (ignore background), fabric composition, stretch, compression, breathability. Categorize as one of: T-Shirt, Compression T-Shirt, Leggings, Shorts, Sports Bra, Training Top, Tank Top, Hoodie, Joggers. NEVER categorize as jewelry, metal, cufflinks, or non-sportswear.` },
+                      { type: "image_url", image_url: { url: processedGarment } },
+                    ]
+                  : `Analyze an activewear garment called "${garmentName}". Categorize as activewear. Return analysis JSON.`,
+              },
+            ],
+          }),
+        });
 
-      if (analysisResp.ok) {
-        const analysisData = await analysisResp.json();
-        const content = analysisData.choices?.[0]?.message?.content || "{}";
-        const jsonMatch = content.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          const parsed = JSON.parse(jsonMatch[0]);
-          const validCategories = ["T-Shirt", "Compression T-Shirt", "Leggings", "Shorts", "Sports Bra", "Training Top", "Compression Tights", "Tank Top", "Hoodie", "Joggers"];
-          if (parsed.garment_category && !validCategories.includes(parsed.garment_category)) {
-            parsed.garment_category = "T-Shirt";
+        if (analysisResp.ok) {
+          const analysisData = await analysisResp.json();
+          const content = analysisData.choices?.[0]?.message?.content || "{}";
+          const jsonMatch = content.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[0]);
+            const validCategories = ["T-Shirt", "Compression T-Shirt", "Leggings", "Shorts", "Sports Bra", "Training Top", "Compression Tights", "Tank Top", "Hoodie", "Joggers"];
+            if (parsed.garment_category && !validCategories.includes(parsed.garment_category)) {
+              parsed.garment_category = "T-Shirt";
+            }
+            garmentAnalysis = parsed;
           }
-          garmentAnalysis = parsed;
+        } else {
+          console.error("Analysis failed:", analysisResp.status, await analysisResp.text());
         }
-      } else {
-        console.error("Analysis failed:", analysisResp.status, await analysisResp.text());
+      } catch (e) {
+        console.error("Analysis parse error:", e);
       }
-    } catch (e) {
-      console.error("Analysis parse error:", e);
     }
 
     // ── Step 2: Physics description ──
     console.log("Step 2: Generating physics description...");
-    let physicsData = {
+    let physicsData = body.physicsData || {
       stretch_factor: "4×",
       compression_percentage: 85,
       sweat_absorption: 92,
@@ -449,36 +457,59 @@ ABSOLUTE RULES:
       performance_notes: "Good stretch recovery under load.",
     };
 
-    try {
-      const physicsResp = await fetch(AI_GATEWAY, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: MODEL_ROUTER.describe_physics,
-          messages: [
-            {
-              role: "system",
-              content: "You are a sportswear physics engine. Given garment details and movement, return JSON with: stretch_factor (e.g. '4x'), compression_percentage (0-100), sweat_absorption (0-100), breathability_score (0-100), stress_zones (array of strings), performance_notes (string). Return ONLY valid JSON.",
-            },
-            {
-              role: "user",
-              content: `Garment: ${JSON.stringify(garmentAnalysis)}. Athlete: ${gender}, size ${size}, ${bodyType} build. Movement: ${movement} at ${intensity}% intensity.`,
-            },
-          ],
-        }),
-      });
+    if (mode === "analyze" || mode === "full") {
+      try {
+        const physicsResp = await fetch(AI_GATEWAY, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: MODEL_ROUTER.describe_physics,
+            messages: [
+              {
+                role: "system",
+                content: "You are a sportswear physics engine. Given garment details and movement, return JSON with: stretch_factor (e.g. '4x'), compression_percentage (0-100), sweat_absorption (0-100), breathability_score (0-100), stress_zones (array of strings), performance_notes (string). Return ONLY valid JSON.",
+              },
+              {
+                role: "user",
+                content: `Garment: ${JSON.stringify(garmentAnalysis)}. Athlete: ${gender}, size ${size}, ${bodyType} build. Movement: ${movement} at ${intensity}% intensity.`,
+              },
+            ],
+          }),
+        });
 
-      if (physicsResp.ok) {
-        const physicsJson = await physicsResp.json();
-        const physContent = physicsJson.choices?.[0]?.message?.content || "{}";
-        const jsonMatch = physContent.match(/\{[\s\S]*\}/);
-        if (jsonMatch) physicsData = { ...physicsData, ...JSON.parse(jsonMatch[0]) };
+        if (physicsResp.ok) {
+          const physicsJson = await physicsResp.json();
+          const physContent = physicsJson.choices?.[0]?.message?.content || "{}";
+          const jsonMatch = physContent.match(/\{[\s\S]*\}/);
+          if (jsonMatch) physicsData = { ...physicsData, ...JSON.parse(jsonMatch[0]) };
+        }
+      } catch (e) {
+        console.error("Physics parse error:", e);
       }
-    } catch (e) {
-      console.error("Physics parse error:", e);
+    }
+
+    // ── If mode is "analyze", return early with analysis results ──
+    if (mode === "analyze") {
+      console.log("Analyze mode complete — returning analysis results.");
+      return new Response(
+        JSON.stringify({
+          success: true,
+          mode: "analyze",
+          garment_analysis: garmentAnalysis,
+          physics: physicsData,
+          processedGarment,
+          processedLogo,
+          model_router: {
+            analysis: MODEL_ROUTER.analyze,
+            physics: MODEL_ROUTER.describe_physics,
+            background_removal: MODEL_ROUTER.remove_bg,
+          },
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // ── Step 3: Generate multi-angle images ──
