@@ -113,13 +113,6 @@ const EXERCISE_DEFS: Record<string, ExerciseMotionDef> = {
     sceneRules: ["In place", "No treadmill", "Full body visible"],
     fabricCue: "Intense fabric ripple with explosive strides",
   },
-  "plank": {
-    start: { position: "Lowering into forearm plank", joints: "Elbows 90° under shoulders", weight: "Forearms and toes" },
-    mid: { position: "Holding plank, core engaged", joints: "Stable alignment", weight: "Evenly distributed" },
-    peak: { position: "Sustained hold, micro-adjustments", joints: "Perfect alignment", weight: "Isometric hold" },
-    sceneRules: ["No equipment", "On floor", "Full body profile", "Straight body line"],
-    fabricCue: "Shirt drapes with gravity, tension across engaged back",
-  },
 };
 
 function getMovementPhases(movement: string, intensity: number): MovementPhase[] {
