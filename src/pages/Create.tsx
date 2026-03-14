@@ -1437,6 +1437,7 @@ const Create = () => {
                     </div>
                   </motion.div>
                 )}
+              </div>
 
               {/* Send to Brand (creator mode) */}
               {showSimplifiedUI && (
