@@ -285,7 +285,7 @@ CRITICAL IDENTITY RULES:
 - Natural anatomical proportions must be maintained throughout
 - The garment must be the EXACT same garment in every frame — same color, same logo, same design
 
-DO NOT include: text, watermarks, UI elements, other people, props (except implied barbell for deadlifts)`;
+DO NOT include: text, watermarks, UI elements, other people, props, barbells, dumbbells, gym equipment of any kind`;
 
       const contentParts: Array<Record<string, unknown>> = [
         { type: "text", text: framePrompt },
