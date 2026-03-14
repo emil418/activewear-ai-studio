@@ -1178,6 +1178,21 @@ const Create = () => {
               </div>
             )}
 
+            {/* Smart Model Router Info */}
+            {activeResult?.model_router && (
+              <div className="glass-card p-4 space-y-2">
+                <h4 className="text-sm font-bold flex items-center gap-2"><Layers className="w-4 h-4 text-primary" /> Smart Model Router</h4>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  {Object.entries(activeResult.model_router).map(([task, model]) => (
+                    <div key={task} className="flex justify-between gap-1">
+                      <span className="text-muted-foreground capitalize">{task.replace(/_/g, " ")}</span>
+                      <span className="font-mono text-primary truncate max-w-[120px]">{String(model).split("/").pop()}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Export */}
             <div className="space-y-3">
               <div className={`flex gap-3 ${showSimplifiedUI ? "flex-col" : ""}`}>
