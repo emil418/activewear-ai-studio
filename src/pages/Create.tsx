@@ -28,9 +28,8 @@ const STEPS = [
 
 const movements = [
   { cat: "Strength", items: ["Squats", "Push-ups", "Deadlifts", "Lunges", "Pull-ups", "Bench Press"] },
-  { cat: "Cardio", items: ["Sprint", "Burpees", "High Knees", "Jump Rope", "Mountain Climbers", "Box Jumps"] },
-  { cat: "Yoga", items: ["Warrior Pose", "Downward Dog", "Tree Pose", "Sun Salutation", "Cobra", "Plank"] },
-  { cat: "HIIT", items: ["Squat Jumps", "Thrusters", "Battle Ropes", "Kettlebell Swings", "Skaters", "Tuck Jumps"] },
+  { cat: "Cardio", items: ["Sprint", "Burpees", "High Knees", "Jump Rope", "Box Jumps"] },
+  { cat: "HIIT", items: ["Squat Jumps", "Battle Ropes", "Kettlebell Swings", "Running", "Jumping"] },
 ];
 
 const genders = ["Male", "Female", "Non-binary"];
