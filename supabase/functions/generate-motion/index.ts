@@ -602,7 +602,7 @@ ${anglePoseInstructions}
 SUBJECT: ${athleteLabel}, size ${size}, wearing EXACTLY this uploaded garment performing ${movement} at ${intensity}% intensity.
 
 PHOTOREALISM REQUIREMENTS:
-- Shot on a Canon EOS R5 with 85mm f/1.4 lens — shallow depth of field, cinematic studio lighting
+- Shot on a Canon EOS R5 with 35mm f/2.8 lens — wide-angle full-body framing, cinematic studio lighting
 - Skin must show natural pores, subtle sheen from exertion, realistic muscle definition under skin
 - Garment must show real fabric behavior: thread-level texture, natural drape, visible seam construction
 - Natural micro-details: slight fabric wrinkles at joints, compression shadows, stretch highlights
