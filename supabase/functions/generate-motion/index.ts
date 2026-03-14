@@ -556,17 +556,19 @@ LOGO VISIBILITY:
 - Do NOT show any logo or branding on this view.`) : "";
 
           const FRAMING = `FRAMING (ABSOLUTE HIGHEST PRIORITY — OVERRIDE ALL OTHER INSTRUCTIONS):
-ZOOM OUT. Pull the camera FAR back. This is a FULL-BODY portrait from HEAD to TOES.
-- The athlete's HEAD (including hair) must be visible with at least 15% empty space ABOVE it
-- The athlete's FEET (including shoes/soles) must be visible with at least 10% empty space BELOW them
-- There must be generous empty space on LEFT and RIGHT sides of the athlete
-- The athlete should occupy approximately 60-70% of the frame height — NOT more
+ZOOM OUT EXTREMELY FAR. Pull the camera VERY FAR back. This is a DISTANT FULL-BODY portrait.
+- The athlete must appear SMALL in the frame — occupying only 45-55% of the frame height
+- There must be at least 20-25% empty space ABOVE the athlete's head
+- There must be at least 15-20% empty space BELOW the athlete's feet
+- There must be abundant empty space on LEFT and RIGHT sides (at least 20% each side)
 - NEVER crop at waist, chest, knees, or any body part
 - NEVER zoom in on the torso or upper body only
+- The camera is positioned 4-5 meters away from the athlete
 - All equipment (barbells, benches, bars, kettlebells, boxes) must be FULLY visible end-to-end
-- If you are unsure, ZOOM OUT MORE — it is always better to show too much than too little
-- Think of this as a fashion lookbook photo where the ENTIRE outfit must be visible from head to toe
-- The output image is 9:16 vertical (1080×1920) — use the full height to show the complete person`;
+- If you are unsure, ZOOM OUT EVEN MORE — it is ALWAYS better to show too much space than too little
+- Think of this as a wide establishing shot where the person is clearly visible but surrounded by ample negative space
+- The output image is 9:16 vertical (1080×1920) — the person should feel like they have ROOM in the frame
+- IMAGINE you are photographing from across the room, not close up`;
 
           const MOTIF_RULES = angle === "front"
             ? `EXISTING MOTIFS: Reproduce any front prints/motifs faithfully from the reference — same position, size, colors.`
