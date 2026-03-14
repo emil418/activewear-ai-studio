@@ -160,7 +160,25 @@ const EXERCISE_DEFS: Record<string, ExerciseMotionDef> = {
   },
 };
 
-// Build a concise but cinematically rich motion prompt
+// ---------------------------------------------------------------------------
+// Realistic human-motion prompt builder
+// Prioritizes: natural biomechanics > fabric behavior > framing > scene rules
+// ---------------------------------------------------------------------------
+
+// Exercise-specific detailed movement descriptions for maximum realism
+const REALISTIC_MOTION: Record<string, string> = {
+  "squats": "Natural barbell back squat — controlled descent with hip hinge, knees tracking over toes, deep bottom position with thighs parallel or below, slight pause at bottom, then explosive drive up through heels with glutes firing hard. Weight shifts from mid-foot to heels during descent. Slight forward torso lean maintained throughout. Core braced, natural breathing — exhale on drive up.",
+  "bench press": "Lying flat on bench, feet firmly planted on floor, barbell gripped slightly wider than shoulders. Controlled descent to mid-chest with elbows at 45 degrees, slight arch in upper back, shoulder blades pinched together. Brief touch at chest, then powerful press to full lockout with arms extending smoothly. Natural breathing — inhale on descent, exhale pressing up. Slight natural body tension throughout.",
+  "deadlifts": "Conventional barbell deadlift — hips hinge back, bar positioned over mid-foot. Pull initiates with leg drive, bar stays close to shins, back remains flat and braced. As bar passes knees, hips drive forward powerfully to lockout with glutes squeezed, chest proud, shoulders back. Controlled lower back to ground with same path. Natural weight shift from quads to posterior chain during pull.",
+  "pull-ups": "Dead hang from overhead bar, lats fully stretched. Pull initiates with scapular depression, then powerful lat contraction pulling body upward. Elbows drive down and back, chest rises toward bar. Chin clears bar at top with brief hold showing peak muscle contraction. Controlled negative descent back to full dead hang. Slight body sway showing real momentum.",
+  "push-ups": "High plank position, body perfectly rigid from head to heels. Controlled descent with elbows tracking at 45 degrees, chest lowering toward floor. Shoulder blades retract at bottom. Powerful press back up through palms to full lockout. Core stays tight, hips never sag or pike. Natural breathing rhythm.",
+  "lunges": "Standing tall, then stepping forward with natural stride. Front knee bends to 90 degrees tracking over toes, back knee lowers toward ground with control. Torso stays upright with slight natural lean. Driving back up through front heel explosively. Weight transfers naturally between legs.",
+  "sprint": "Explosive sprinting motion — powerful knee drive alternating with aggressive arm pump. Slight forward lean, balls of feet striking ground. Natural running cadence with visible muscle engagement in quads, hamstrings, and calves. Arms driving at 90 degrees opposite to legs.",
+  "burpees": "Fluid continuous sequence — drop into squat, hands to floor, jump back to plank, chest to floor push-up, jump feet forward, explosive vertical jump with arms overhead. Smooth transitions between each phase, never stopping or jerking.",
+  "kettlebell swings": "Hip-hinge driven swing — kettlebell passes between legs on backswing with deep hip hinge, then explosive hip snap drives kettlebell to chest height. Arms stay relaxed, all power from hips. Smooth pendulum rhythm with natural breathing.",
+  "battle ropes": "Athletic half-squat stance, alternating arm waves creating visible rope undulation. Shoulders driving full range motion, core stabilizing. Powerful, rhythmic upper body movement while lower body stays grounded and stable.",
+};
+
 function buildMotionPrompt(
   movement: string,
   intensity: number,
@@ -170,32 +188,42 @@ function buildMotionPrompt(
   const key = movement.toLowerCase().replace(/-/g, " ");
   const def = EXERCISE_DEFS[key];
   const intensityLabel = intensity > 70 ? "explosive, powerful" : intensity > 40 ? "controlled, athletic" : "slow, deliberate";
+  const g = gender || "Female";
+  const bt = bodyType || "athletic";
 
-  // Core realism + framing instructions baked into every prompt
-  const realismCore = "Real human motion: natural muscle tension, weight shift, breathing rhythm. Fluid and smooth, never robotic or stiff. Photorealistic cinematic footage. WIDE full-body framing showing complete athlete head to toe throughout entire clip — NEVER crop body or equipment. Focus on how the garment stretches, compresses, and moves with the body.";
+  // Realistic human motion is the #1 priority
+  const humanMotion = REALISTIC_MOTION[key] || `Natural ${movement} with proper form — controlled tempo, real muscle engagement, natural breathing and weight shift.`;
 
-  if (!def) {
-    return `${gender || "Female"} ${bodyType || "athletic"} athlete performs ${movement}, ${intensityLabel}. ${realismCore} Preserve exact identity and clothing from reference image. Stable camera, WIDE full-body shot head to toe, dark studio.`;
-  }
+  // Core realism cues — these make video look like real footage
+  const realismCues = "Photorealistic footage of a real trained athlete. Natural muscle engagement with visible tension under load. Subtle breathing movement in torso. Realistic momentum and weight shift — not robotic or stiff. Smooth, fluid, continuous human movement like real gym footage.";
 
-  // Build condensed prompt prioritizing motion quality within 1000 chars
+  // Fabric behavior
+  const fabricCue = def?.fabricCue || "Garment stretches and compresses naturally with each movement phase, showing real fabric behavior.";
+
+  // Framing
+  const framing = def?.camera || "WIDE full-body shot head to toe with space around athlete, stable camera with slight cinematic drift";
+
+  // Build prompt with strict priority order
   const parts: string[] = [];
-  parts.push(`${gender || "Female"} ${bodyType || "athletic"} athlete performs ${movement}, ${intensityLabel}.`);
-  parts.push(`START: ${def.start.position}.`);
-  parts.push(`MID: ${def.mid.position}.`);
-  parts.push(`PEAK: ${def.peak.position}.`);
-  parts.push(def.fabricCue + ".");
-  parts.push(realismCore);
-  parts.push(`${def.camera}. Preserve exact identity, garment, and logo from reference.`);
+  parts.push(`${g} ${bt} athlete performs ${key}, ${intensityLabel}.`);
+  parts.push(humanMotion);
+  parts.push(realismCues);
+  parts.push(fabricCue);
+  parts.push(`${framing}. Preserve exact identity, garment, and logo from reference image. Dark studio, cinematic lighting.`);
 
   let prompt = parts.join(" ");
 
-  // If under budget, add scene rules
-  const sceneStr = def.sceneRules.join(". ");
-  if (prompt.length + sceneStr.length + 8 <= 1000) {
-    prompt += " " + sceneStr + ".";
+  // Hard cap — truncate intelligently at sentence boundary if needed
+  const MAX = 1000;
+  if (prompt.length > MAX) {
+    prompt = prompt.slice(0, MAX);
+    const lastPeriod = prompt.lastIndexOf(".");
+    if (lastPeriod > MAX * 0.7) {
+      prompt = prompt.slice(0, lastPeriod + 1);
+    }
   }
 
+  console.log(`RUNWAY PROMPT (${prompt.length} chars): ${prompt}`);
   return prompt;
 }
 
