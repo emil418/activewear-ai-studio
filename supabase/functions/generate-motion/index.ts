@@ -62,12 +62,12 @@ const EXERCISE_DEFS: Record<string, ExerciseMotionDef> = {
     fabricCue: "Shirt stretches across upper back and shoulders, compresses at chest — garment behavior clearly visible",
   },
   "deadlifts": {
-    start: { position: "Standing tall, then hinging forward at hips, flat back, hands reaching toward shins", joints: "Hips hinged 80°, knees slightly bent 130°", weight: "Mid-foot" },
-    mid: { position: "Torso at 45° angle, back flat, arms hanging straight down", joints: "Hips 100°, knees 140°", weight: "Balanced mid-foot to heels" },
-    peak: { position: "Full standing lockout, hips fully extended, glutes squeezed, chest tall", joints: "Knees 180°, hips 180°, fully extended", weight: "Centered, stable" },
-    sceneRules: ["No barbell", "No weights", "Bodyweight hip hinge only", "Full body visible head to toe", "Feet stay on ground"],
-    camera: "WIDE full-body shot from 30° side angle, head to toe with space around athlete, stable tripod",
-    fabricCue: "Fabric stretches at hamstrings and lower back during hinge, releases on extension — garment stretch clearly visible",
+    start: { position: "Standing behind barbell on floor, hinging at hips to grip bar, flat back, shoulders over bar", joints: "Hips hinged 80°, knees slightly bent 130°, spine neutral", weight: "Mid-foot, loaded into hamstrings" },
+    mid: { position: "Pulling barbell off ground, bar close to shins, back angle constant, driving through legs", joints: "Hips and knees extending together, bar past knees", weight: "Shifting from quads to posterior chain" },
+    peak: { position: "Full standing lockout, hips fully extended, barbell at hip level, glutes squeezed, chest tall, then controlled lower back to floor", joints: "Knees 180°, hips 180°, fully extended", weight: "Centered, stable at top" },
+    sceneRules: ["Barbell MUST be visible on the ground and in hands", "Barbell NEVER cut off at edges", "WIDE full-body shot head to toe", "Feet stay planted", "Bar travels close to body"],
+    camera: "WIDE full-body shot from 30° side angle, head to toe with space around athlete, barbell fully visible, stable tripod",
+    fabricCue: "Fabric stretches at hamstrings and lower back during pull, shirt tightens across upper back at lockout — garment stretch clearly visible",
   },
   "lunges": {
     start: { position: "Standing upright, feet hip-width apart", joints: "Knees straight, hips neutral", weight: "Centered" },
@@ -118,12 +118,12 @@ const EXERCISE_DEFS: Record<string, ExerciseMotionDef> = {
     fabricCue: "Leggings stretch at hip with each knee drive, shirt bounces — garment motion clearly visible",
   },
   "box jumps": {
-    start: { position: "Quarter squat, arms drawn back, ready to explode", joints: "Knees 130°, hips 120°", weight: "Balls of feet" },
-    mid: { position: "Airborne, body rising, knees tucking slightly", joints: "Full extension transitioning to tuck", weight: "Airborne" },
-    peak: { position: "Landing in soft squat on imaginary elevated surface", joints: "Knees 100°, absorbing impact", weight: "Landing through mid-foot" },
-    sceneRules: ["No actual box", "Jumping upward and forward", "Full body visible head to toe with headroom"],
-    camera: "WIDE full-body shot from slight side angle, head to toe with generous headroom, stable tripod",
-    fabricCue: "Strong fabric stretch during crouch, visible compression at knees on landing — garment performance clearly visible",
+    start: { position: "Athletic quarter squat facing a plyometric box, arms drawn back, coiling to explode", joints: "Knees 130°, hips 120°, ankles loaded", weight: "Balls of feet, loading posterior chain" },
+    mid: { position: "Explosive triple extension, body launching upward, knees tucking to clear box", joints: "Full extension then rapid knee tuck", weight: "Airborne, traveling upward" },
+    peak: { position: "Landing softly on top of the box in athletic squat, absorbing impact, then standing tall on box", joints: "Knees 100°, absorbing impact, then full stand", weight: "Soft landing through mid-foot on box surface" },
+    sceneRules: ["Plyometric box or platform MUST be visible", "Athlete jumps ONTO the box", "WIDE full-body shot head to toe with headroom", "Box fully visible"],
+    camera: "WIDE full-body shot from slight side angle, head to toe including box, generous headroom, stable tripod",
+    fabricCue: "Strong fabric stretch during loading crouch, visible compression at knees on soft landing — garment performance clearly visible",
   },
   "squat jumps": {
     start: { position: "Standing, then dropping into full squat", joints: "Knees 75°, deep squat", weight: "Deep in heels" },
@@ -134,20 +134,20 @@ const EXERCISE_DEFS: Record<string, ExerciseMotionDef> = {
     fabricCue: "Maximum legging stretch at squat bottom, fabric stretches along legs during jump — garment behavior clearly visible",
   },
   "kettlebell swings": {
-    start: { position: "Wide stance, arms hanging forward, hinged at hips with arms between legs", joints: "Hips deeply hinged, knees slightly bent", weight: "In heels, posterior loaded" },
-    mid: { position: "Driving hips forward explosively, swinging arms upward", joints: "Hips extending rapidly, knees straightening", weight: "Driving through heels" },
-    peak: { position: "Standing tall, arms at chest height, hips fully extended", joints: "Full hip extension, arms at shoulder height", weight: "Centered, tall" },
-    sceneRules: ["No actual kettlebell", "No weights", "Bodyweight hip swing motion only", "Full body visible head to toe"],
-    camera: "WIDE full-body shot from slight side angle, head to toe with space for arm swing, stable tripod",
-    fabricCue: "Dramatic fabric movement with each swing cycle, shirt rides during hinge — garment motion clearly visible",
+    start: { position: "Wide stance, hinged at hips, kettlebell held with both hands between legs, back flat", joints: "Hips deeply hinged, knees slightly bent, spine neutral", weight: "Posterior loaded, weight in heels" },
+    mid: { position: "Explosive hip drive forward, snapping hips, swinging kettlebell upward with momentum from hips", joints: "Hips extending rapidly, knees straightening", weight: "Driving through heels, weight transferring forward" },
+    peak: { position: "Standing tall, kettlebell at chest or eye height, hips fully locked out, then controlled swing back down", joints: "Full hip extension, arms relaxed at shoulder height, glutes squeezed", weight: "Centered and tall, kettlebell floating at peak" },
+    sceneRules: ["Kettlebell MUST be visible in hands and NEVER cut off", "WIDE full-body shot head to toe", "Hip-driven explosive movement", "Smooth pendulum arc"],
+    camera: "WIDE full-body shot from slight side angle, head to toe showing kettlebell arc, never crop equipment, stable tripod",
+    fabricCue: "Dramatic fabric movement with each swing cycle, shirt rides during deep hinge — garment motion clearly visible",
   },
   "jump rope": {
-    start: { position: "Standing tall, arms at sides with elbows bent, wrists rotating", joints: "Elbows 90°, wrists active", weight: "Balls of feet" },
-    mid: { position: "Slight hop, feet just leaving ground, arms rotating", joints: "Ankles extended, slight knee bend", weight: "Launching from toes" },
-    peak: { position: "Airborne by a few inches, wrists completing rotation", joints: "Full ankle extension, knees slightly bent", weight: "Airborne" },
-    sceneRules: ["No actual jump rope", "No equipment", "Bodyweight jumping motion", "Full body visible head to toe"],
-    camera: "WIDE full-body shot, head to toe with space around athlete, stable tripod",
-    fabricCue: "Shirt bounces with each hop, fabric shows subtle rhythmic movement — garment behavior clearly visible",
+    start: { position: "Standing tall, holding jump rope handles, elbows close to body at 90°, wrists ready to rotate", joints: "Elbows 90° close to ribs, wrists active, slight knee bend", weight: "Balls of feet, light and bouncy" },
+    mid: { position: "Rope rotating overhead and under feet, small bounces on balls of feet, wrists driving rotation", joints: "Ankles extending with each hop, knees softly bending, wrists spinning rope", weight: "Light bounces, barely leaving ground" },
+    peak: { position: "Fast rhythmic jumping, rope visibly rotating around body, feet clearing rope each revolution", joints: "Rapid ankle-driven bounces, minimal knee bend, fast wrist rotation", weight: "Light, rhythmic, athletic cadence" },
+    sceneRules: ["Jump rope MUST be visible rotating around the athlete", "WIDE full-body shot head to toe with space for rope arc", "Rhythmic athletic movement"],
+    camera: "WIDE full-body shot, head to toe with space for rope arc, stable tripod",
+    fabricCue: "Shirt bounces with each hop, calves visible working with each jump — garment behavior clearly visible",
   },
   "running": {
     start: { position: "Standing in running position, slight forward lean", joints: "Neutral", weight: "Balls of feet" },
@@ -200,6 +200,7 @@ MID MOVEMENT: ${def.mid.position}. Joints: ${def.mid.joints}. Weight: ${def.mid.
 PEAK POSITION: ${def.peak.position}. Joints: ${def.peak.joints}. Weight: ${def.peak.weight}.
 
 The athlete should be shown at the MID or PEAK phase of this movement — the most dynamic and visually impactful moment.
+FULL RANGE OF MOTION: The movement must show COMPLETE range — all the way down AND all the way back up. Never show partial reps.
 ${angleReinforcement}
 SCENE RULES (STRICT): ${sceneStr}.
 CAMERA: ${def.camera}.
