@@ -742,6 +742,9 @@ ${logoInstructions}`;
           analysis: MODEL_ROUTER.analyze,
           physics: MODEL_ROUTER.describe_physics,
           image_generation: MODEL_ROUTER.generate_image,
+          background_removal: MODEL_ROUTER.remove_bg,
+          image_validation: MODEL_ROUTER.validate_image,
+          video: "runway/gen4-turbo",
         },
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }

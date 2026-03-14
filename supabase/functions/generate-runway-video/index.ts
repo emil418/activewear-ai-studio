@@ -165,18 +165,18 @@ const EXERCISE_DEFS: Record<string, ExerciseMotionDef> = {
 // Prioritizes: natural biomechanics > fabric behavior > framing > scene rules
 // ---------------------------------------------------------------------------
 
-// Exercise-specific detailed movement descriptions for maximum realism
+// Exercise-specific hyper-detailed movement descriptions for maximum realism
 const REALISTIC_MOTION: Record<string, string> = {
-  "squats": "Natural barbell back squat — controlled descent with hip hinge, knees tracking over toes, deep bottom position with thighs parallel or below, slight pause at bottom, then explosive drive up through heels with glutes firing hard. Weight shifts from mid-foot to heels during descent. Slight forward torso lean maintained throughout. Core braced, natural breathing — exhale on drive up.",
-  "bench press": "Lying flat on bench, feet firmly planted on floor, barbell gripped slightly wider than shoulders. Controlled descent to mid-chest with elbows at 45 degrees, slight arch in upper back, shoulder blades pinched together. Brief touch at chest, then powerful press to full lockout with arms extending smoothly. Natural breathing — inhale on descent, exhale pressing up. Slight natural body tension throughout.",
-  "deadlifts": "Conventional barbell deadlift — hips hinge back, bar positioned over mid-foot. Pull initiates with leg drive, bar stays close to shins, back remains flat and braced. As bar passes knees, hips drive forward powerfully to lockout with glutes squeezed, chest proud, shoulders back. Controlled lower back to ground with same path. Natural weight shift from quads to posterior chain during pull.",
-  "pull-ups": "Dead hang from overhead bar, lats fully stretched. Pull initiates with scapular depression, then powerful lat contraction pulling body upward. Elbows drive down and back, chest rises toward bar. Chin clears bar at top with brief hold showing peak muscle contraction. Controlled negative descent back to full dead hang. Slight body sway showing real momentum.",
-  "push-ups": "High plank position, body perfectly rigid from head to heels. Controlled descent with elbows tracking at 45 degrees, chest lowering toward floor. Shoulder blades retract at bottom. Powerful press back up through palms to full lockout. Core stays tight, hips never sag or pike. Natural breathing rhythm.",
-  "lunges": "Standing tall, then stepping forward with natural stride. Front knee bends to 90 degrees tracking over toes, back knee lowers toward ground with control. Torso stays upright with slight natural lean. Driving back up through front heel explosively. Weight transfers naturally between legs.",
-  "sprint": "Explosive sprinting motion — powerful knee drive alternating with aggressive arm pump. Slight forward lean, balls of feet striking ground. Natural running cadence with visible muscle engagement in quads, hamstrings, and calves. Arms driving at 90 degrees opposite to legs.",
-  "burpees": "Fluid continuous sequence — drop into squat, hands to floor, jump back to plank, chest to floor push-up, jump feet forward, explosive vertical jump with arms overhead. Smooth transitions between each phase, never stopping or jerking.",
-  "kettlebell swings": "Hip-hinge driven swing — kettlebell passes between legs on backswing with deep hip hinge, then explosive hip snap drives kettlebell to chest height. Arms stay relaxed, all power from hips. Smooth pendulum rhythm with natural breathing.",
-  "battle ropes": "Athletic half-squat stance, alternating arm waves creating visible rope undulation. Shoulders driving full range motion, core stabilizing. Powerful, rhythmic upper body movement while lower body stays grounded and stable.",
+  "squats": "Natural barbell back squat filmed in a real gym. Athlete takes a breath, braces core, initiates controlled descent by breaking at hips first then knees. Knees track naturally over toes with slight outward push. Thighs reach parallel or slightly below — visible depth. Brief pause at the hole showing muscle tension in quads and glutes. Then explosive drive upward through heels, hips and knees extending together. Slight natural head position change. Visible weight shift from mid-foot to heels on descent, back to balanced on ascent. Natural barbell oscillation from the momentum.",
+  "bench press": "Real bench press footage. Athlete lying flat on bench, slight natural arch in upper back, feet firmly planted wide. Unracks barbell with locked arms — slight arm tremor from the weight. Controlled descent to mid-chest taking 2 seconds, elbows naturally at 45 degrees, bar path slightly diagonal. Brief touch-and-go at chest. Explosive press upward with visible chest and tricep engagement, slight natural bar wobble. Arms lock out with controlled deceleration. Visible breathing — expanding ribcage on descent, forceful exhale on press. Shoulder blades stay pinched throughout.",
+  "deadlifts": "Conventional deadlift from the floor. Athlete approaches bar, sets feet hip-width under the bar. Hinges at hips to grip bar just outside knees, flattens back, takes slack out of the bar with slight upward tension. Pulls by driving legs into floor — bar breaks from ground smoothly, stays close to shins. As bar passes knees, hips drive forward powerfully. Lockout with glutes squeezed hard, chest proud, shoulders slightly back. Brief hold at top. Controlled eccentric — hips push back first, bar descends close to thighs then shins. Natural weight shift throughout the pull.",
+  "pull-ups": "Dead hang from overhead bar, body completely still, lats fully stretched. Initiates pull with scapular depression — shoulders drop away from ears first. Then powerful lat contraction pulls body upward smoothly. Elbows drive down and back naturally. Chest rises toward bar with slight body sway from real momentum. Chin clears bar with brief hold showing peak back contraction. Slow controlled negative descent — 2 seconds back to full dead hang. Visible forearm tension from grip, lat engagement visible through shirt.",
+  "push-ups": "Strict push-up on the floor. Body perfectly rigid from head to heels — no hip sag or pike. Controlled 2-second descent with elbows tracking at 45 degrees. Shoulder blades retract naturally at the bottom, chest barely touching floor. Brief pause. Explosive press back up with visible tricep and chest engagement. Full lockout at top with slight shoulder protraction. Core stays tight throughout — visible abdominal bracing. Natural breathing rhythm visible in torso.",
+  "lunges": "Walking lunge with natural stride. Athlete steps forward with purpose — foot plants heel-to-toe naturally. Front knee bends to 90 degrees tracking over toes, back knee lowers toward ground with control, hovering 2 inches above floor. Torso stays upright with natural slight lean. Weight transfers smoothly to front leg. Drives up powerfully through front heel, stepping through into the next lunge. Visible quad and glute engagement, natural arm swing for balance.",
+  "sprint": "Explosive sprint — powerful alternating knee drives with aggressive arm pump. Balls of feet striking ground with visible force absorption. Natural forward lean at 15 degrees. High knee drive past 90 degrees hip flexion. Arms driving hard at 90-degree angles, opposite to legs. Visible muscle engagement in quads, hamstrings, calves. Natural breathing cadence. Hair and garment reacting to explosive movement momentum.",
+  "burpees": "Fluid continuous burpee sequence. Drop into squat position, hands to floor. Jump feet back to plank position — body straight. Chest-to-floor push-up with full range. Jump feet forward to hands explosively. Explode vertically with arms reaching overhead, full triple extension. Land softly absorbing impact into the next squat. Smooth transitions between each phase — no stopping or jerking. Visible sweat and exertion.",
+  "kettlebell swings": "Russian kettlebell swing — hip-hinge dominant. Kettlebell passes between legs on backswing with deep hip hinge and flat back. Explosive hip snap drives kettlebell forward and up to chest height — power comes from hips not arms. Arms stay relaxed like ropes. Brief float at the top. Smooth pendulum arc back down between legs. Rhythmic breathing — sharp exhale on each hip snap. Visible hamstring and glute engagement on each rep.",
+  "battle ropes": "Athletic half-squat stance gripping battle rope ends. Powerful alternating arm waves creating visible undulating wave patterns traveling down the ropes. Full shoulder range of motion driving waves — one arm up while other slams down. Core stabilizing hard to keep lower body planted. Rhythmic, powerful upper body movement. Visible rope waves and impact. Natural breathing with each slam cycle.",
 };
 
 function buildMotionPrompt(
@@ -192,24 +192,24 @@ function buildMotionPrompt(
   const bt = bodyType || "athletic";
 
   // Realistic human motion is the #1 priority
-  const humanMotion = REALISTIC_MOTION[key] || `Natural ${movement} with proper form — controlled tempo, real muscle engagement, natural breathing and weight shift.`;
+  const humanMotion = REALISTIC_MOTION[key] || `Natural ${movement} with proper form — controlled tempo, real muscle engagement, natural breathing and weight shift. Movement should look like real gym footage of a trained athlete.`;
 
-  // Core realism cues — these make video look like real footage
-  const realismCues = "Photorealistic footage of a real trained athlete. Natural muscle engagement with visible tension under load. Subtle breathing movement in torso. Realistic momentum and weight shift — not robotic or stiff. Smooth, fluid, continuous human movement like real gym footage.";
+  // Core realism micro-cues — these make video indistinguishable from real footage
+  const realismCues = `REALISM RULES: This must look like REAL GYM FOOTAGE shot on a cinema camera, NOT AI-generated video. Natural muscle tension visible under skin — flexion on concentric, stretch on eccentric. Subtle breathing movement in torso between reps. Realistic momentum and deceleration — weight has mass, movements have follow-through. Slight natural imperfections: micro-adjustments in balance, natural grip shifts, subtle facial effort. Skin shows natural texture with light perspiration sheen.`;
 
   // Fabric behavior
-  const fabricCue = def?.fabricCue || "Garment stretches and compresses naturally with each movement phase, showing real fabric behavior.";
+  const fabricCue = def?.fabricCue || "Garment stretches and compresses naturally with each movement phase — fabric pulls taut over active muscles, wrinkles at joint creases, shows real textile behavior.";
 
   // Framing
-  const framing = def?.camera || "WIDE full-body shot head to toe with space around athlete, stable camera with slight cinematic drift";
+  const framing = def?.camera || "WIDE full-body shot head to toe with space around athlete, stable camera with subtle cinematic drift";
 
   // Build prompt with strict priority order
   const parts: string[] = [];
-  parts.push(`${g} ${bt} athlete performs ${key}, ${intensityLabel}.`);
+  parts.push(`${g} ${bt} athlete performs ${key}, ${intensityLabel} tempo.`);
   parts.push(humanMotion);
   parts.push(realismCues);
   parts.push(fabricCue);
-  parts.push(`${framing}. Preserve exact identity, garment, and logo from reference image. Dark studio, cinematic lighting.`);
+  parts.push(`${framing}. Preserve exact identity, garment, and logo from reference image. Dark gym/studio environment, cinematic 3-point lighting.`);
 
   let prompt = parts.join(" ");
 
