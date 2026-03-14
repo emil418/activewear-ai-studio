@@ -289,7 +289,7 @@ const Create = () => {
 
     const interval = setInterval(() => {
       setLoadingMsg(prev => prev >= loadingMessages.length - 1 ? prev : prev + 1);
-    }, 3000);
+    }, 8000); // Slower interval — each phase now has its own network call
 
     try {
       const garmentBase64 = garmentFile ? await fileToBase64(garmentFile) : null;
