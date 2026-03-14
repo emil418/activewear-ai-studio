@@ -16,6 +16,262 @@ const MODEL_ROUTER: Record<string, string> = {
   remove_bg: "google/gemini-2.5-flash-image",
 };
 
+// ---------------------------------------------------------------------------
+// Exercise Motion Definition System
+// Structured 3-phase biomechanical definitions used to guide AI image poses
+// ---------------------------------------------------------------------------
+
+interface MotionPhase {
+  position: string;
+  joints: string;
+  weight: string;
+}
+
+interface ExerciseMotionDef {
+  start: MotionPhase;
+  mid: MotionPhase;
+  peak: MotionPhase;
+  sceneRules: string[];
+  camera: string;
+  fabricCue: string;
+}
+
+const EXERCISE_DEFS: Record<string, ExerciseMotionDef> = {
+  "squats": {
+    start: { position: "Standing upright, feet shoulder-width, arms at sides", joints: "Knees straight 180°, hips neutral", weight: "Centered on both feet" },
+    mid: { position: "Bending knees and hips, lowering body, torso slightly forward", joints: "Knees 120°, hips 110°", weight: "Shifting to heels" },
+    peak: { position: "Deep squat, thighs parallel, upright torso, arms forward for balance", joints: "Knees 75°, hips 70°", weight: "Deep into heels" },
+    sceneRules: ["Both feet flat on ground", "No equipment", "Full body visible", "Body never leaves ground"],
+    camera: "Stable medium shot, slight low angle, full body head to toe",
+    fabricCue: "Leggings stretch at quads and glutes, compression at knee crease",
+  },
+  "push-ups": {
+    start: { position: "High plank, arms extended, body straight line from head to heels", joints: "Elbows straight, wrists under shoulders", weight: "Distributed between hands and toes" },
+    mid: { position: "Lowering chest toward ground, elbows bending outward, core tight", joints: "Elbows 90°, shoulders engaged", weight: "Shifting forward slightly" },
+    peak: { position: "Chest near floor, body rigid and straight, elbows bent", joints: "Elbows 45-60°, shoulders loaded", weight: "On hands and toes" },
+    sceneRules: ["Body on floor level", "No bench or elevated surface", "Full body visible in profile", "Body forms straight line at all times"],
+    camera: "Stable low side angle, full body in profile, static tripod",
+    fabricCue: "Shirt stretches across upper back and shoulders, compresses at chest",
+  },
+  "deadlifts": {
+    start: { position: "Standing tall, then hinging forward at hips, flat back, hands reaching toward shins", joints: "Hips hinged 80°, knees slightly bent 130°", weight: "Mid-foot" },
+    mid: { position: "Torso at 45° angle, back flat, arms hanging straight down", joints: "Hips 100°, knees 140°", weight: "Balanced mid-foot to heels" },
+    peak: { position: "Full standing lockout, hips fully extended, glutes squeezed, chest tall", joints: "Knees 180°, hips 180°, fully extended", weight: "Centered, stable" },
+    sceneRules: ["No barbell", "No weights", "Bodyweight hip hinge only", "Full body visible", "Feet stay on ground"],
+    camera: "Stable medium shot from 30° side angle, full body head to toe",
+    fabricCue: "Fabric stretches at hamstrings and lower back during hinge, releases on extension",
+  },
+  "lunges": {
+    start: { position: "Standing upright, feet hip-width apart", joints: "Knees straight, hips neutral", weight: "Centered" },
+    mid: { position: "One leg forward, both knees bending, lowering body", joints: "Front knee 110°, back knee 120°", weight: "Split between both feet" },
+    peak: { position: "Deep lunge, front thigh parallel, back knee near ground without touching", joints: "Front knee 90°, back knee 90°", weight: "60% front foot, 40% back foot" },
+    sceneRules: ["No equipment", "Full body visible", "Feet on ground", "Upright torso"],
+    camera: "Stable medium shot, slight angle, full body head to feet",
+    fabricCue: "Dramatic stretch at front quad and back hip flexor, compression at bent knee",
+  },
+  "pull-ups": {
+    start: { position: "Athlete hanging from a horizontal pull-up bar above, arms fully extended overhead, hands gripping bar slightly wider than shoulder width, body vertical, feet slightly behind body", joints: "Shoulders fully extended, elbows straight 180°", weight: "Hanging from hands, body suspended" },
+    mid: { position: "Athlete pulling body upward, elbows bending naturally, chest approaching the bar, body remaining vertical", joints: "Elbows 110°, shoulders adducting", weight: "Pulling upward through grip" },
+    peak: { position: "Chin above the bar, elbows fully bent, shoulders engaged and depressed, body controlled and stable", joints: "Elbows 45°, shoulders fully contracted", weight: "Suspended at top of pull" },
+    sceneRules: ["Pull-up bar MUST be above the athlete", "Athlete MUST hang below the bar", "Bar must NEVER appear behind the neck", "Body must NEVER stand on the floor during the movement", "Full body must ALWAYS be visible including feet hanging", "No other equipment"],
+    camera: "Full body visible, stable camera, centered athlete, vertical framing showing bar above and feet below",
+    fabricCue: "Back of shirt stretches dramatically showing lat engagement, sleeves compress around biceps at top",
+  },
+  "bench press": {
+    start: { position: "Lying on ground floor press position, arms extended upward", joints: "Elbows straight, shoulders neutral", weight: "Back flat on ground" },
+    mid: { position: "Arms lowering, elbows bending outward, upper arms approaching ground", joints: "Elbows 100°, shoulders externally rotated", weight: "Back pressed into ground" },
+    peak: { position: "Upper arms touching floor, elbows at 90°, chest stretched", joints: "Elbows 90°, deep chest stretch", weight: "Stable on ground" },
+    sceneRules: ["No bench", "No barbell", "No weights", "Floor press only", "Full body visible"],
+    camera: "Stable slight side angle, framing upper body and arms",
+    fabricCue: "Shirt stretches across chest, bunches at armpits when arms lowered",
+  },
+  "sprint": {
+    start: { position: "Standing tall, ready position, slight forward lean", joints: "Neutral standing", weight: "Balls of feet" },
+    mid: { position: "Sprinting in place, one knee driving high, opposite arm pumping", joints: "Drive knee 90°, opposite elbow 90°", weight: "Alternating single-leg" },
+    peak: { position: "Maximum knee drive, explosive arm pump, powerful stride", joints: "Knee at maximum height, full arm extension", weight: "Single-leg power drive" },
+    sceneRules: ["Running in place", "No treadmill", "No equipment", "Full body visible"],
+    camera: "Stable medium shot, full body, static camera",
+    fabricCue: "Intense fabric ripple and bounce with each explosive stride",
+  },
+  "burpees": {
+    start: { position: "Standing upright, arms at sides", joints: "Neutral standing", weight: "Centered" },
+    mid: { position: "In plank position, body straight, arms extended, about to perform push-up", joints: "Shoulders over wrists, body rigid", weight: "Hands and toes" },
+    peak: { position: "Explosive jump upward, arms reaching overhead, body fully extended in air", joints: "Full extension, arms overhead", weight: "Airborne" },
+    sceneRules: ["No equipment", "Full body visible with headroom for jump", "Clear floor space"],
+    camera: "Stable medium-wide shot from slight side angle, full body with jump room",
+    fabricCue: "Maximum fabric dynamics, stretch at back in plank, compression at chest in push-up, stretch during jump",
+  },
+  "high knees": {
+    start: { position: "Standing tall, arms ready", joints: "Neutral", weight: "Centered" },
+    mid: { position: "One knee driving up toward chest, opposite arm pumping", joints: "Drive knee 90° hip flexion", weight: "Single-leg stance" },
+    peak: { position: "Knee at chest height, rapid alternating rhythm", joints: "Maximum hip flexion, knee tucked", weight: "Quick alternating" },
+    sceneRules: ["No equipment", "Standing in place", "Full body visible"],
+    camera: "Stable medium shot, thighs to head, locked camera",
+    fabricCue: "Leggings stretch at hip with each knee drive, shirt bounces with rapid movement",
+  },
+  "mountain climbers": {
+    start: { position: "High plank position, arms extended, body straight", joints: "Shoulders over wrists, core engaged", weight: "Hands and toes" },
+    mid: { position: "One knee driving toward chest, other leg extended", joints: "Drive knee toward chest, hip flexion", weight: "Hands and one foot" },
+    peak: { position: "Knee at chest, rapid switch to other leg", joints: "Maximum hip flexion on drive leg", weight: "Dynamic alternating" },
+    sceneRules: ["No equipment", "Plank position on floor", "Full body visible"],
+    camera: "Stable low-angle side shot, full body in plank",
+    fabricCue: "Shirt stretches across back, leggings show dynamic stretch at hip flexors",
+  },
+  "box jumps": {
+    start: { position: "Quarter squat, arms drawn back, ready to explode", joints: "Knees 130°, hips 120°", weight: "Balls of feet" },
+    mid: { position: "Airborne, body rising, knees tucking slightly", joints: "Full extension transitioning to tuck", weight: "Airborne" },
+    peak: { position: "Landing in soft squat on imaginary elevated surface", joints: "Knees 100°, absorbing impact", weight: "Landing through mid-foot" },
+    sceneRules: ["No actual box", "Jumping upward and forward", "Full body visible with headroom"],
+    camera: "Stable medium-wide shot from slight side angle, full body",
+    fabricCue: "Strong fabric stretch during crouch, visible compression at knees on landing",
+  },
+  "squat jumps": {
+    start: { position: "Standing, then dropping into full squat", joints: "Knees 75°, deep squat", weight: "Deep in heels" },
+    mid: { position: "Exploding upward from squat, body extending", joints: "Rapidly extending all joints", weight: "Driving through feet" },
+    peak: { position: "Fully airborne, body extended, arms reaching up", joints: "Full extension in air", weight: "Airborne" },
+    sceneRules: ["No equipment", "Full body with headroom for jump", "Feet leave ground"],
+    camera: "Stable medium shot, full body with headroom",
+    fabricCue: "Maximum legging stretch at squat bottom, fabric stretches along legs during jump",
+  },
+  "plank": {
+    start: { position: "Lowering into forearm plank, body forming straight line", joints: "Elbows 90° under shoulders", weight: "Forearms and toes" },
+    mid: { position: "Holding plank, core visibly engaged, subtle breathing movement", joints: "Stable elbows, rigid body line", weight: "Evenly distributed" },
+    peak: { position: "Sustained hold, micro-adjustments in balance, controlled breathing", joints: "Maintaining perfect alignment", weight: "Stable isometric hold" },
+    sceneRules: ["No equipment", "On floor", "Full body visible in profile", "Body straight line"],
+    camera: "Stable low-angle side shot, full body profile",
+    fabricCue: "Shirt drapes with gravity, fabric tension across engaged back and shoulders",
+  },
+  "warrior pose": {
+    start: { position: "Stepping into wide stance, beginning to bend front knee", joints: "Front knee starting to bend, back leg straight", weight: "Splitting between both feet" },
+    mid: { position: "Front knee at 90°, back leg straight, arms extending", joints: "Front knee 90°, back hip open", weight: "60% front, 40% back" },
+    peak: { position: "Full warrior pose held, arms overhead or extended, steady balance", joints: "Deep front knee, open hips, extended spine", weight: "Grounded and balanced" },
+    sceneRules: ["No equipment", "Full body visible", "Stable standing pose"],
+    camera: "Stable medium shot, slight front angle, full body",
+    fabricCue: "Deep stretch at inner thigh and hip of back leg, shirt lifts with raised arms",
+  },
+  "downward dog": {
+    start: { position: "On all fours, hands and knees on ground", joints: "Shoulders over wrists, hips over knees", weight: "Hands and knees" },
+    mid: { position: "Pressing hips up and back, legs straightening", joints: "Hips flexing, knees extending", weight: "Shifting to hands and feet" },
+    peak: { position: "Full inverted V, hips high, arms and legs extended, heels toward ground", joints: "Shoulders open, hips flexed, knees extended", weight: "Balanced between hands and feet" },
+    sceneRules: ["No equipment", "Full body visible in inverted V", "Head between arms"],
+    camera: "Stable medium shot from the side, full inverted-V body position",
+    fabricCue: "Shirt falls toward head with gravity, leggings stretch along hamstrings",
+  },
+  "tree pose": {
+    start: { position: "Standing on one leg, other foot lifting toward inner thigh", joints: "Standing knee straight, lifted knee opening outward", weight: "Single-leg balance" },
+    mid: { position: "Foot placed on inner thigh of standing leg, arms rising", joints: "Hip externally rotated, standing leg stable", weight: "Centered on standing foot" },
+    peak: { position: "Full tree pose, arms overhead in prayer, balanced and still", joints: "Open hip, extended spine, arms overhead", weight: "Single-leg, centered" },
+    sceneRules: ["No equipment", "Full body visible", "Single-leg balance pose"],
+    camera: "Stable medium shot, slight front angle, full body",
+    fabricCue: "Leggings show stretch at open hip, fabric drapes naturally in stillness",
+  },
+  "sun salutation": {
+    start: { position: "Standing tall in mountain pose, palms together at chest", joints: "Neutral standing, spine extended", weight: "Centered on both feet" },
+    mid: { position: "Forward fold, hands reaching toward ground, spine flexed", joints: "Deep hip flexion, spine flexed forward", weight: "Shifting forward" },
+    peak: { position: "Upward salute, arms overhead, slight backbend, chest open", joints: "Spine extended, shoulders flexed overhead", weight: "Grounded through feet" },
+    sceneRules: ["No equipment", "Full body visible", "Flowing yoga sequence"],
+    camera: "Stable medium shot from slight side angle, full body",
+    fabricCue: "Shirt lifts and drapes with overhead reach, fabric follows body through transitions",
+  },
+  "cobra": {
+    start: { position: "Lying face down, hands beside chest, forehead on ground", joints: "Prone position, elbows bent beside body", weight: "Fully on ground" },
+    mid: { position: "Pressing upper body up, chest lifting, hips on ground", joints: "Spine extending, elbows partially straightening", weight: "Hands and hips on ground" },
+    peak: { position: "Upper body fully lifted, arms extended, chest open, hips grounded", joints: "Full spinal extension, arms straight", weight: "Hands and pelvis on ground" },
+    sceneRules: ["No equipment", "On floor", "Full body visible", "Hips stay on ground"],
+    camera: "Stable low-angle side shot, full body on ground",
+    fabricCue: "Shirt stretches across extended back, fabric compresses at waist",
+  },
+  "kettlebell swings": {
+    start: { position: "Wide stance, arms hanging forward, hinged at hips with arms between legs", joints: "Hips deeply hinged, knees slightly bent", weight: "In heels, posterior loaded" },
+    mid: { position: "Driving hips forward explosively, swinging arms upward", joints: "Hips extending rapidly, knees straightening", weight: "Driving through heels" },
+    peak: { position: "Standing tall, arms at chest height, hips fully extended", joints: "Full hip extension, arms at shoulder height", weight: "Centered, tall" },
+    sceneRules: ["No actual kettlebell", "No weights", "Bodyweight hip swing motion only", "Full body visible"],
+    camera: "Stable medium shot from slight side angle, full body",
+    fabricCue: "Dramatic fabric movement with each swing cycle, shirt rides during hinge",
+  },
+  "jump rope": {
+    start: { position: "Standing tall, arms at sides with elbows bent, wrists rotating", joints: "Elbows 90°, wrists active", weight: "Balls of feet" },
+    mid: { position: "Slight hop, feet just leaving ground, arms rotating", joints: "Ankles extended, slight knee bend", weight: "Launching from toes" },
+    peak: { position: "Airborne by a few inches, wrists completing rotation", joints: "Full ankle extension, knees slightly bent", weight: "Airborne" },
+    sceneRules: ["No actual jump rope", "No equipment", "Bodyweight jumping motion", "Full body visible"],
+    camera: "Stable medium shot, full body, static camera",
+    fabricCue: "Shirt bounces with each hop, fabric shows subtle rhythmic movement",
+  },
+  "thrusters": {
+    start: { position: "Deep squat, arms at shoulders", joints: "Knees 75°, deep squat, arms at shoulder height", weight: "Deep in heels" },
+    mid: { position: "Driving up from squat, arms pressing overhead", joints: "Knees extending, arms pushing up", weight: "Driving through heels" },
+    peak: { position: "Full standing extension, arms locked out overhead", joints: "Full extension, shoulders flexed overhead", weight: "Centered, tall" },
+    sceneRules: ["No barbell", "No weights", "Bodyweight only", "Full body visible with overhead room"],
+    camera: "Stable medium shot, full body with headroom",
+    fabricCue: "Leggings stretch at squat, shirt lifts with overhead press",
+  },
+  "battle ropes": {
+    start: { position: "Athletic stance, slight squat, arms forward at hip height", joints: "Knees slightly bent, arms extended", weight: "Athletic base" },
+    mid: { position: "Arms alternating up and down in wave motion, core engaged", joints: "Shoulders alternating flexion/extension", weight: "Stable base" },
+    peak: { position: "Maximum arm amplitude, powerful alternating waves", joints: "Full shoulder range of motion", weight: "Grounded, explosive upper body" },
+    sceneRules: ["No actual ropes", "No equipment", "Bodyweight arm wave motion", "Full body visible"],
+    camera: "Stable medium shot from front, full body",
+    fabricCue: "Shirt moves dynamically with rapid arm motion, sleeves shift with each wave",
+  },
+  "skaters": {
+    start: { position: "Standing on one leg, other leg crossing behind, slight lateral lean", joints: "Standing knee slightly bent", weight: "Single-leg, lateral" },
+    mid: { position: "Jumping laterally, body airborne, switching legs", joints: "Full lateral extension", weight: "Airborne" },
+    peak: { position: "Landing on opposite leg, deep single-leg squat, opposite leg behind", joints: "Landing knee 110°", weight: "Single-leg landing" },
+    sceneRules: ["No equipment", "Full body visible", "Lateral movement"],
+    camera: "Stable medium-wide shot from front, full body visible",
+    fabricCue: "Fabric stretches laterally at hips, dynamic compression on landing leg",
+  },
+  "tuck jumps": {
+    start: { position: "Standing, slight squat prep, arms ready", joints: "Knees 130°", weight: "Balls of feet" },
+    mid: { position: "Airborne, knees tucking toward chest", joints: "Maximum hip and knee flexion in air", weight: "Airborne" },
+    peak: { position: "Peak height, knees fully tucked to chest, body compact", joints: "Knees at chest, maximum tuck", weight: "Airborne at peak" },
+    sceneRules: ["No equipment", "Full body visible with headroom", "Feet leave ground clearly"],
+    camera: "Stable medium-wide shot, full body with headroom",
+    fabricCue: "Leggings stretch dramatically at peak tuck, shirt rides up during jump",
+  },
+  "running": {
+    start: { position: "Standing in running position, slight forward lean", joints: "Neutral", weight: "Balls of feet" },
+    mid: { position: "Jogging in place, alternating knee drives, opposite arm swing", joints: "Knee 90° hip flexion, elbow 90°", weight: "Alternating single-leg" },
+    peak: { position: "Full running stride, high knee drive, powerful arm pump", joints: "Maximum knee lift, full arm swing", weight: "Dynamic single-leg" },
+    sceneRules: ["Running in place", "No treadmill", "No equipment", "Full body visible"],
+    camera: "Stable medium shot, full body, static camera",
+    fabricCue: "Shirt bounces with each stride, leggings flex at knees and hips",
+  },
+  "jumping": {
+    start: { position: "Quarter squat, arms drawn back", joints: "Knees 130°, hips 120°", weight: "Balls of feet" },
+    mid: { position: "Exploding upward, arms driving overhead", joints: "Full extension through ankles, knees, hips", weight: "Leaving ground" },
+    peak: { position: "Fully airborne, body extended, arms overhead", joints: "Full body extension", weight: "Airborne" },
+    sceneRules: ["No equipment", "Full body visible with headroom", "Clean jump"],
+    camera: "Stable medium-wide shot, full body with headroom",
+    fabricCue: "Fabric compresses at crouch, stretches during jump, ripples on landing",
+  },
+};
+
+// Build biomechanical pose instructions for image generation
+function buildPoseInstructions(movement: string, angle: string): string {
+  const key = movement.toLowerCase().replace(/-/g, " ");
+  const def = EXERCISE_DEFS[key];
+
+  if (!def) {
+    return `The athlete performs ${movement} with smooth, natural, biomechanically correct form. Full body must be visible head to toe. No equipment.`;
+  }
+
+  const sceneStr = def.sceneRules.join(". ");
+
+  return `BIOMECHANICAL MOVEMENT DEFINITION for ${movement}:
+START POSITION: ${def.start.position}. Joints: ${def.start.joints}. Weight: ${def.start.weight}.
+MID MOVEMENT: ${def.mid.position}. Joints: ${def.mid.joints}. Weight: ${def.mid.weight}.
+PEAK POSITION: ${def.peak.position}. Joints: ${def.peak.joints}. Weight: ${def.peak.weight}.
+
+The athlete should be shown at the MID or PEAK phase of this movement — the most dynamic and visually impactful moment.
+
+SCENE RULES (STRICT): ${sceneStr}.
+CAMERA: ${def.camera}.
+FABRIC BEHAVIOR: ${def.fabricCue}.
+
+The pose must follow these biomechanical rules EXACTLY. Do NOT guess or improvise the body position.`;
+}
+
 // ── Helper: remove background from an image using AI ──
 async function removeBackground(base64Image: string, apiKey: string, label: string): Promise<string> {
   console.log(`Removing background from ${label}...`);
@@ -47,8 +303,6 @@ async function removeBackground(base64Image: string, apiKey: string, label: stri
     if (resp.ok) {
       const data = await resp.json();
       const choice = data.choices?.[0]?.message;
-
-      // Extract image from response
       let resultUrl: string | null = null;
       if (choice?.images && Array.isArray(choice.images)) {
         for (const img of choice.images) {
@@ -59,7 +313,6 @@ async function removeBackground(base64Image: string, apiKey: string, label: stri
           if (part.type === "image_url" && part.image_url?.url) { resultUrl = part.image_url.url; break; }
         }
       }
-
       if (resultUrl) {
         console.log(`Background removed successfully for ${label}`);
         return resultUrl;
@@ -69,7 +322,7 @@ async function removeBackground(base64Image: string, apiKey: string, label: stri
   } catch (e) {
     console.warn(`Background removal error for ${label}:`, e);
   }
-  return base64Image; // fallback to original
+  return base64Image;
 }
 
 // ── Helper: extract image from AI response ──
@@ -114,8 +367,6 @@ serve(async (req) => {
     }
 
     const { garmentName, garmentBase64, gender, size, bodyType, movement, intensity, logoBase64, logoPosition, athleteIdentity } = await req.json();
-    // logoPosition: { x: number, y: number, placement: string } | undefined
-    // athleteIdentity: { name, gender, height_cm, weight_kg, body_type, muscle_density, body_fat_pct, skin_tone, face_structure, hair_style, brand_vibe, identity_seed } | undefined
 
     // ── Step 0: Pre-process uploads – remove backgrounds ──
     console.log("Step 0: Removing backgrounds from uploaded images...");
@@ -196,10 +447,9 @@ ABSOLUTE RULES:
         const jsonMatch = content.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
           const parsed = JSON.parse(jsonMatch[0]);
-          // Validate garment_category is activewear
           const validCategories = ["T-Shirt", "Compression T-Shirt", "Leggings", "Shorts", "Sports Bra", "Training Top", "Compression Tights", "Tank Top", "Hoodie", "Joggers"];
           if (parsed.garment_category && !validCategories.includes(parsed.garment_category)) {
-            parsed.garment_category = "T-Shirt"; // safe fallback
+            parsed.garment_category = "T-Shirt";
           }
           garmentAnalysis = parsed;
         }
@@ -253,10 +503,13 @@ ABSOLUTE RULES:
       console.error("Physics parse error:", e);
     }
 
-    // ── Step 3: Generate multi-angle images (PARALLEL) ──
-    console.log("Step 3: Generating motion images in parallel...");
+    // ── Step 3: Generate multi-angle images ──
+    console.log("Step 3: Generating motion images...");
     const angles = ["front", "side", "back"];
     const MAX_RETRIES = 3;
+
+    // Get biomechanical pose instructions for this movement
+    const poseInstructions = buildPoseInstructions(movement, "front");
 
     async function generateAngle(angle: string): Promise<string | null> {
       let attempts = 0;
@@ -265,7 +518,6 @@ ABSOLUTE RULES:
         try {
           console.log(`Generating ${angle} view (attempt ${attempts})...`);
 
-          // On later retries, use a simpler prompt to increase success rate
           const useSimplePrompt = attempts >= 2;
 
           const placementLabel = logoPosition?.placement || "chest-center";
@@ -273,7 +525,6 @@ ABSOLUTE RULES:
           const isBackPlacement = placementLabel.startsWith("back");
           const isSleevePlacement = placementLabel.startsWith("sleeve");
 
-          // Determine if logo should be visible in this angle
           const showLogoThisAngle =
             (angle === "front" && isFrontPlacement) ||
             (angle === "back" && isBackPlacement) ||
@@ -284,67 +535,57 @@ ABSOLUTE RULES:
 LOGO PLACEMENT (CRITICAL):
 - The brand logo is placed at "${placementLabel}" on the garment.
 - This is the ${angle} view, so the logo IS visible.
-- BLEND the logo INTO the fabric naturally: it should look like a real screen-print or heat-transfer on the fabric.
-- The logo must follow the fabric's texture, wrinkles, stretch, and lighting — NOT look pasted/floating on top.
-- Keep the logo at a NATURAL proportional size (roughly 8-12cm on a real garment, small relative to the chest area).
-- Preserve the logo's EXACT original colors — no tinting, no recoloring, no bleeding.
-- Add subtle fabric texture showing through the logo (like a real print).
-- If the garment is stretching during motion, the logo should distort slightly with the fabric.
-- Do NOT duplicate the logo anywhere else on the garment.`
+- BLEND the logo INTO the fabric naturally: screen-print or heat-transfer look.
+- Keep the logo at NATURAL proportional size (8-12cm on real garment).
+- Preserve the logo's EXACT original colors.`
             : `
-LOGO VISIBILITY (CRITICAL):
-- The brand logo is placed at "${placementLabel}" which is on the ${isFrontPlacement ? "front" : isBackPlacement ? "back" : "sleeve"} of the garment.
+LOGO VISIBILITY:
+- The brand logo is at "${placementLabel}" on the ${isFrontPlacement ? "front" : isBackPlacement ? "back" : "sleeve"}.
 - This is the ${angle} view — the logo is NOT visible from this angle.
-- Do NOT show any logo, text, emblem, or branding on this view.
-- The garment on this side must be completely plain/blank with no markings.`) : "";
+- Do NOT show any logo or branding on this view.`) : "";
 
-          const FRAMING = `FRAMING (CRITICAL): Show the COMPLETE athlete from head to toe in every shot. Full-body framing — never crop at the waist or torso. The entire figure, including feet and head, must be visible. Consistent framing across all angles.`;
+          const FRAMING = `FRAMING (CRITICAL): Show COMPLETE athlete from head to toe. Full-body framing — never crop at waist or torso.`;
 
-          // Anti-duplication instructions for back/side views
           const MOTIF_RULES = angle === "front"
-            ? `EXISTING MOTIFS: The uploaded garment reference image shows the FRONT of the garment. Any prints, motifs, graphics, or text visible in the reference are part of the FRONT ONLY. Reproduce them faithfully in this front view exactly as they appear in the reference — same position, size, colors, and style.`
-            : `MOTIF DUPLICATION BAN (CRITICAL): The uploaded garment reference image shows the FRONT of the garment. Any prints, motifs, graphics, logos, or text visible in that reference are on the FRONT ONLY. This is the ${angle.toUpperCase()} view — you MUST NOT copy, mirror, duplicate, or reproduce ANY front-side prints/motifs/graphics onto the ${angle}. The ${angle} of this garment is COMPLETELY PLAIN with NO prints, NO text, NO graphics, NO logos — just solid fabric matching the base color of the garment. Do NOT hallucinate or invent any design on the ${angle}.`;
+            ? `EXISTING MOTIFS: Reproduce any front prints/motifs faithfully from the reference — same position, size, colors.`
+            : `MOTIF DUPLICATION BAN: Any prints/motifs in the reference are FRONT ONLY. The ${angle} must be COMPLETELY PLAIN — no prints, text, or graphics.`;
 
-          // Build athlete description
           const athleteDesc = athleteIdentity
-            ? `ATHLETE IDENTITY (CRITICAL — MUST be consistent across ALL angles and sizes):
-- Name/Seed: "${athleteIdentity.name}" (identity_seed: ${athleteIdentity.identity_seed || 'N/A'})
-- Gender: ${athleteIdentity.gender}
-- Height: ${athleteIdentity.height_cm}cm, Weight: ${athleteIdentity.weight_kg}kg
+            ? `ATHLETE IDENTITY (CONSISTENT across ALL angles):
+- Gender: ${athleteIdentity.gender}, Height: ${athleteIdentity.height_cm}cm, Weight: ${athleteIdentity.weight_kg}kg
 - Body Type: ${athleteIdentity.body_type}, Muscle Density: ${athleteIdentity.muscle_density}/10, Body Fat: ${athleteIdentity.body_fat_pct}%
-- Skin Tone: ${athleteIdentity.skin_tone}
-- Face Structure: ${athleteIdentity.face_structure}
-- Hair Style: ${athleteIdentity.hair_style}
-- Brand Vibe: ${athleteIdentity.brand_vibe}
-You MUST render this EXACT same person in every image. Same face, same body proportions, same skin tone, same hair. No variations allowed. This is a persistent brand athlete — consistency is paramount.`
+- Skin Tone: ${athleteIdentity.skin_tone}, Face: ${athleteIdentity.face_structure}, Hair: ${athleteIdentity.hair_style}
+You MUST render this EXACT same person in every image.`
             : "";
 
           const athleteLabel = athleteIdentity
-            ? `${athleteIdentity.gender} athlete named "${athleteIdentity.name}" (${athleteIdentity.body_type} build, ${athleteIdentity.height_cm}cm, ${athleteIdentity.weight_kg}kg, ${athleteIdentity.skin_tone} skin, ${athleteIdentity.face_structure} face, ${athleteIdentity.hair_style} hair, muscle density ${athleteIdentity.muscle_density}/10, body fat ${athleteIdentity.body_fat_pct}%)`
+            ? `${athleteIdentity.gender} athlete "${athleteIdentity.name}" (${athleteIdentity.body_type}, ${athleteIdentity.height_cm}cm, ${athleteIdentity.weight_kg}kg, ${athleteIdentity.skin_tone} skin, ${athleteIdentity.face_structure} face, ${athleteIdentity.hair_style} hair)`
             : `${gender} athlete (${bodyType}, size ${size})`;
 
-          // Build the prompt
+          // Get angle-specific pose instructions
+          const anglePoseInstructions = buildPoseInstructions(movement, angle);
+
           const mainPrompt = useSimplePrompt
-            ? `Professional full-body studio photo: ${athleteLabel} wearing this exact uploaded garment, performing ${movement}, ${angle} camera angle. FULL BODY head-to-toe framing — show entire figure including feet. Dark background, sportswear campaign photography. ${athleteDesc} ${MOTIF_RULES}${logoInstructions}`
+            ? `Professional full-body studio photo: ${athleteLabel} wearing this exact uploaded garment, performing ${movement} at ${intensity}% intensity, ${angle} camera angle. FULL BODY head-to-toe framing. Dark background. ${anglePoseInstructions} ${MOTIF_RULES}${logoInstructions}`
             : `CRITICAL INSTRUCTIONS:
-1. GARMENT REFERENCE: The uploaded garment image is the EXACT and ONLY reference. Preserve its exact color, fabric texture, seams, and details with 100% fidelity. Do NOT invent, add, or duplicate any prints, motifs, logos, or graphics that are not in the reference.
+1. GARMENT REFERENCE: Preserve exact color, fabric texture, seams, and details from uploaded image with 100% fidelity.
 2. ${MOTIF_RULES}
-3. CAMERA ANGLE: This is a ${angle.toUpperCase()} view — render the garment from the ${angle} perspective.
+3. CAMERA ANGLE: ${angle.toUpperCase()} view.
 4. ${FRAMING}
 ${athleteDesc ? `5. ${athleteDesc}` : ""}
+
+${anglePoseInstructions}
 
 Generate a professional FULL-BODY studio photo of ${athleteLabel}, size ${size}, wearing EXACTLY this uploaded garment while performing ${movement} at ${intensity}% intensity.
 
 Requirements:
 - ${angle.toUpperCase()} camera angle
-- FULL-BODY framing: head to toe visible, never cropped at waist or chest
-- Garment color and fabric must match uploaded reference EXACTLY — no color shifting
-- ${angle !== "front" ? `The ${angle} of the garment must be COMPLETELY PLAIN — no prints, motifs, text, or graphics from the front` : "Faithfully reproduce any existing prints/motifs from the reference"}
+- FULL-BODY framing: head to toe visible
+- Garment color and fabric must match reference EXACTLY
+- ${angle !== "front" ? `The ${angle} of the garment must be COMPLETELY PLAIN` : "Faithfully reproduce existing prints/motifs from reference"}
 - Realistic stretch, compression, and motion physics for ${movement}
 - Dark studio background with dramatic lighting
-- Professional sportswear campaign quality (Nike/Adidas level)
-- The garment is the HERO of the image
-${athleteIdentity ? `- The athlete must look EXACTLY like the described identity — same face, skin, hair, proportions in every image` : ""}
+- Professional sportswear campaign quality
 ${logoInstructions}`;
 
           const imageResp = await fetch(AI_GATEWAY, {
@@ -359,11 +600,10 @@ ${logoInstructions}`;
               messages: [
                 {
                   role: "user",
-              content: processedGarment
+                  content: processedGarment
                     ? [
                         { type: "text", text: mainPrompt },
                         { type: "image_url", image_url: { url: processedGarment } },
-                        // Only include logo image reference when it should be visible in this angle
                         ...(processedLogo && showLogoThisAngle ? [{ type: "image_url", image_url: { url: processedLogo } }] : []),
                       ]
                     : `Studio photo: ${gender} athlete (${bodyType}, size ${size}) wearing dark athletic activewear performing ${movement} at ${intensity}% intensity. ${angle} view. Dark background, professional sportswear photography.`,
@@ -388,7 +628,6 @@ ${logoInstructions}`;
             console.error(`Image gen failed for ${angle}:`, imageResp.status, errText);
           }
 
-          // Small delay before retry to avoid rate limiting
           if (attempts < MAX_RETRIES) {
             await new Promise(r => setTimeout(r, 1500));
           }
