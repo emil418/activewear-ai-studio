@@ -221,26 +221,26 @@ serve(async (req) => {
 
     const intensityLabel = intensity > 70 ? "explosive and powerful" : intensity > 40 ? "controlled and athletic" : "slow and deliberate";
 
-    // Build the comprehensive prompt
-    const motionPrompt = `A ${gender || "female"} athlete with a ${bodyType || "athletic"} build performing a bodyweight exercise in a professional dark photography studio.
+    // Build a concise prompt that fits within Runway's 1000-char limit
+    // Keep only the essential movement description and key constraints
+    const shortMovement = script
+      ? script.steps.substring(0, 300)
+      : `Performs ${movement || "squats"} with smooth bodyweight form.`;
 
-MOVEMENT SCRIPT (animate this exactly):
-${movementSteps}
-The pace is ${intensityLabel}. The motion must be smooth, continuous, and biomechanically realistic throughout the entire clip.
+    const shortFabric = script
+      ? script.fabricCues.substring(0, 150)
+      : "Fabric stretches and compresses naturally with movement.";
 
-${fabricCues ? `FABRIC BEHAVIOR:\n${fabricCues}\n` : ""}
-CAMERA: ${cameraCue}${cameraStyle === "slow_tracking" ? " with very subtle, imperceptible drift." : ""}
+    let motionPrompt = `${gender || "Female"} ${bodyType || "athletic"} athlete in dark studio. Bodyweight ${movement || "squats"}, ${intensityLabel} pace. ${shortMovement} ${shortFabric} ${script?.cameraCue || "Stable medium shot, static camera."} ONLY the athlete — no equipment, no weights, no props, no other people. Show garment fabric stretch and compression. Photorealistic, smooth motion, consistent identity.`;
 
-${SCENE_CONSTRAINTS}
-
-${GARMENT_FOCUS}
-
-${REALISM_CONSTRAINTS}
-
-OUTPUT: Vertical 9:16 format, smooth continuous motion, photorealistic quality. This must look like a real human performing a real exercise — not animation or CGI.`;
+    // Hard cap at 1000 characters
+    const MAX_PROMPT = 1000;
+    if (motionPrompt.length > MAX_PROMPT) {
+      console.warn(`RUNWAY: Prompt truncated from ${motionPrompt.length} to ${MAX_PROMPT} chars`);
+      motionPrompt = motionPrompt.slice(0, MAX_PROMPT);
+    }
 
     console.log(`RUNWAY: Starting video generation for "${movement}" — prompt length: ${motionPrompt.length} chars`);
-    console.log(`RUNWAY: Movement script: ${movementSteps.substring(0, 120)}...`);
 
     // Step 1: Create the generation task
     const createResp = await fetch(`${RUNWAY_API_BASE}/image_to_video`, {
