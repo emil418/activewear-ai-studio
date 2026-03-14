@@ -773,7 +773,9 @@ const Create = () => {
       const firstSuccessAngle = anglesToGenerate.find(a => urls[a]) || Object.keys(urls)[0];
       setRunwayVideoUrl(urls[firstSuccessAngle]);
       setActiveVideoAngle(firstSuccessAngle);
-      toast({ title: "🎥 AI Motion Video ready!", description: `${totalAngles} perspective${totalAngles > 1 ? "s" : ""} generated successfully.` });
+      const successCount = Object.keys(urls).length;
+      const failMsg = failed.length > 0 ? ` (${failed.length} failed)` : "";
+      toast({ title: "🎥 AI Motion Video ready!", description: `${successCount}/${totalAngles} perspective${totalAngles > 1 ? "s" : ""} generated successfully${failMsg}.` });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Video generation failed";
       toast({ title: "Video generation failed", description: message, variant: "destructive" });
