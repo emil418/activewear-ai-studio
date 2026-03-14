@@ -712,6 +712,25 @@ const Create = () => {
     });
   };
 
+  const pollForVideo = async (taskId: string, angle: string, movement: string, cameraAngle: string): Promise<{ angle: string; url: string }> => {
+    const maxPolls = 120; // up to ~10 minutes
+    for (let i = 0; i < maxPolls; i++) {
+      await new Promise(r => setTimeout(r, 5000)); // 5 second intervals
+      const { data, error } = await supabase.functions.invoke("generate-runway-video", {
+        body: { mode: "poll", taskId, movement, cameraAngle },
+      });
+      if (error) throw new Error(error.message || "Poll failed");
+      if (data?.status === "SUCCEEDED" && data?.video_url) {
+        return { angle, url: data.video_url };
+      }
+      if (data?.status === "FAILED") {
+        throw new Error(data?.error || `Video generation failed for ${angle}`);
+      }
+      // Still RUNNING/PENDING/THROTTLED — keep polling
+    }
+    throw new Error(`Video generation timed out for ${angle}`);
+  };
+
   const handleGenerateRunwayVideo = async () => {
     const frontUrl = getImageUrl(result, "front") || getImageUrl(result, "side") || getImageUrl(result, "back");
     if (!frontUrl) {
@@ -727,16 +746,18 @@ const Create = () => {
 
     toast({
       title: "🎬 Smart Model Router → Runway Gen-4 Turbo",
-      description: `Generating ${totalAngles} perspective${totalAngles > 1 ? "s" : ""} with realistic human motion — ${totalAngles * 30}-${totalAngles * 90} seconds.`,
+      description: `Starting ${totalAngles} perspective${totalAngles > 1 ? "s" : ""} — this may take 1-3 minutes.`,
     });
 
     try {
-      setVideoGenProgress(`Generating ${totalAngles} angle${totalAngles > 1 ? "s" : ""} in parallel...`);
+      setVideoGenProgress(`Starting ${totalAngles} angle${totalAngles > 1 ? "s" : ""}...`);
 
-      const results = await Promise.allSettled(
+      // Step 1: Start all jobs in parallel (returns instantly)
+      const startResults = await Promise.allSettled(
         anglesToGenerate.map(angle =>
           supabase.functions.invoke("generate-runway-video", {
             body: {
+              mode: "start",
               referenceImageUrl: frontUrl,
               movement: selectedMovement,
               intensity: intensity[0],
@@ -746,18 +767,40 @@ const Create = () => {
               duration: 5,
             },
           }).then(response => {
-            if (response.error) throw new Error(response.error.message || "Video generation failed");
-            if (!response.data?.success || !response.data?.video_url) {
-              throw new Error(response.data?.error || `No video URL returned for ${angle}`);
-            }
-            return { angle, url: response.data.video_url as string };
+            if (response.error) throw new Error(response.error.message || "Failed to start");
+            if (!response.data?.runway_task_id) throw new Error(response.data?.error || "No task ID returned");
+            return { angle, taskId: response.data.runway_task_id as string };
           })
         )
       );
 
+      // Collect started tasks
+      const startedTasks: { angle: string; taskId: string }[] = [];
+      const startFailed: string[] = [];
+      for (const r of startResults) {
+        if (r.status === "fulfilled") {
+          startedTasks.push(r.value);
+        } else {
+          startFailed.push(r.reason?.message || "Start failed");
+        }
+      }
+
+      if (startedTasks.length === 0) {
+        throw new Error(startFailed[0] || "All video starts failed");
+      }
+
+      setVideoGenProgress(`Generating ${startedTasks.length} video${startedTasks.length > 1 ? "s" : ""}... (polling for completion)`);
+
+      // Step 2: Poll all started tasks in parallel
+      const pollResults = await Promise.allSettled(
+        startedTasks.map(({ angle, taskId }) =>
+          pollForVideo(taskId, angle, selectedMovement, angle)
+        )
+      );
+
       const urls: Record<string, string> = {};
-      const failed: string[] = [];
-      for (const r of results) {
+      const failed: string[] = [...startFailed];
+      for (const r of pollResults) {
         if (r.status === "fulfilled") {
           urls[r.value.angle] = r.value.url;
         } else {

@@ -283,6 +283,104 @@ serve(async (req) => {
       });
     }
 
+    const body = await req.json();
+    const mode = body.mode || "start"; // "start" or "poll"
+
+    // ===== POLL MODE: Check status of existing task =====
+    if (mode === "poll") {
+      const { taskId: pollTaskId } = body;
+      if (!pollTaskId) {
+        return new Response(JSON.stringify({ error: "taskId is required for poll mode" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const pollResp = await fetch(`${RUNWAY_API_BASE}/tasks/${pollTaskId}`, {
+        headers: {
+          Authorization: `Bearer ${RUNWAY_API_KEY}`,
+          "X-Runway-Version": "2024-11-06",
+        },
+      });
+
+      if (!pollResp.ok) {
+        const errText = await pollResp.text();
+        console.error(`RUNWAY poll error: ${pollResp.status} — ${errText}`);
+        return new Response(JSON.stringify({ error: `Poll failed: ${pollResp.status}` }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const pollData = await pollResp.json();
+      const status = pollData.status;
+      console.log(`RUNWAY: Poll taskId=${pollTaskId} — status: ${status}`);
+
+      if (status === "SUCCEEDED") {
+        const rawVideoUrl = pollData.output?.[0] || null;
+        if (!rawVideoUrl) {
+          return new Response(JSON.stringify({ status: "FAILED", error: "No output URL" }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Download and store in Supabase
+        let storedVideoUrl = rawVideoUrl;
+        try {
+          const videoResp = await fetch(rawVideoUrl);
+          const videoBytes = new Uint8Array(await videoResp.arrayBuffer());
+          const fileName = `${user.id}/runway_${Date.now()}.mp4`;
+
+          const { error: uploadError } = await supabase.storage
+            .from("generated-videos")
+            .upload(fileName, videoBytes, { contentType: "video/mp4", upsert: true });
+
+          if (!uploadError) {
+            const { data: urlData } = supabase.storage.from("generated-videos").getPublicUrl(fileName);
+            storedVideoUrl = urlData.publicUrl;
+            console.log(`RUNWAY: Video stored at ${storedVideoUrl}`);
+          } else {
+            console.error("RUNWAY: Upload error:", uploadError);
+          }
+        } catch (e) {
+          console.error("RUNWAY: Storage error:", e);
+        }
+
+        // Log usage
+        const movement = body.movement || "unknown";
+        const { data: brand } = await supabase.from("brands").select("id").eq("owner_id", user.id).limit(1).single();
+        if (brand) {
+          await supabase.from("usage_logs").insert({
+            user_id: user.id,
+            brand_id: brand.id,
+            action: "generate_runway_video",
+            credits_used: 5,
+            metadata: { movement, cameraAngle: body.cameraAngle || "front", task_id: pollTaskId },
+          });
+        }
+
+        return new Response(JSON.stringify({
+          status: "SUCCEEDED",
+          success: true,
+          video_url: storedVideoUrl,
+          runway_task_id: pollTaskId,
+        }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      if (status === "FAILED") {
+        const failReason = pollData.failure || "Unknown failure";
+        return new Response(JSON.stringify({ status: "FAILED", error: failReason }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Still running
+      return new Response(JSON.stringify({ status, runway_task_id: pollTaskId }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ===== START MODE: Create task and return immediately =====
     const {
       referenceImageUrl,
       movement,
@@ -291,7 +389,7 @@ serve(async (req) => {
       bodyType,
       cameraAngle,
       duration,
-    } = await req.json();
+    } = body;
 
     if (!referenceImageUrl) {
       return new Response(JSON.stringify({ error: "referenceImageUrl is required" }), {
@@ -302,7 +400,6 @@ serve(async (req) => {
 
     let motionPrompt = buildMotionPrompt(movement || "squats", intensity || 50, gender || "Female", bodyType || "athletic", cameraAngle || "front");
 
-    // Hard cap at 1000 characters for Runway API
     const MAX_PROMPT = 1000;
     if (motionPrompt.length > MAX_PROMPT) {
       console.warn(`RUNWAY: Prompt truncated from ${motionPrompt.length} to ${MAX_PROMPT} chars`);
@@ -311,7 +408,6 @@ serve(async (req) => {
 
     console.log(`RUNWAY: Starting video generation for "${movement}" — prompt length: ${motionPrompt.length} chars`);
 
-    // Step 1: Create the generation task
     const createResp = await fetch(`${RUNWAY_API_BASE}/image_to_video`, {
       method: "POST",
       headers: {
@@ -341,94 +437,13 @@ serve(async (req) => {
     const taskId = createData.id;
     console.log(`RUNWAY: Task created — ${taskId}`);
 
-    // Step 2: Poll for completion (max ~120 seconds)
-    let videoUrl: string | null = null;
-    let status = "PENDING";
-    const maxPolls = 60;
-
-    for (let poll = 0; poll < maxPolls; poll++) {
-      await new Promise(r => setTimeout(r, 2000));
-
-      const pollResp = await fetch(`${RUNWAY_API_BASE}/tasks/${taskId}`, {
-        headers: {
-          Authorization: `Bearer ${RUNWAY_API_KEY}`,
-          "X-Runway-Version": "2024-11-06",
-        },
-      });
-
-      if (!pollResp.ok) {
-        console.error(`RUNWAY poll error: ${pollResp.status}`);
-        continue;
-      }
-
-      const pollData = await pollResp.json();
-      status = pollData.status;
-      console.log(`RUNWAY: Poll ${poll + 1} — status: ${status}`);
-
-      if (status === "SUCCEEDED") {
-        videoUrl = pollData.output?.[0] || null;
-        break;
-      }
-      if (status === "FAILED") {
-        const failReason = pollData.failure || "Unknown failure";
-        console.error(`RUNWAY: Generation failed — ${failReason}`);
-        return new Response(JSON.stringify({ error: `Video generation failed: ${failReason}` }), {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-    }
-
-    if (!videoUrl) {
-      return new Response(JSON.stringify({ error: "Video generation timed out" }), {
-        status: 504,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    console.log(`RUNWAY: Video ready — downloading and storing...`);
-
-    // Step 3: Download the video and store in Supabase
-    let storedVideoUrl = videoUrl;
-    try {
-      const videoResp = await fetch(videoUrl);
-      const videoBytes = new Uint8Array(await videoResp.arrayBuffer());
-      const fileName = `${user.id}/runway_${Date.now()}.mp4`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("generated-videos")
-        .upload(fileName, videoBytes, { contentType: "video/mp4", upsert: true });
-
-      if (!uploadError) {
-        const { data: urlData } = supabase.storage.from("generated-videos").getPublicUrl(fileName);
-        storedVideoUrl = urlData.publicUrl;
-        console.log(`RUNWAY: Video stored at ${storedVideoUrl}`);
-      } else {
-        console.error("RUNWAY: Upload error:", uploadError);
-      }
-    } catch (e) {
-      console.error("RUNWAY: Storage error:", e);
-    }
-
-    // Log usage
-    const { data: brand } = await supabase.from("brands").select("id").eq("owner_id", user.id).limit(1).single();
-    if (brand) {
-      await supabase.from("usage_logs").insert({
-        user_id: user.id,
-        brand_id: brand.id,
-        action: "generate_runway_video",
-        credits_used: 5,
-        metadata: { movement, intensity, gender, bodyType, duration: duration || 5, cameraAngle: cameraAngle || "front", task_id: taskId },
-      });
-    }
-
+    // Return immediately with task ID — client will poll
     return new Response(
       JSON.stringify({
-        success: true,
-        video_url: storedVideoUrl,
+        status: "PENDING",
         runway_task_id: taskId,
-        duration: duration || 5,
         movement,
+        cameraAngle: cameraAngle || "front",
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
