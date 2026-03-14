@@ -289,7 +289,7 @@ serve(async (req) => {
       intensity,
       gender,
       bodyType,
-      cameraStyle,
+      cameraAngle,
       duration,
     } = await req.json();
 
@@ -300,7 +300,7 @@ serve(async (req) => {
       });
     }
 
-    let motionPrompt = buildMotionPrompt(movement || "squats", intensity || 50, gender || "Female", bodyType || "athletic");
+    let motionPrompt = buildMotionPrompt(movement || "squats", intensity || 50, gender || "Female", bodyType || "athletic", cameraAngle || "front");
 
     // Hard cap at 1000 characters for Runway API
     const MAX_PROMPT = 1000;
