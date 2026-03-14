@@ -142,12 +142,12 @@ const EXERCISE_DEFS: Record<string, ExerciseMotionDef> = {
     fabricCue: "Dramatic fabric movement with each swing cycle, shirt rides during deep hinge — garment motion clearly visible",
   },
   "jump rope": {
-    start: { position: "Standing tall, arms at sides with elbows bent, wrists rotating", joints: "Elbows 90°, wrists active", weight: "Balls of feet" },
-    mid: { position: "Slight hop, feet just leaving ground, arms rotating", joints: "Ankles extended, slight knee bend", weight: "Launching from toes" },
-    peak: { position: "Airborne by a few inches, wrists completing rotation", joints: "Full ankle extension, knees slightly bent", weight: "Airborne" },
-    sceneRules: ["No actual jump rope", "No equipment", "Bodyweight jumping motion", "Full body visible head to toe"],
-    camera: "WIDE full-body shot, head to toe with space around athlete, stable tripod",
-    fabricCue: "Shirt bounces with each hop, fabric shows subtle rhythmic movement — garment behavior clearly visible",
+    start: { position: "Standing tall, holding jump rope handles, elbows close to body at 90°, wrists ready to rotate", joints: "Elbows 90° close to ribs, wrists active, slight knee bend", weight: "Balls of feet, light and bouncy" },
+    mid: { position: "Rope rotating overhead and under feet, small bounces on balls of feet, wrists driving rotation", joints: "Ankles extending with each hop, knees softly bending, wrists spinning rope", weight: "Light bounces, barely leaving ground" },
+    peak: { position: "Fast rhythmic jumping, rope visibly rotating around body, feet clearing rope each revolution", joints: "Rapid ankle-driven bounces, minimal knee bend, fast wrist rotation", weight: "Light, rhythmic, athletic cadence" },
+    sceneRules: ["Jump rope MUST be visible rotating around the athlete", "WIDE full-body shot head to toe with space for rope arc", "Rhythmic athletic movement"],
+    camera: "WIDE full-body shot, head to toe with space for rope arc, stable tripod",
+    fabricCue: "Shirt bounces with each hop, calves visible working with each jump — garment behavior clearly visible",
   },
   "running": {
     start: { position: "Standing in running position, slight forward lean", joints: "Neutral", weight: "Balls of feet" },
