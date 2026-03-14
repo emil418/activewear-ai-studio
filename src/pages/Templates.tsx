@@ -12,9 +12,9 @@ import { supabase } from "@/integrations/supabase/client";
 
 const MOVEMENTS = [
   "Squats", "Push-ups", "Deadlifts", "Lunges", "Pull-ups", "Bench Press",
-  "Sprint", "Burpees", "High Knees", "Jump Rope", "Mountain Climbers", "Box Jumps",
-  "Warrior Pose", "Downward Dog", "Tree Pose", "Sun Salutation", "Cobra", "Plank",
-  "Squat Jumps", "Thrusters", "Battle Ropes", "Kettlebell Swings", "Skaters", "Tuck Jumps",
+  "Sprint", "Burpees", "High Knees", "Jump Rope", "Box Jumps",
+  "Squat Jumps", "Battle Ropes", "Kettlebell Swings",
+  "Running", "Jumping",
 ];
 
 const OUTPUT_TYPES = [
