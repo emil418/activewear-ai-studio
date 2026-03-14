@@ -268,7 +268,7 @@ Fabric state: ${phase.fabricState}
 
 CAMERA: ${cameraLabel}
 LIGHTING: Consistent clean studio lighting throughout the entire sequence. Professional sportswear campaign quality.
-FORMAT: Full body, head to toe, 9:16 vertical portrait (1080x1920)
+FORMAT: WIDE full-body shot, head to toe with generous space around athlete, 9:16 vertical portrait (1080x1920). NEVER crop any body part or equipment. Focus on how the garment stretches, compresses, and moves with the body.
 BACKGROUND: Dark studio, matte black or deep charcoal
 
 CRITICAL IDENTITY RULES:
