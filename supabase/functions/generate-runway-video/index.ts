@@ -185,14 +185,14 @@ const REALISTIC_MOTION: Record<string, string> = {
   "jumping": "REAL HUMAN JUMP — must look like actual gym footage, NOT CGI. Athletic squat loading position, arms drawn back with visible tension. Explosive vertical jump with full triple extension — visible power and effort. Arms drive overhead. Full body extension at peak. CONTROLLED SOFT LANDING absorbing impact back into squat — NOT bouncing like a rubber ball. REALISTIC HUMAN TEMPO — visible loading effort, genuine explosive power, natural landing absorption with balance adjustments. NOT elastic, NOT springy, NOT weightless.",
 };
 
-// Camera angle descriptions for video generation
+// Camera angle descriptions for video generation — maximally explicit
 const CAMERA_ANGLE_PROMPTS: Record<string, string> = {
   "front": "Camera positioned directly in front of the athlete, straight-on frontal view, stable and centered.",
-  "side-left": "Camera positioned to the LEFT side of the athlete, full left profile view showing the movement from the side, stable.",
-  "side-right": "Camera positioned to the RIGHT side of the athlete, full right profile view showing the movement from the side, stable.",
-  "back": "Camera positioned directly BEHIND the athlete, rear view showing back muscles and movement from behind, stable.",
-  "45-overhead": "Camera positioned at a 45-degree elevated angle looking DOWN at the athlete, overhead perspective showing the full movement from above, stable.",
-  "low-angle": "Camera positioned at GROUND LEVEL looking UP at the athlete, dramatic low angle emphasizing power and height, stable.",
+  "side-left": "Camera is placed 90 degrees to the LEFT of the athlete. We see a FULL LEFT PROFILE VIEW — the athlete's left arm closest to camera, right arm farthest. This is a SIDE VIEW, NOT a front view.",
+  "side-right": "Camera is placed 90 degrees to the RIGHT of the athlete. We see a FULL RIGHT PROFILE VIEW — the athlete's right arm closest to camera, left arm farthest. This is a SIDE VIEW, NOT a front view.",
+  "back": "Camera is placed DIRECTLY BEHIND the athlete. We see the athlete's BACK, spine, shoulder blades, and the back of their head. Their FACE IS NOT VISIBLE. This is a REAR VIEW, NOT a front view.",
+  "45-overhead": "Camera is placed at a 45-degree elevated angle looking DOWN at the athlete from above. Bird's eye perspective tilted downward. This is an OVERHEAD ANGLE, NOT a front view.",
+  "low-angle": "Camera is at GROUND LEVEL looking UP at the athlete. Dramatic low angle emphasizing power and height, feet prominent in foreground.",
   "dynamic-follow": "Camera SLOWLY ORBITING around the athlete during the movement, gentle cinematic tracking arc from front to side, smooth steady movement.",
 };
 
@@ -209,32 +209,64 @@ function buildMotionPrompt(
   const g = gender || "Female";
   const bt = bodyType || "athletic";
 
-  // Realistic human motion is the #1 priority
-  const humanMotion = REALISTIC_MOTION[key] || `Natural ${movement} with proper form — controlled tempo, real muscle engagement, natural breathing and weight shift. Movement should look like real gym footage of a trained athlete.`;
-
-  // Core realism micro-cues (condensed to save prompt space)
-  const realismCues = `MUST look like REAL GYM FOOTAGE, NOT CGI or AI video. Natural muscle tension under skin, visible breathing, realistic momentum with mass and follow-through. Slight natural imperfections: micro balance adjustments, facial effort, skin texture with perspiration.`;
-
-  // Fabric behavior
-  const fabricCue = def?.fabricCue || "Garment stretches and compresses naturally with each movement phase — fabric pulls taut over active muscles, wrinkles at joint creases.";
-
-  // Camera angle — override exercise default if specified
   const cameraKey = cameraAngle || "front";
   const cameraPrompt = CAMERA_ANGLE_PROMPTS[cameraKey] || CAMERA_ANGLE_PROMPTS["front"];
-  const framing = `WIDE full-body shot head to toe.`;
+  const isNonFront = cameraKey !== "front";
 
-  // Build prompt: camera first, then realism, then motion details
+  // For non-front angles, make camera the dominant instruction and trim everything else
   const parts: string[] = [];
-  parts.push(`CAMERA: ${cameraPrompt} ${framing}`);
+
+  // #1: Camera perspective — FIRST and strongest
+  parts.push(`CAMERA PERSPECTIVE (CRITICAL): ${cameraPrompt} WIDE full-body shot head to toe.`);
+
+  // For non-front: add negative reinforcement
+  if (isNonFront) {
+    parts.push(`IMPORTANT: The camera MUST stay at the ${cameraKey.replace("-", " ")} angle for the ENTIRE video. Do NOT rotate to front view. Do NOT show the front of the athlete.`);
+  }
+
+  // #2: Exercise and athlete
   parts.push(`${g} ${bt} athlete performs ${key}, ${intensityLabel} tempo.`);
-  parts.push(realismCues);
-  parts.push(humanMotion);
+
+  // #3: Condensed realism (shorter for non-front to save space for camera reinforcement)
+  if (isNonFront) {
+    parts.push(`Real gym footage look, natural muscle tension, visible effort, controlled tempo with natural human timing.`);
+  } else {
+    const realismCues = `MUST look like REAL GYM FOOTAGE, NOT CGI. Natural muscle tension, visible breathing, realistic momentum. Slight natural imperfections: micro balance adjustments, facial effort, skin texture.`;
+    parts.push(realismCues);
+  }
+
+  // #4: Condensed motion description (use shorter version for non-front)
+  const humanMotion = REALISTIC_MOTION[key];
+  if (humanMotion) {
+    if (isNonFront) {
+      // Extract just the key movement description, skip the "NOT CGI" parts already covered
+      const condensed = humanMotion
+        .replace(/must look like actual.*?NOT CGI[^.]*\./gi, "")
+        .replace(/NOT robotic[^.]*\./gi, "")
+        .replace(/REALISTIC HUMAN TEMPO[^.]*\./gi, "")
+        .trim()
+        .slice(0, 200);
+      parts.push(condensed);
+    } else {
+      parts.push(humanMotion);
+    }
+  }
+
+  // #5: Fabric (short)
+  const fabricCue = def?.fabricCue || "Garment stretches and compresses naturally with movement.";
   parts.push(fabricCue);
+
+  // #6: Identity preservation
   parts.push(`Preserve identity, garment, logo from reference. Dark studio, cinematic lighting.`);
+
+  // #7: For non-front angles, REPEAT camera instruction at end (bookend strategy)
+  if (isNonFront) {
+    parts.push(`REMINDER: ${cameraKey.replace("-", " ").toUpperCase()} camera angle throughout entire video.`);
+  }
 
   let prompt = parts.join(" ");
 
-  // Hard cap — truncate intelligently at sentence boundary if needed
+  // Hard cap at sentence boundary
   const MAX = 1000;
   if (prompt.length > MAX) {
     prompt = prompt.slice(0, MAX);
