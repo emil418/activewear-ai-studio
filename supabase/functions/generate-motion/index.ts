@@ -512,9 +512,11 @@ ABSOLUTE RULES:
       );
     }
 
-    // ── Step 3: Generate multi-angle images ──
-    console.log("Step 3: Generating motion images...");
-    const angles = ["front", "side", "back"];
+    // ── Step 3: Generate images ──
+    // In "generate_angle" mode, only generate the requested angle
+    const requestedAngle = body.angle; // e.g. "front", "side", "back"
+    const angles = mode === "generate_angle" && requestedAngle ? [requestedAngle] : ["front", "side", "back"];
+    console.log(`Step 3: Generating ${angles.join(", ")} images (mode: ${mode})...`);
     const MAX_RETRIES = 3;
 
     // Get biomechanical pose instructions for this movement
