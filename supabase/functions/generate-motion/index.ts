@@ -492,7 +492,8 @@ Generate a professional FULL-BODY studio photo of ${athleteLabel}, size ${size},
 
 Requirements:
 - ${angle.toUpperCase()} camera angle
-- FULL-BODY framing: head to toe visible
+- WIDE FULL-BODY framing: head to toe visible with generous space around body, equipment NEVER cut off
+- GARMENT FOCUS: Show how the garment stretches, compresses, and moves with the body — this is the primary purpose of the image
 - Garment color and fabric must match reference EXACTLY
 - ${angle !== "front" ? `The ${angle} of the garment must be COMPLETELY PLAIN` : "Faithfully reproduce existing prints/motifs from reference"}
 - Realistic stretch, compression, and motion physics for ${movement}
