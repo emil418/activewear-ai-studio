@@ -223,13 +223,14 @@ function buildMotionPrompt(
   const cameraPrompt = CAMERA_ANGLE_PROMPTS[cameraKey] || CAMERA_ANGLE_PROMPTS["front"];
   const framing = `WIDE full-body shot head to toe with space around athlete. ${cameraPrompt}`;
 
-  // Build prompt with strict priority order
+  // Build prompt with camera angle FIRST so it's never truncated
   const parts: string[] = [];
+  // Camera angle is #1 priority — must not be cut
+  parts.push(`CAMERA: ${cameraPrompt} ${framing}`);
   parts.push(`${g} ${bt} athlete performs ${key}, ${intensityLabel} tempo.`);
   parts.push(humanMotion);
-  parts.push(realismCues);
   parts.push(fabricCue);
-  parts.push(`${framing} Preserve exact identity, garment, and logo from reference image. Dark gym/studio environment, cinematic 3-point lighting.`);
+  parts.push(`Preserve exact identity, garment, and logo from reference image. Dark gym/studio environment, cinematic 3-point lighting.`);
 
   let prompt = parts.join(" ");
 
