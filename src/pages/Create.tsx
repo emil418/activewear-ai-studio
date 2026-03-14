@@ -731,36 +731,48 @@ const Create = () => {
     });
 
     try {
+      setVideoGenProgress(`Generating ${totalAngles} angle${totalAngles > 1 ? "s" : ""} in parallel...`);
+
+      const results = await Promise.allSettled(
+        anglesToGenerate.map(angle =>
+          supabase.functions.invoke("generate-runway-video", {
+            body: {
+              referenceImageUrl: frontUrl,
+              movement: selectedMovement,
+              intensity: intensity[0],
+              gender: selectedAthlete?.gender || selectedGender,
+              bodyType: selectedAthlete?.body_type || selectedBody,
+              cameraAngle: angle,
+              duration: 5,
+            },
+          }).then(response => {
+            if (response.error) throw new Error(response.error.message || "Video generation failed");
+            if (!response.data?.success || !response.data?.video_url) {
+              throw new Error(response.data?.error || `No video URL returned for ${angle}`);
+            }
+            return { angle, url: response.data.video_url as string };
+          })
+        )
+      );
+
       const urls: Record<string, string> = {};
-
-      for (let i = 0; i < anglesToGenerate.length; i++) {
-        const angle = anglesToGenerate[i];
-        const angleLabel = VIDEO_CAMERA_ANGLES.find(a => a.id === angle)?.label || angle;
-        setVideoGenProgress(`Generating ${angleLabel} (${i + 1}/${totalAngles})...`);
-
-        const response = await supabase.functions.invoke("generate-runway-video", {
-          body: {
-            referenceImageUrl: frontUrl,
-            movement: selectedMovement,
-            intensity: intensity[0],
-            gender: selectedAthlete?.gender || selectedGender,
-            bodyType: selectedAthlete?.body_type || selectedBody,
-            cameraAngle: angle,
-            duration: 5,
-          },
-        });
-
-        if (response.error) throw new Error(response.error.message || "Video generation failed");
-        if (!response.data?.success || !response.data?.video_url) {
-          throw new Error(response.data?.error || `No video URL returned for ${angleLabel}`);
+      const failed: string[] = [];
+      for (const r of results) {
+        if (r.status === "fulfilled") {
+          urls[r.value.angle] = r.value.url;
+        } else {
+          failed.push(r.reason?.message || "Unknown error");
         }
+      }
 
-        urls[angle] = response.data.video_url;
+      if (Object.keys(urls).length === 0) {
+        throw new Error(failed[0] || "All video generations failed");
       }
 
       setRunwayVideoUrls(urls);
-      setRunwayVideoUrl(Object.values(urls)[0]);
-      setActiveVideoAngle(anglesToGenerate[0]);
+      const firstSuccessAngle = anglesToGenerate.find(a => urls[a]) || Object.keys(urls)[0];
+      setRunwayVideoUrl(urls[firstSuccessAngle]);
+      setActiveVideoAngle(firstSuccessAngle);
       toast({ title: "🎥 AI Motion Video ready!", description: `${totalAngles} perspective${totalAngles > 1 ? "s" : ""} generated successfully.` });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Video generation failed";
