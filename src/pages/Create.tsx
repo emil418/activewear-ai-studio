@@ -38,13 +38,14 @@ const ANGLES = ["front", "side", "back"] as const;
 const bodyTypes = ["Lean Runner", "Athletic", "Muscular", "Plus-Size", "Adaptive"];
 
 const loadingMessages = [
-  "Analyzing fabric properties...",
-  "Building athlete mesh...",
-  "Simulating stretch under load...",
-  "Applying compression physics...",
-  "Rendering sweat and breathability...",
-  "Generating multi-angle views...",
-  "Almost there — finalizing motion...",
+  "Smart Model Router initializing...",
+  "Analyzing fabric with Gemini 3 Flash...",
+  "Removing backgrounds with Nano Banana 2...",
+  "Computing fabric physics simulation...",
+  "Generating photorealistic images (Gemini 3 Pro)...",
+  "Validating image quality & anatomy...",
+  "Storing high-res assets...",
+  "Almost there — finalizing render...",
 ];
 
 interface GenerationResult {
@@ -647,7 +648,7 @@ const Create = () => {
 
     setGeneratingRunwayVideo(true);
     setRunwayVideoUrl(null);
-    toast({ title: "🎬 Generating realistic human motion video (Runway Gen-4 Turbo)...", description: "Creating natural, fluid athlete movement — 30-90 seconds." });
+    toast({ title: "🎬 Smart Model Router → Runway Gen-4 Turbo", description: "Generating realistic human motion with natural muscle tension, weight shift, and breathing — 30-90 seconds." });
 
     try {
       const response = await supabase.functions.invoke("generate-runway-video", {
@@ -1177,6 +1178,21 @@ const Create = () => {
               </div>
             )}
 
+            {/* Smart Model Router Info */}
+            {activeResult?.model_router && (
+              <div className="glass-card p-4 space-y-2">
+                <h4 className="text-sm font-bold flex items-center gap-2"><Layers className="w-4 h-4 text-primary" /> Smart Model Router</h4>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  {Object.entries(activeResult.model_router).map(([task, model]) => (
+                    <div key={task} className="flex justify-between gap-1">
+                      <span className="text-muted-foreground capitalize">{task.replace(/_/g, " ")}</span>
+                      <span className="font-mono text-primary truncate max-w-[120px]">{String(model).split("/").pop()}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Export */}
             <div className="space-y-3">
               <div className={`flex gap-3 ${showSimplifiedUI ? "flex-col" : ""}`}>
@@ -1206,8 +1222,8 @@ const Create = () => {
                   <div className="flex items-center gap-3">
                     <Loader2 className="w-5 h-5 text-primary animate-spin" />
                     <div>
-                      <p className="text-sm font-bold">Generating realistic human motion video (Runway Gen-4 Turbo)...</p>
-                      <p className="text-xs text-muted-foreground">Creating natural athlete movement with real muscle tension and fluid motion — 30-90 seconds</p>
+                      <p className="text-sm font-bold">Smart Model Router → Runway Gen-4 Turbo</p>
+                      <p className="text-xs text-muted-foreground">Generating realistic human motion with natural muscle tension, weight shift, and fluid movement — 30-90 seconds</p>
                     </div>
                   </div>
                   <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden">

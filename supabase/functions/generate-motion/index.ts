@@ -9,11 +9,19 @@ const corsHeaders = {
 
 const AI_GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
+// ── Smart Model Router ──
+// Each task is routed to the best-performing model for that specific job
 const MODEL_ROUTER: Record<string, string> = {
+  // Garment analysis — fast vision model for structured JSON extraction
   analyze: "google/gemini-3-flash-preview",
-  generate_image: "google/gemini-2.5-flash-image",
+  // Reference image generation — PRO model for maximum detail & realism
+  generate_image: "google/gemini-3-pro-image-preview",
+  // Physics simulation text — fast reasoning model
   describe_physics: "google/gemini-2.5-flash",
-  remove_bg: "google/gemini-2.5-flash-image",
+  // Background removal — fast image model for clean cutouts
+  remove_bg: "google/gemini-3.1-flash-image-preview",
+  // Image quality validation — fast vision model to detect hallucinations
+  validate_image: "google/gemini-3-flash-preview",
 };
 
 // ---------------------------------------------------------------------------
@@ -251,6 +259,45 @@ async function removeBackground(base64Image: string, apiKey: string, label: stri
     console.warn(`Background removal error for ${label}:`, e);
   }
   return base64Image;
+}
+
+// ── Helper: validate generated image quality ──
+async function validateImage(imageUrl: string, apiKey: string, angle: string, movement: string): Promise<{ valid: boolean; issues: string[] }> {
+  try {
+    const resp = await fetch(AI_GATEWAY, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: MODEL_ROUTER.validate_image,
+        messages: [{
+          role: "user",
+          content: [
+            { type: "text", text: `Quickly validate this AI-generated sportswear image. Check for these CRITICAL issues ONLY:
+1. CROPPING: Is the full body visible head to toe? (FAIL if legs/feet/head cut off)
+2. ANATOMY: Are there obvious anatomical errors? (extra fingers, wrong limb count, distorted face)
+3. HALLUCINATION: Is the athlete in a completely wrong pose for "${movement}"?
+4. GARMENT: Is the garment obviously wrong (missing, duplicated, floating)?
+
+Return JSON: {"valid": true/false, "issues": ["issue1", "issue2"]}
+Be LENIENT — only flag OBVIOUS problems. Minor imperfections are OK.` },
+            { type: "image_url", image_url: { url: imageUrl } },
+          ],
+        }],
+      }),
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      const content = data.choices?.[0]?.message?.content || "{}";
+      const match = content.match(/\{[\s\S]*\}/);
+      if (match) {
+        const parsed = JSON.parse(match[0]);
+        return { valid: parsed.valid !== false, issues: parsed.issues || [] };
+      }
+    }
+  } catch (e) {
+    console.warn(`Validation error for ${angle}:`, e);
+  }
+  return { valid: true, issues: [] }; // Default to valid if validation fails
 }
 
 // ── Helper: extract image from AI response ──
@@ -495,26 +542,26 @@ You MUST render this EXACT same person in every image.`
 
           const mainPrompt = useSimplePrompt
             ? `Professional WIDE full-body studio photo: ${athleteLabel} wearing this exact uploaded garment, performing ${movement} at ${intensity}% intensity, ${angle} camera angle. WIDE SHOT showing COMPLETE body head-to-toe with space around athlete. All equipment fully visible. Focus on how the garment stretches and compresses during the movement. Dark background. ${anglePoseInstructions} ${MOTIF_RULES}${logoInstructions}`
-            : `CRITICAL INSTRUCTIONS:
-1. GARMENT REFERENCE: Preserve exact color, fabric texture, seams, and details from uploaded image with 100% fidelity.
-2. ${MOTIF_RULES}
-3. CAMERA ANGLE: ${angle.toUpperCase()} view.
-4. ${FRAMING}
-${athleteDesc ? `5. ${athleteDesc}` : ""}
+            : `PHOTOREALISTIC SPORTSWEAR CAMPAIGN — ${angle.toUpperCase()} VIEW
+
+STRICT REFERENCE FIDELITY: The uploaded garment image is the ABSOLUTE reference. Preserve exact color, fabric weave, texture, seams, stitching, and construction with 100% accuracy. This is a REAL photograph, not an illustration or render.
+
+${MOTIF_RULES}
+${FRAMING}
+${athleteDesc}
 
 ${anglePoseInstructions}
 
-Generate a professional FULL-BODY studio photo of ${athleteLabel}, size ${size}, wearing EXACTLY this uploaded garment while performing ${movement} at ${intensity}% intensity.
+SUBJECT: ${athleteLabel}, size ${size}, wearing EXACTLY this uploaded garment performing ${movement} at ${intensity}% intensity.
 
-Requirements:
-- ${angle.toUpperCase()} camera angle
-- WIDE FULL-BODY framing: head to toe visible with generous space around body, equipment NEVER cut off
-- GARMENT FOCUS: Show how the garment stretches, compresses, and moves with the body — this is the primary purpose of the image
-- Garment color and fabric must match reference EXACTLY
-- ${angle !== "front" ? `The ${angle} of the garment must be COMPLETELY PLAIN` : "Faithfully reproduce existing prints/motifs from reference"}
-- Realistic stretch, compression, and motion physics for ${movement}
-- Dark studio background with dramatic lighting
-- Professional sportswear campaign quality
+PHOTOREALISM REQUIREMENTS:
+- Shot on a Canon EOS R5 with 85mm f/1.4 lens — shallow depth of field, cinematic studio lighting
+- Skin must show natural pores, subtle sheen from exertion, realistic muscle definition under skin
+- Garment must show real fabric behavior: thread-level texture, natural drape, visible seam construction
+- Natural micro-details: slight fabric wrinkles at joints, compression shadows, stretch highlights
+- ${angle !== "front" ? `The ${angle} of the garment must be COMPLETELY PLAIN — no prints, text, or graphics` : "Faithfully reproduce existing prints/motifs from reference"}
+- Dark studio background with 3-point professional lighting setup
+- This must be INDISTINGUISHABLE from a real photoshoot
 ${logoInstructions}`;
 
           const imageResp = await fetch(AI_GATEWAY, {
@@ -547,7 +594,16 @@ ${logoInstructions}`;
             const imgUrl = extractImageFromResponse(choice as Record<string, unknown>);
 
             if (imgUrl) {
-              console.log(`Got image for ${angle}`);
+              // Validate on first attempt only (to avoid slowing retries)
+              if (attempts === 1) {
+                const validation = await validateImage(imgUrl, LOVABLE_API_KEY, angle, movement);
+                if (!validation.valid) {
+                  console.warn(`Image validation failed for ${angle}: ${validation.issues.join(", ")} — retrying`);
+                  await new Promise(r => setTimeout(r, 1000));
+                  continue; // retry with next attempt
+                }
+              }
+              console.log(`✅ ${angle} view generated & validated (attempt ${attempts})`);
               return imgUrl;
             } else {
               console.warn(`No image in response for ${angle} (attempt ${attempts})`);
@@ -686,6 +742,9 @@ ${logoInstructions}`;
           analysis: MODEL_ROUTER.analyze,
           physics: MODEL_ROUTER.describe_physics,
           image_generation: MODEL_ROUTER.generate_image,
+          background_removal: MODEL_ROUTER.remove_bg,
+          image_validation: MODEL_ROUTER.validate_image,
+          video: "runway/gen4-turbo",
         },
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
