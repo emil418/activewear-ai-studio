@@ -134,12 +134,12 @@ const EXERCISE_DEFS: Record<string, ExerciseMotionDef> = {
     fabricCue: "Maximum legging stretch at squat bottom, fabric stretches along legs during jump — garment behavior clearly visible",
   },
   "kettlebell swings": {
-    start: { position: "Wide stance, arms hanging forward, hinged at hips with arms between legs", joints: "Hips deeply hinged, knees slightly bent", weight: "In heels, posterior loaded" },
-    mid: { position: "Driving hips forward explosively, swinging arms upward", joints: "Hips extending rapidly, knees straightening", weight: "Driving through heels" },
-    peak: { position: "Standing tall, arms at chest height, hips fully extended", joints: "Full hip extension, arms at shoulder height", weight: "Centered, tall" },
-    sceneRules: ["No actual kettlebell", "No weights", "Bodyweight hip swing motion only", "Full body visible head to toe"],
-    camera: "WIDE full-body shot from slight side angle, head to toe with space for arm swing, stable tripod",
-    fabricCue: "Dramatic fabric movement with each swing cycle, shirt rides during hinge — garment motion clearly visible",
+    start: { position: "Wide stance, hinged at hips, kettlebell held with both hands between legs, back flat", joints: "Hips deeply hinged, knees slightly bent, spine neutral", weight: "Posterior loaded, weight in heels" },
+    mid: { position: "Explosive hip drive forward, snapping hips, swinging kettlebell upward with momentum from hips", joints: "Hips extending rapidly, knees straightening", weight: "Driving through heels, weight transferring forward" },
+    peak: { position: "Standing tall, kettlebell at chest or eye height, hips fully locked out, then controlled swing back down", joints: "Full hip extension, arms relaxed at shoulder height, glutes squeezed", weight: "Centered and tall, kettlebell floating at peak" },
+    sceneRules: ["Kettlebell MUST be visible in hands and NEVER cut off", "WIDE full-body shot head to toe", "Hip-driven explosive movement", "Smooth pendulum arc"],
+    camera: "WIDE full-body shot from slight side angle, head to toe showing kettlebell arc, never crop equipment, stable tripod",
+    fabricCue: "Dramatic fabric movement with each swing cycle, shirt rides during deep hinge — garment motion clearly visible",
   },
   "jump rope": {
     start: { position: "Standing tall, arms at sides with elbows bent, wrists rotating", joints: "Elbows 90°, wrists active", weight: "Balls of feet" },
