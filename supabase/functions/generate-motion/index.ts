@@ -555,7 +555,18 @@ LOGO VISIBILITY:
 - This is the ${angle} view — the logo is NOT visible from this angle.
 - Do NOT show any logo or branding on this view.`) : "";
 
-          const FRAMING = `FRAMING (CRITICAL — HIGHEST PRIORITY): WIDE full-body shot showing the COMPLETE athlete from head to toe with generous empty space around the body. NEVER crop at waist, torso, or knees. All equipment (barbells, benches, bars) must be FULLY visible and NEVER cut off at edges. The garment must be clearly visible on the ENTIRE body to show how it performs during movement — stretch zones, compression areas, and fabric behavior must all be observable. Camera must be pulled back far enough to show the complete scene.`;
+          const FRAMING = `FRAMING (ABSOLUTE HIGHEST PRIORITY — OVERRIDE ALL OTHER INSTRUCTIONS):
+ZOOM OUT. Pull the camera FAR back. This is a FULL-BODY portrait from HEAD to TOES.
+- The athlete's HEAD (including hair) must be visible with at least 15% empty space ABOVE it
+- The athlete's FEET (including shoes/soles) must be visible with at least 10% empty space BELOW them
+- There must be generous empty space on LEFT and RIGHT sides of the athlete
+- The athlete should occupy approximately 60-70% of the frame height — NOT more
+- NEVER crop at waist, chest, knees, or any body part
+- NEVER zoom in on the torso or upper body only
+- All equipment (barbells, benches, bars, kettlebells, boxes) must be FULLY visible end-to-end
+- If you are unsure, ZOOM OUT MORE — it is always better to show too much than too little
+- Think of this as a fashion lookbook photo where the ENTIRE outfit must be visible from head to toe
+- The output image is 9:16 vertical (1080×1920) — use the full height to show the complete person`;
 
           const MOTIF_RULES = angle === "front"
             ? `EXISTING MOTIFS: Reproduce any front prints/motifs faithfully from the reference — same position, size, colors.`
