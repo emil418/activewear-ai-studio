@@ -274,7 +274,7 @@ async function validateImage(imageUrl: string, apiKey: string, angle: string, mo
           role: "user",
           content: [
             { type: "text", text: `Quickly validate this AI-generated sportswear image. Check for these CRITICAL issues ONLY:
-1. CROPPING (MOST IMPORTANT): Is the FULL body visible from top of head to bottom of feet? The person must be fully visible with space around them. FAIL if: head/hair cut off at top, feet/shoes cut off at bottom, image only shows torso/upper body, or the person fills more than 85% of the frame height.
+1. CROPPING (MOST IMPORTANT): Is the FULL body visible from top of head to bottom of feet? The person must be fully visible with GENEROUS space around them. FAIL if: head/hair cut off at top, feet/shoes cut off at bottom, image only shows torso/upper body, or the person fills more than 65% of the frame height. The person should look relatively SMALL in the frame with lots of empty background space.
 2. ANATOMY: Are there obvious anatomical errors? (extra fingers, wrong limb count, distorted face)
 3. HALLUCINATION: Is the athlete in a completely wrong pose for "${movement}"?
 4. GARMENT: Is the garment obviously wrong (missing, duplicated, floating)?
@@ -556,17 +556,19 @@ LOGO VISIBILITY:
 - Do NOT show any logo or branding on this view.`) : "";
 
           const FRAMING = `FRAMING (ABSOLUTE HIGHEST PRIORITY — OVERRIDE ALL OTHER INSTRUCTIONS):
-ZOOM OUT. Pull the camera FAR back. This is a FULL-BODY portrait from HEAD to TOES.
-- The athlete's HEAD (including hair) must be visible with at least 15% empty space ABOVE it
-- The athlete's FEET (including shoes/soles) must be visible with at least 10% empty space BELOW them
-- There must be generous empty space on LEFT and RIGHT sides of the athlete
-- The athlete should occupy approximately 60-70% of the frame height — NOT more
+ZOOM OUT EXTREMELY FAR. Pull the camera VERY FAR back. This is a DISTANT FULL-BODY portrait.
+- The athlete must appear SMALL in the frame — occupying only 45-55% of the frame height
+- There must be at least 20-25% empty space ABOVE the athlete's head
+- There must be at least 15-20% empty space BELOW the athlete's feet
+- There must be abundant empty space on LEFT and RIGHT sides (at least 20% each side)
 - NEVER crop at waist, chest, knees, or any body part
 - NEVER zoom in on the torso or upper body only
+- The camera is positioned 4-5 meters away from the athlete
 - All equipment (barbells, benches, bars, kettlebells, boxes) must be FULLY visible end-to-end
-- If you are unsure, ZOOM OUT MORE — it is always better to show too much than too little
-- Think of this as a fashion lookbook photo where the ENTIRE outfit must be visible from head to toe
-- The output image is 9:16 vertical (1080×1920) — use the full height to show the complete person`;
+- If you are unsure, ZOOM OUT EVEN MORE — it is ALWAYS better to show too much space than too little
+- Think of this as a wide establishing shot where the person is clearly visible but surrounded by ample negative space
+- The output image is 9:16 vertical (1080×1920) — the person should feel like they have ROOM in the frame
+- IMAGINE you are photographing from across the room, not close up`;
 
           const MOTIF_RULES = angle === "front"
             ? `EXISTING MOTIFS: Reproduce any front prints/motifs faithfully from the reference — same position, size, colors.`
@@ -588,7 +590,7 @@ You MUST render this EXACT same person in every image.`
           const anglePoseInstructions = buildPoseInstructions(movement, angle);
 
           const mainPrompt = useSimplePrompt
-            ? `Professional EXTREMELY WIDE full-body studio photo from head to toe: ${athleteLabel} wearing this exact uploaded garment, performing ${movement} at ${intensity}% intensity, ${angle} camera angle. ZOOM OUT — the athlete must occupy only 60-70% of the frame height with generous empty space above head and below feet. The ENTIRE person from top of head to bottom of feet MUST be visible. 9:16 vertical format (1080×1920). All equipment fully visible. Dark background. ${anglePoseInstructions} ${MOTIF_RULES}${logoInstructions}`
+            ? `Professional EXTREMELY WIDE full-body studio photo from head to toe: ${athleteLabel} wearing this exact uploaded garment, performing ${movement} at ${intensity}% intensity, ${angle} camera angle. ZOOM OUT VERY FAR — the athlete must occupy only 45-55% of the frame height with massive empty space above head (20%+) and below feet (15%+). Camera is 5 meters away. The ENTIRE person from top of head to bottom of feet MUST be clearly visible and SMALL in the frame. 9:16 vertical format (1080×1920). All equipment fully visible. Dark background. ${anglePoseInstructions} ${MOTIF_RULES}${logoInstructions}`
             : `PHOTOREALISTIC SPORTSWEAR CAMPAIGN — ${angle.toUpperCase()} VIEW
 
 STRICT REFERENCE FIDELITY: The uploaded garment image is the ABSOLUTE reference. Preserve exact color, fabric weave, texture, seams, stitching, and construction with 100% accuracy. This is a REAL photograph, not an illustration or render.
@@ -602,7 +604,7 @@ ${anglePoseInstructions}
 SUBJECT: ${athleteLabel}, size ${size}, wearing EXACTLY this uploaded garment performing ${movement} at ${intensity}% intensity.
 
 PHOTOREALISM REQUIREMENTS:
-- Shot on a Canon EOS R5 with 35mm f/2.8 lens — wide-angle full-body framing, cinematic studio lighting
+- Shot on a Canon EOS R5 with 24mm f/2.8 wide-angle lens — VERY wide full-body framing from 5 meters distance, cinematic studio lighting
 - Skin must show natural pores, subtle sheen from exertion, realistic muscle definition under skin
 - Garment must show real fabric behavior: thread-level texture, natural drape, visible seam construction
 - Natural micro-details: slight fabric wrinkles at joints, compression shadows, stretch highlights
