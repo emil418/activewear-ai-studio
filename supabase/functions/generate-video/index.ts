@@ -41,37 +41,123 @@ interface MovementPhase {
   weightShift: string;
 }
 
+// Biomechanical phase definitions for exercises
+interface MotionPhaseDef {
+  position: string;
+  joints: string;
+  weight: string;
+}
+
+interface ExerciseMotionDef {
+  start: MotionPhaseDef;
+  mid: MotionPhaseDef;
+  peak: MotionPhaseDef;
+  sceneRules: string[];
+  fabricCue: string;
+}
+
+const EXERCISE_DEFS: Record<string, ExerciseMotionDef> = {
+  "squats": {
+    start: { position: "Standing upright, feet shoulder-width, arms at sides", joints: "Knees straight 180°, hips neutral", weight: "Centered on both feet" },
+    mid: { position: "Bending knees and hips, lowering body, torso slightly forward", joints: "Knees 120°, hips 110°", weight: "Shifting to heels" },
+    peak: { position: "Deep squat, thighs parallel, upright torso", joints: "Knees 75°, hips 70°", weight: "Deep into heels" },
+    sceneRules: ["No equipment", "Full body visible", "Both feet on ground"],
+    fabricCue: "Leggings stretch at quads and glutes, compression at knee crease",
+  },
+  "pull-ups": {
+    start: { position: "Hanging from horizontal bar above, arms fully extended, body vertical, feet behind body", joints: "Shoulders extended, elbows straight 180°", weight: "Hanging from hands, suspended" },
+    mid: { position: "Pulling body upward, elbows bending, chest approaching bar, body vertical", joints: "Elbows 110°, shoulders adducting", weight: "Pulling upward through grip" },
+    peak: { position: "Chin above bar, elbows bent, shoulders engaged, body controlled", joints: "Elbows 45°, shoulders contracted", weight: "Suspended at top" },
+    sceneRules: ["Bar ABOVE athlete", "Athlete hangs BELOW bar", "Bar NEVER behind neck", "Body NEVER standing on floor", "Full body visible including hanging feet"],
+    fabricCue: "Back shirt stretches showing lat engagement, sleeves compress around biceps at top",
+  },
+  "push-ups": {
+    start: { position: "High plank, arms extended, body straight line head to heels", joints: "Elbows straight, wrists under shoulders", weight: "Hands and toes" },
+    mid: { position: "Lowering chest toward ground, elbows bending, core tight", joints: "Elbows 90°, shoulders engaged", weight: "Shifting forward" },
+    peak: { position: "Chest near floor, body rigid and straight", joints: "Elbows 45-60°, shoulders loaded", weight: "On hands and toes" },
+    sceneRules: ["On floor level", "No bench", "Full body visible in profile", "Straight body line"],
+    fabricCue: "Shirt stretches across upper back, compresses at chest",
+  },
+  "deadlifts": {
+    start: { position: "Hinging forward at hips, flat back, hands toward shins", joints: "Hips 80°, knees 130°", weight: "Mid-foot" },
+    mid: { position: "Torso at 45°, back flat, arms hanging", joints: "Hips 100°, knees 140°", weight: "Mid-foot to heels" },
+    peak: { position: "Full lockout, standing tall, glutes squeezed", joints: "Knees 180°, hips 180°", weight: "Centered" },
+    sceneRules: ["No barbell", "No weights", "Bodyweight hip hinge only", "Full body visible"],
+    fabricCue: "Fabric stretches at hamstrings and lower back during hinge",
+  },
+  "lunges": {
+    start: { position: "Standing upright, feet hip-width", joints: "Knees straight, hips neutral", weight: "Centered" },
+    mid: { position: "One leg forward, both knees bending", joints: "Front knee 110°, back knee 120°", weight: "Split between feet" },
+    peak: { position: "Deep lunge, front thigh parallel, back knee near ground", joints: "Front knee 90°, back knee 90°", weight: "60% front, 40% back" },
+    sceneRules: ["No equipment", "Full body visible", "Feet on ground"],
+    fabricCue: "Stretch at front quad and back hip flexor, compression at bent knee",
+  },
+  "burpees": {
+    start: { position: "Standing upright", joints: "Neutral standing", weight: "Centered" },
+    mid: { position: "Plank position, body straight, arms extended", joints: "Shoulders over wrists", weight: "Hands and toes" },
+    peak: { position: "Explosive jump, arms overhead, body extended", joints: "Full extension, arms overhead", weight: "Airborne" },
+    sceneRules: ["No equipment", "Full body with headroom"],
+    fabricCue: "Maximum fabric dynamics through all phases",
+  },
+  "high knees": {
+    start: { position: "Standing tall, arms ready", joints: "Neutral", weight: "Centered" },
+    mid: { position: "One knee driving toward chest, opposite arm pumping", joints: "Knee 90° hip flexion", weight: "Single-leg" },
+    peak: { position: "Knee at chest height, rapid alternation", joints: "Maximum hip flexion", weight: "Alternating" },
+    sceneRules: ["No equipment", "Standing in place", "Full body visible"],
+    fabricCue: "Leggings stretch at hip, shirt bounces with movement",
+  },
+  "mountain climbers": {
+    start: { position: "High plank, arms extended", joints: "Shoulders over wrists, core engaged", weight: "Hands and toes" },
+    mid: { position: "One knee driving to chest, other leg extended", joints: "Hip flexion on drive leg", weight: "Hands and one foot" },
+    peak: { position: "Knee at chest, rapid switch", joints: "Maximum hip flexion", weight: "Dynamic alternating" },
+    sceneRules: ["No equipment", "On floor", "Full body visible"],
+    fabricCue: "Shirt stretches across back, leggings stretch at hip flexors",
+  },
+  "sprint": {
+    start: { position: "Standing, slight forward lean", joints: "Neutral", weight: "Balls of feet" },
+    mid: { position: "Sprinting in place, knee high, arm pumping", joints: "Drive knee 90°, elbow 90°", weight: "Single-leg" },
+    peak: { position: "Maximum knee drive, explosive stride", joints: "Max knee height", weight: "Single-leg power" },
+    sceneRules: ["In place", "No treadmill", "Full body visible"],
+    fabricCue: "Intense fabric ripple with explosive strides",
+  },
+  "plank": {
+    start: { position: "Lowering into forearm plank", joints: "Elbows 90° under shoulders", weight: "Forearms and toes" },
+    mid: { position: "Holding plank, core engaged", joints: "Stable alignment", weight: "Evenly distributed" },
+    peak: { position: "Sustained hold, micro-adjustments", joints: "Perfect alignment", weight: "Isometric hold" },
+    sceneRules: ["No equipment", "On floor", "Full body profile", "Straight body line"],
+    fabricCue: "Shirt drapes with gravity, tension across engaged back",
+  },
+};
+
 function getMovementPhases(movement: string, intensity: number): MovementPhase[] {
   const intensityLabel = intensity > 70 ? "explosive" : intensity > 40 ? "controlled" : "slow and deliberate";
 
-  const phaseTemplates: Record<string, MovementPhase[]> = {
-    "Squats": [
-      { pct: 0, pose: "standing upright, feet shoulder-width apart, arms at sides", muscleState: "relaxed quads and glutes", fabricState: "fabric resting naturally, no tension", jointAngles: "knees straight at 180°, hips neutral", weightShift: "weight centered evenly on both feet" },
-      { pct: 10, pose: "slight knee bend beginning, hips initiating backward", muscleState: "quads beginning to engage", fabricState: "very slight stretch at knee area", jointAngles: "knees at 170°, slight hip hinge", weightShift: "weight shifting slightly to heels" },
-      { pct: 25, pose: "quarter squat depth, torso leaning forward slightly", muscleState: "quads and glutes actively engaging", fabricState: "noticeable stretch at thighs, compression at hip crease", jointAngles: "knees at 140°, hips at 145°", weightShift: "weight firmly on heels, core braced" },
-      { pct: 40, pose: "half squat, thighs at 45° angle", muscleState: "significant quad tension, glute activation", fabricState: "moderate stretch across quads and glutes, fabric pulled taut", jointAngles: "knees at 115°, hips at 110°", weightShift: "weight on mid-foot to heels" },
-      { pct: 60, pose: "deep squat, thighs approaching parallel", muscleState: "heavy quad and glute contraction, hamstring stretch", fabricState: "heavy stretch at glutes and outer thigh, compression at knee", jointAngles: "knees at 95°, hips at 85°", weightShift: "weight centered, deep into heels" },
-      { pct: 80, pose: "bottom position, thighs parallel or below", muscleState: "maximum contraction, peak tension in quads and glutes", fabricState: "maximum stretch across entire lower body, visible tension lines", jointAngles: "knees at 75°, hips at 70°, deep fold", weightShift: "weight deep into heels, maximum stability" },
-      { pct: 90, pose: "beginning to rise, slight upward momentum", muscleState: "explosive quad and glute drive", fabricState: "fabric beginning to release, still stretched", jointAngles: "knees at 90°, hips opening", weightShift: "driving through heels" },
-      { pct: 70, pose: "rising through mid-position", muscleState: "sustained quad drive, glutes powering extension", fabricState: "stretch reducing, fabric recovering", jointAngles: "knees at 110°, hips at 120°", weightShift: "weight shifting forward as body rises" },
-      { pct: 35, pose: "nearly upright, knees still slightly bent", muscleState: "controlled deceleration, muscles still engaged", fabricState: "fabric mostly relaxed, slight residual tension", jointAngles: "knees at 155°, hips near neutral", weightShift: "weight returning to center" },
-      { pct: 5, pose: "returning to start, almost fully upright", muscleState: "muscles settling, post-rep relaxation", fabricState: "fabric returning to resting state", jointAngles: "knees at 175°, hips neutral", weightShift: "weight centered, balanced" },
-    ],
-    "Deadlifts": [
-      { pct: 0, pose: "standing over barbell, knees bent, hips hinged, grip on bar", muscleState: "back and hamstrings pre-tensioned", fabricState: "fabric stretched at lower back and hamstrings", jointAngles: "knees at 130°, hips at 80°, flat back", weightShift: "weight over mid-foot" },
-      { pct: 10, pose: "initial pull, bar just leaving ground", muscleState: "posterior chain firing, lats engaged", fabricState: "tension increasing across back and glutes", jointAngles: "knees at 135°, hips at 85°", weightShift: "weight shifting slightly back" },
-      { pct: 25, pose: "bar at shin height, legs driving", muscleState: "quads and glutes driving hard", fabricState: "significant stretch at hamstrings and lower back", jointAngles: "knees at 145°, hips at 100°", weightShift: "weight balanced mid-foot" },
-      { pct: 40, pose: "bar passing knees, torso rising", muscleState: "glutes and back heavily engaged", fabricState: "fabric taut across entire posterior", jointAngles: "knees at 155°, hips at 120°", weightShift: "driving through heels" },
-      { pct: 60, pose: "bar at mid-thigh, nearing lockout", muscleState: "glutes squeezing, back straightening", fabricState: "stretch reducing as body straightens", jointAngles: "knees at 165°, hips at 150°", weightShift: "weight centered" },
-      { pct: 80, pose: "full lockout, standing tall with bar", muscleState: "peak contraction, glutes fully squeezed", fabricState: "fabric settled, slight compression at chest", jointAngles: "knees at 180°, hips at 180°, fully extended", weightShift: "weight centered, stable" },
-      { pct: 90, pose: "beginning controlled descent", muscleState: "eccentric loading, hamstrings lengthening", fabricState: "fabric beginning to stretch again", jointAngles: "knees at 175°, hips beginning to hinge", weightShift: "weight shifting to toes slightly" },
-      { pct: 65, pose: "bar descending past knees", muscleState: "hamstrings under tension, back maintaining position", fabricState: "stretch increasing at posterior chain", jointAngles: "knees at 150°, hips at 130°", weightShift: "controlled descent" },
-      { pct: 35, pose: "bar approaching ground", muscleState: "muscles controlling deceleration", fabricState: "significant stretch at hamstrings and back", jointAngles: "knees at 135°, hips at 90°", weightShift: "weight on mid-foot" },
-      { pct: 5, pose: "bar nearly touching ground, ready for next rep", muscleState: "muscles resetting with maintained tension", fabricState: "fabric under moderate tension at rest", jointAngles: "knees at 130°, hips at 82°", weightShift: "weight centered" },
-    ],
-  };
+  // Find matching exercise definition
+  const movementKey = movement.toLowerCase().replace(/-/g, " ");
+  const def = EXERCISE_DEFS[movementKey];
 
-  // Default phases for any movement not specifically mapped
+  if (def) {
+    // Build phases from the 3-phase biomechanical definition
+    const sceneStr = def.sceneRules.join(". ");
+    const phases: MovementPhase[] = [
+      { pct: 0, pose: `START: ${def.start.position}`, muscleState: "relaxed, ready to engage", fabricState: "fabric resting naturally", jointAngles: def.start.joints, weightShift: def.start.weight },
+      { pct: 10, pose: `Transitioning from start toward mid movement`, muscleState: "muscles beginning to activate", fabricState: "slight fabric tension beginning", jointAngles: "joints beginning to flex", weightShift: "weight beginning to shift" },
+      { pct: 25, pose: `Approaching mid movement: ${def.mid.position}`, muscleState: "primary muscle groups engaging", fabricState: `${def.fabricCue} beginning`, jointAngles: def.mid.joints, weightShift: def.mid.weight },
+      { pct: 40, pose: `MID: ${def.mid.position}`, muscleState: "strong muscle contraction", fabricState: def.fabricCue, jointAngles: def.mid.joints, weightShift: def.mid.weight },
+      { pct: 60, pose: `Transitioning from mid toward peak position`, muscleState: "near-maximum engagement", fabricState: `${def.fabricCue}, intensifying`, jointAngles: "joints deepening toward peak angles", weightShift: "weight committed to movement" },
+      { pct: 80, pose: `PEAK: ${def.peak.position}`, muscleState: "maximum contraction, peak tension", fabricState: `Maximum: ${def.fabricCue}`, jointAngles: def.peak.joints, weightShift: def.peak.weight },
+      { pct: 90, pose: `Beginning controlled return from peak`, muscleState: "controlled return, muscles still engaged", fabricState: "fabric beginning to release", jointAngles: "joints beginning to extend from peak", weightShift: "weight reversing direction" },
+      { pct: 65, pose: `Returning through mid-range: ${def.mid.position}`, muscleState: "sustained engagement during return", fabricState: "fabric recovering", jointAngles: def.mid.joints, weightShift: def.mid.weight },
+      { pct: 30, pose: `Nearing return to start position`, muscleState: "muscles decelerating", fabricState: "fabric mostly relaxed", jointAngles: "joints approaching neutral", weightShift: "weight nearly centered" },
+      { pct: 5, pose: `Returning to: ${def.start.position}`, muscleState: "muscles settling", fabricState: "fabric at rest", jointAngles: def.start.joints, weightShift: def.start.weight },
+    ];
+    return phases.map(p => ({
+      ...p,
+      pose: `${p.pose} (${intensityLabel} pace). SCENE: ${sceneStr}`,
+    }));
+  }
+
+  // Default phases for unmapped movements
   const defaultPhases: MovementPhase[] = [
     { pct: 0, pose: `starting position for ${movement}, body ready`, muscleState: "relaxed, ready to engage", fabricState: "fabric resting naturally", jointAngles: "neutral standing position", weightShift: "weight centered" },
     { pct: 10, pose: `beginning ${movement}, initial body engagement`, muscleState: "muscles beginning to activate", fabricState: "very slight fabric movement", jointAngles: "joints beginning to flex", weightShift: "weight beginning to shift" },
@@ -85,15 +171,12 @@ function getMovementPhases(movement: string, intensity: number): MovementPhase[]
     { pct: 5, pose: `completing ${movement}, returning to start`, muscleState: "muscles settling", fabricState: "fabric at rest", jointAngles: "near-neutral position", weightShift: "weight centered" },
   ];
 
-  const key = Object.keys(phaseTemplates).find(k => movement.toLowerCase().includes(k.toLowerCase()));
-  const phases = key ? phaseTemplates[key] : defaultPhases;
-
-  // Add intensity label to each phase
-  return phases.map(p => ({
+  return defaultPhases.map(p => ({
     ...p,
-    pose: `${p.pose} (${intensityLabel} pace)`,
+    pose: `${p.pose} (${intensityLabel} pace). No equipment, bodyweight only.`,
   }));
 }
+
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
