@@ -274,7 +274,7 @@ async function validateImage(imageUrl: string, apiKey: string, angle: string, mo
           role: "user",
           content: [
             { type: "text", text: `Quickly validate this AI-generated sportswear image. Check for these CRITICAL issues ONLY:
-1. CROPPING (MOST IMPORTANT): Is the FULL body visible from top of head to bottom of feet? The person must be fully visible with space around them. FAIL if: head/hair cut off at top, feet/shoes cut off at bottom, image only shows torso/upper body, or the person fills more than 85% of the frame height.
+1. CROPPING (MOST IMPORTANT): Is the FULL body visible from top of head to bottom of feet? The person must be fully visible with GENEROUS space around them. FAIL if: head/hair cut off at top, feet/shoes cut off at bottom, image only shows torso/upper body, or the person fills more than 65% of the frame height. The person should look relatively SMALL in the frame with lots of empty background space.
 2. ANATOMY: Are there obvious anatomical errors? (extra fingers, wrong limb count, distorted face)
 3. HALLUCINATION: Is the athlete in a completely wrong pose for "${movement}"?
 4. GARMENT: Is the garment obviously wrong (missing, duplicated, floating)?
