@@ -160,7 +160,7 @@ const EXERCISE_DEFS: Record<string, ExerciseMotionDef> = {
   },
 };
 
-// Build a concise motion prompt from the definition
+// Build a concise but cinematically rich motion prompt
 function buildMotionPrompt(
   movement: string,
   intensity: number,
@@ -171,14 +171,32 @@ function buildMotionPrompt(
   const def = EXERCISE_DEFS[key];
   const intensityLabel = intensity > 70 ? "explosive, powerful" : intensity > 40 ? "controlled, athletic" : "slow, deliberate";
 
+  // Core realism instructions baked into every prompt
+  const realismCore = "Real human motion: natural muscle tension, weight shift, breathing rhythm. Fluid and smooth, never robotic or stiff. Photorealistic cinematic footage.";
+
   if (!def) {
-    return `${gender || "Female"} ${bodyType || "athletic"} athlete in dark studio. Bodyweight ${movement}, ${intensityLabel} pace. Smooth, natural movement. ONLY the athlete — no equipment, no weights, no props, no other people. Photorealistic, consistent identity. Stable medium shot, full body.`;
+    return `${gender || "Female"} ${bodyType || "athletic"} athlete performs ${movement}, ${intensityLabel}. ${realismCore} Preserve exact identity and clothing from reference image. Stable camera, full body, dark studio.`;
   }
 
-  const sceneStr = def.sceneRules.join(". ");
+  // Build condensed prompt prioritizing motion quality within 1000 chars
+  const parts: string[] = [];
+  parts.push(`${gender || "Female"} ${bodyType || "athletic"} athlete performs ${movement}, ${intensityLabel}.`);
+  parts.push(`START: ${def.start.position}.`);
+  parts.push(`MID: ${def.mid.position}.`);
+  parts.push(`PEAK: ${def.peak.position}.`);
+  parts.push(def.fabricCue + ".");
+  parts.push(realismCore);
+  parts.push(`${def.camera}. Preserve exact identity, garment, and logo from reference.`);
 
-  // Keep it concise to fit 1000-char Runway limit
-  return `${gender || "Female"} ${bodyType || "athletic"} athlete in dark studio performs ${movement}, ${intensityLabel} pace. START: ${def.start.position}. MID: ${def.mid.position}. PEAK: ${def.peak.position}. ${def.fabricCue}. RULES: ${sceneStr}. ${def.camera}. ONLY the athlete, no equipment, no weights, no props, no people. Photorealistic, smooth motion, consistent identity.`;
+  let prompt = parts.join(" ");
+
+  // If under budget, add scene rules
+  const sceneStr = def.sceneRules.join(". ");
+  if (prompt.length + sceneStr.length + 8 <= 1000) {
+    prompt += " " + sceneStr + ".";
+  }
+
+  return prompt;
 }
 
 // ---------------------------------------------------------------------------
