@@ -39,11 +39,12 @@ const bodyTypes = ["Lean Runner", "Athletic", "Muscular", "Plus-Size", "Adaptive
 
 const loadingMessages = [
   "Smart Model Router initializing...",
-  "Analyzing fabric with Gemini 3 Flash...",
-  "Removing backgrounds with Nano Banana 2...",
+  "Analyzing fabric & removing backgrounds...",
   "Computing fabric physics simulation...",
-  "Generating photorealistic images (Gemini 3 Pro)...",
-  "Validating image quality & anatomy...",
+  "Generating front view (Gemini 3 Pro)...",
+  "Validating front view quality...",
+  "Generating side view...",
+  "Generating back view...",
   "Storing high-res assets...",
   "Almost there — finalizing render...",
 ];
