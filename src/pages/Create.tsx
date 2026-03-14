@@ -38,13 +38,14 @@ const ANGLES = ["front", "side", "back"] as const;
 const bodyTypes = ["Lean Runner", "Athletic", "Muscular", "Plus-Size", "Adaptive"];
 
 const loadingMessages = [
-  "Analyzing fabric properties...",
-  "Building athlete mesh...",
-  "Simulating stretch under load...",
-  "Applying compression physics...",
-  "Rendering sweat and breathability...",
-  "Generating multi-angle views...",
-  "Almost there — finalizing motion...",
+  "Smart Model Router initializing...",
+  "Analyzing fabric with Gemini 3 Flash...",
+  "Removing backgrounds with Nano Banana 2...",
+  "Computing fabric physics simulation...",
+  "Generating photorealistic images (Gemini 3 Pro)...",
+  "Validating image quality & anatomy...",
+  "Storing high-res assets...",
+  "Almost there — finalizing render...",
 ];
 
 interface GenerationResult {
