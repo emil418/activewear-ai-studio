@@ -261,6 +261,45 @@ async function removeBackground(base64Image: string, apiKey: string, label: stri
   return base64Image;
 }
 
+// ── Helper: validate generated image quality ──
+async function validateImage(imageUrl: string, apiKey: string, angle: string, movement: string): Promise<{ valid: boolean; issues: string[] }> {
+  try {
+    const resp = await fetch(AI_GATEWAY, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: MODEL_ROUTER.validate_image,
+        messages: [{
+          role: "user",
+          content: [
+            { type: "text", text: `Quickly validate this AI-generated sportswear image. Check for these CRITICAL issues ONLY:
+1. CROPPING: Is the full body visible head to toe? (FAIL if legs/feet/head cut off)
+2. ANATOMY: Are there obvious anatomical errors? (extra fingers, wrong limb count, distorted face)
+3. HALLUCINATION: Is the athlete in a completely wrong pose for "${movement}"?
+4. GARMENT: Is the garment obviously wrong (missing, duplicated, floating)?
+
+Return JSON: {"valid": true/false, "issues": ["issue1", "issue2"]}
+Be LENIENT — only flag OBVIOUS problems. Minor imperfections are OK.` },
+            { type: "image_url", image_url: { url: imageUrl } },
+          ],
+        }],
+      }),
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      const content = data.choices?.[0]?.message?.content || "{}";
+      const match = content.match(/\{[\s\S]*\}/);
+      if (match) {
+        const parsed = JSON.parse(match[0]);
+        return { valid: parsed.valid !== false, issues: parsed.issues || [] };
+      }
+    }
+  } catch (e) {
+    console.warn(`Validation error for ${angle}:`, e);
+  }
+  return { valid: true, issues: [] }; // Default to valid if validation fails
+}
+
 // ── Helper: extract image from AI response ──
 function extractImageFromResponse(choice: Record<string, unknown>): string | null {
   if (choice?.images && Array.isArray(choice.images)) {
