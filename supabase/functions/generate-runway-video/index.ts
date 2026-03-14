@@ -418,7 +418,7 @@ serve(async (req) => {
         brand_id: brand.id,
         action: "generate_runway_video",
         credits_used: 5,
-        metadata: { movement, intensity, gender, bodyType, duration: duration || 5, camera: cameraStyle || "static", task_id: taskId },
+        metadata: { movement, intensity, gender, bodyType, duration: duration || 5, cameraAngle: cameraAngle || "front", task_id: taskId },
       });
     }
 
