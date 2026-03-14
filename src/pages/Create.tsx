@@ -1207,8 +1207,8 @@ const Create = () => {
                   <div className="flex items-center gap-3">
                     <Loader2 className="w-5 h-5 text-primary animate-spin" />
                     <div>
-                      <p className="text-sm font-bold">Generating realistic human motion video (Runway Gen-4 Turbo)...</p>
-                      <p className="text-xs text-muted-foreground">Creating natural athlete movement with real muscle tension and fluid motion — 30-90 seconds</p>
+                      <p className="text-sm font-bold">Smart Model Router → Runway Gen-4 Turbo</p>
+                      <p className="text-xs text-muted-foreground">Generating realistic human motion with natural muscle tension, weight shift, and fluid movement — 30-90 seconds</p>
                     </div>
                   </div>
                   <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden">
