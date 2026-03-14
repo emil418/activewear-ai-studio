@@ -503,26 +503,26 @@ You MUST render this EXACT same person in every image.`
 
           const mainPrompt = useSimplePrompt
             ? `Professional WIDE full-body studio photo: ${athleteLabel} wearing this exact uploaded garment, performing ${movement} at ${intensity}% intensity, ${angle} camera angle. WIDE SHOT showing COMPLETE body head-to-toe with space around athlete. All equipment fully visible. Focus on how the garment stretches and compresses during the movement. Dark background. ${anglePoseInstructions} ${MOTIF_RULES}${logoInstructions}`
-            : `CRITICAL INSTRUCTIONS:
-1. GARMENT REFERENCE: Preserve exact color, fabric texture, seams, and details from uploaded image with 100% fidelity.
-2. ${MOTIF_RULES}
-3. CAMERA ANGLE: ${angle.toUpperCase()} view.
-4. ${FRAMING}
-${athleteDesc ? `5. ${athleteDesc}` : ""}
+            : `PHOTOREALISTIC SPORTSWEAR CAMPAIGN — ${angle.toUpperCase()} VIEW
+
+STRICT REFERENCE FIDELITY: The uploaded garment image is the ABSOLUTE reference. Preserve exact color, fabric weave, texture, seams, stitching, and construction with 100% accuracy. This is a REAL photograph, not an illustration or render.
+
+${MOTIF_RULES}
+${FRAMING}
+${athleteDesc}
 
 ${anglePoseInstructions}
 
-Generate a professional FULL-BODY studio photo of ${athleteLabel}, size ${size}, wearing EXACTLY this uploaded garment while performing ${movement} at ${intensity}% intensity.
+SUBJECT: ${athleteLabel}, size ${size}, wearing EXACTLY this uploaded garment performing ${movement} at ${intensity}% intensity.
 
-Requirements:
-- ${angle.toUpperCase()} camera angle
-- WIDE FULL-BODY framing: head to toe visible with generous space around body, equipment NEVER cut off
-- GARMENT FOCUS: Show how the garment stretches, compresses, and moves with the body — this is the primary purpose of the image
-- Garment color and fabric must match reference EXACTLY
-- ${angle !== "front" ? `The ${angle} of the garment must be COMPLETELY PLAIN` : "Faithfully reproduce existing prints/motifs from reference"}
-- Realistic stretch, compression, and motion physics for ${movement}
-- Dark studio background with dramatic lighting
-- Professional sportswear campaign quality
+PHOTOREALISM REQUIREMENTS:
+- Shot on a Canon EOS R5 with 85mm f/1.4 lens — shallow depth of field, cinematic studio lighting
+- Skin must show natural pores, subtle sheen from exertion, realistic muscle definition under skin
+- Garment must show real fabric behavior: thread-level texture, natural drape, visible seam construction
+- Natural micro-details: slight fabric wrinkles at joints, compression shadows, stretch highlights
+- ${angle !== "front" ? `The ${angle} of the garment must be COMPLETELY PLAIN — no prints, text, or graphics` : "Faithfully reproduce existing prints/motifs from reference"}
+- Dark studio background with 3-point professional lighting setup
+- This must be INDISTINGUISHABLE from a real photoshoot
 ${logoInstructions}`;
 
           const imageResp = await fetch(AI_GATEWAY, {
