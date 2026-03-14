@@ -212,25 +212,25 @@ function buildMotionPrompt(
   // Realistic human motion is the #1 priority
   const humanMotion = REALISTIC_MOTION[key] || `Natural ${movement} with proper form — controlled tempo, real muscle engagement, natural breathing and weight shift. Movement should look like real gym footage of a trained athlete.`;
 
-  // Core realism micro-cues
-  const realismCues = `REALISM RULES: This must look like REAL GYM FOOTAGE shot on a cinema camera, NOT AI-generated video. Natural muscle tension visible under skin — flexion on concentric, stretch on eccentric. Subtle breathing movement in torso between reps. Realistic momentum and deceleration — weight has mass, movements have follow-through. Slight natural imperfections: micro-adjustments in balance, natural grip shifts, subtle facial effort. Skin shows natural texture with light perspiration sheen.`;
+  // Core realism micro-cues (condensed to save prompt space)
+  const realismCues = `MUST look like REAL GYM FOOTAGE, NOT CGI or AI video. Natural muscle tension under skin, visible breathing, realistic momentum with mass and follow-through. Slight natural imperfections: micro balance adjustments, facial effort, skin texture with perspiration.`;
 
   // Fabric behavior
-  const fabricCue = def?.fabricCue || "Garment stretches and compresses naturally with each movement phase — fabric pulls taut over active muscles, wrinkles at joint creases, shows real textile behavior.";
+  const fabricCue = def?.fabricCue || "Garment stretches and compresses naturally with each movement phase — fabric pulls taut over active muscles, wrinkles at joint creases.";
 
   // Camera angle — override exercise default if specified
   const cameraKey = cameraAngle || "front";
   const cameraPrompt = CAMERA_ANGLE_PROMPTS[cameraKey] || CAMERA_ANGLE_PROMPTS["front"];
-  const framing = `WIDE full-body shot head to toe with space around athlete. ${cameraPrompt}`;
+  const framing = `WIDE full-body shot head to toe.`;
 
-  // Build prompt with camera angle FIRST so it's never truncated
+  // Build prompt: camera first, then realism, then motion details
   const parts: string[] = [];
-  // Camera angle is #1 priority — must not be cut
   parts.push(`CAMERA: ${cameraPrompt} ${framing}`);
   parts.push(`${g} ${bt} athlete performs ${key}, ${intensityLabel} tempo.`);
+  parts.push(realismCues);
   parts.push(humanMotion);
   parts.push(fabricCue);
-  parts.push(`Preserve exact identity, garment, and logo from reference image. Dark gym/studio environment, cinematic 3-point lighting.`);
+  parts.push(`Preserve identity, garment, logo from reference. Dark studio, cinematic lighting.`);
 
   let prompt = parts.join(" ");
 
