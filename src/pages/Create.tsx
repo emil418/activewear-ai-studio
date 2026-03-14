@@ -687,7 +687,30 @@ const Create = () => {
   };
 
   // ── AI Video Generation (Runway Gen-4 Turbo) ──
-  const [cameraStyle, setCameraStyle] = useState<"static" | "slow_tracking">("static");
+  const VIDEO_CAMERA_ANGLES = [
+    { id: "front", label: "Front", desc: "Straight-on frontal view" },
+    { id: "side-left", label: "Side Left", desc: "Left profile view" },
+    { id: "side-right", label: "Side Right", desc: "Right profile view" },
+    { id: "back", label: "Back", desc: "Rear view" },
+    { id: "45-overhead", label: "45° Overhead", desc: "Elevated 45° downward angle" },
+    { id: "low-angle", label: "Low Angle", desc: "Ground-level looking up" },
+    { id: "dynamic-follow", label: "Dynamic Follow", desc: "Slow camera tracking around athlete" },
+  ] as const;
+
+  const [selectedVideoAngles, setSelectedVideoAngles] = useState<string[]>(["front"]);
+  const [runwayVideoUrls, setRunwayVideoUrls] = useState<Record<string, string>>({});
+  const [activeVideoAngle, setActiveVideoAngle] = useState("front");
+  const [videoGenProgress, setVideoGenProgress] = useState("");
+
+  const toggleVideoAngle = (angleId: string) => {
+    setSelectedVideoAngles(prev => {
+      if (prev.includes(angleId)) {
+        if (prev.length === 1) return prev; // keep at least one
+        return prev.filter(a => a !== angleId);
+      }
+      return [...prev, angleId];
+    });
+  };
 
   const handleGenerateRunwayVideo = async () => {
     const frontUrl = getImageUrl(result, "front") || getImageUrl(result, "side") || getImageUrl(result, "back");
@@ -697,34 +720,54 @@ const Create = () => {
     }
 
     setGeneratingRunwayVideo(true);
+    setRunwayVideoUrls({});
     setRunwayVideoUrl(null);
-    toast({ title: "🎬 Smart Model Router → Runway Gen-4 Turbo", description: "Generating realistic human motion with natural muscle tension, weight shift, and breathing — 30-90 seconds." });
+    const anglesToGenerate = [...selectedVideoAngles];
+    const totalAngles = anglesToGenerate.length;
+
+    toast({
+      title: "🎬 Smart Model Router → Runway Gen-4 Turbo",
+      description: `Generating ${totalAngles} perspective${totalAngles > 1 ? "s" : ""} with realistic human motion — ${totalAngles * 30}-${totalAngles * 90} seconds.`,
+    });
 
     try {
-      const response = await supabase.functions.invoke("generate-runway-video", {
-        body: {
-          referenceImageUrl: frontUrl,
-          movement: selectedMovement,
-          intensity: intensity[0],
-          gender: selectedAthlete?.gender || selectedGender,
-          bodyType: selectedAthlete?.body_type || selectedBody,
-          cameraStyle,
-          duration: 5,
-        },
-      });
+      const urls: Record<string, string> = {};
 
-      if (response.error) throw new Error(response.error.message || "Video generation failed");
-      if (!response.data?.success || !response.data?.video_url) {
-        throw new Error(response.data?.error || "No video URL returned");
+      for (let i = 0; i < anglesToGenerate.length; i++) {
+        const angle = anglesToGenerate[i];
+        const angleLabel = VIDEO_CAMERA_ANGLES.find(a => a.id === angle)?.label || angle;
+        setVideoGenProgress(`Generating ${angleLabel} (${i + 1}/${totalAngles})...`);
+
+        const response = await supabase.functions.invoke("generate-runway-video", {
+          body: {
+            referenceImageUrl: frontUrl,
+            movement: selectedMovement,
+            intensity: intensity[0],
+            gender: selectedAthlete?.gender || selectedGender,
+            bodyType: selectedAthlete?.body_type || selectedBody,
+            cameraAngle: angle,
+            duration: 5,
+          },
+        });
+
+        if (response.error) throw new Error(response.error.message || "Video generation failed");
+        if (!response.data?.success || !response.data?.video_url) {
+          throw new Error(response.data?.error || `No video URL returned for ${angleLabel}`);
+        }
+
+        urls[angle] = response.data.video_url;
       }
 
-      setRunwayVideoUrl(response.data.video_url);
-      toast({ title: "🎥 AI Motion Video ready!", description: `${response.data.duration}s continuous video generated. Download or preview below.` });
+      setRunwayVideoUrls(urls);
+      setRunwayVideoUrl(Object.values(urls)[0]);
+      setActiveVideoAngle(anglesToGenerate[0]);
+      toast({ title: "🎥 AI Motion Video ready!", description: `${totalAngles} perspective${totalAngles > 1 ? "s" : ""} generated successfully.` });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Video generation failed";
       toast({ title: "Video generation failed", description: message, variant: "destructive" });
     } finally {
       setGeneratingRunwayVideo(false);
+      setVideoGenProgress("");
     }
   };
 
