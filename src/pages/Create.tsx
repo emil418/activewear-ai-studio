@@ -1299,77 +1299,144 @@ const Create = () => {
                 </Button>
               </div>
 
-              {/* Runway AI Video — True Motion */}
-              {!runwayVideoUrl && !generatingRunwayVideo && (
-                <Button
-                  variant="outline"
-                  disabled={generatingRunwayVideo}
-                  className="w-full rounded-xl border-primary/30 text-primary hover:bg-primary/10 gap-2 py-6 font-bold text-base"
-                  onClick={handleGenerateRunwayVideo}>
-                  <Video className="w-5 h-5" /> Generate Motion Video (3-5 sec)
-                </Button>
-              )}
+              {/* Runway AI Video — Camera Angle Selection + Generation */}
+              <div className="glass-card p-5 space-y-4">
+                <div className="flex items-center gap-2">
+                  <Video className="w-4 h-4 text-primary" />
+                  <p className="text-sm font-bold">Premium Motion Visualization</p>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/20 text-primary font-bold">Runway Gen-4</span>
+                </div>
 
-              {generatingRunwayVideo && (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="glass-card p-6 space-y-3">
-                  <div className="flex items-center gap-3">
-                    <Loader2 className="w-5 h-5 text-primary animate-spin" />
-                    <div>
-                      <p className="text-sm font-bold">Smart Model Router → Runway Gen-4 Turbo</p>
-                      <p className="text-xs text-muted-foreground">Generating realistic human motion with natural muscle tension, weight shift, and fluid movement — 30-90 seconds</p>
-                    </div>
+                {/* Camera Angle Multi-Select */}
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Camera Perspective</p>
+                  <div className="flex flex-wrap gap-2">
+                    {VIDEO_CAMERA_ANGLES.map(angle => {
+                      const isSelected = selectedVideoAngles.includes(angle.id);
+                      return (
+                        <button
+                          key={angle.id}
+                          onClick={() => toggleVideoAngle(angle.id)}
+                          disabled={generatingRunwayVideo}
+                          className={`text-xs px-3 py-2 rounded-lg font-semibold transition-all duration-200 border ${
+                            isSelected
+                              ? "bg-primary/15 text-primary border-primary/30 shadow-sm"
+                              : "bg-muted/50 text-muted-foreground border-border hover:border-primary/20 hover:text-foreground"
+                          } disabled:opacity-50 disabled:cursor-not-allowed`}
+                          title={angle.desc}
+                        >
+                          {angle.label}
+                        </button>
+                      );
+                    })}
                   </div>
-                  <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden">
-                    <motion.div
-                      className="h-full bg-primary rounded-full"
-                      initial={{ width: "5%" }}
-                      animate={{ width: "85%" }}
-                      transition={{ duration: 60, ease: "linear" }}
-                    />
-                  </div>
-                </motion.div>
-              )}
+                  <p className="text-[10px] text-muted-foreground">
+                    {selectedVideoAngles.length} angle{selectedVideoAngles.length > 1 ? "s" : ""} selected — {selectedVideoAngles.length > 1 ? "one video per angle" : "single video"}
+                  </p>
+                </div>
 
-              {runwayVideoUrl && (
-                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="glass-card p-5 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Video className="w-4 h-4 text-primary" />
-                      <p className="text-sm font-bold">Motion Video Preview — Ready</p>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/20 text-primary font-bold">AI Generated</span>
+                {/* Generate Button */}
+                {Object.keys(runwayVideoUrls).length === 0 && !generatingRunwayVideo && (
+                  <Button
+                    variant="outline"
+                    className="w-full rounded-xl border-primary/30 text-primary hover:bg-primary/10 gap-2 py-6 font-bold text-base"
+                    onClick={handleGenerateRunwayVideo}>
+                    <Video className="w-5 h-5" /> Generate Motion Video ({selectedVideoAngles.length} angle{selectedVideoAngles.length > 1 ? "s" : ""})
+                  </Button>
+                )}
+
+                {/* Loading State */}
+                {generatingRunwayVideo && (
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
+                    <div className="flex items-center gap-3">
+                      <Loader2 className="w-5 h-5 text-primary animate-spin" />
+                      <div>
+                        <p className="text-sm font-bold">Smart Model Router → Runway Gen-4 Turbo</p>
+                        <p className="text-xs text-muted-foreground">{videoGenProgress || "Initializing..."}</p>
+                      </div>
                     </div>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm" className="rounded-xl text-xs gap-1.5"
-                        onClick={() => {
-                          const a = document.createElement("a");
-                          a.href = runwayVideoUrl;
-                          a.download = `ActiveForge-${selectedMovement.replace(/\s+/g, "-")}-runway.mp4`;
-                          a.target = "_blank";
-                          a.click();
-                        }}>
-                        <Download className="w-3 h-3" /> Download MP4
-                      </Button>
-                      <Button variant="outline" size="sm" className="rounded-xl text-xs gap-1.5 border-destructive/20 text-muted-foreground hover:text-foreground"
-                        onClick={handleGenerateRunwayVideo}>
-                        <Zap className="w-3 h-3" /> Retry
-                      </Button>
+                    <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden">
+                      <motion.div
+                        className="h-full bg-primary rounded-full"
+                        initial={{ width: "5%" }}
+                        animate={{ width: "85%" }}
+                        transition={{ duration: 60 * selectedVideoAngles.length, ease: "linear" }}
+                      />
                     </div>
-                  </div>
-                  <div className="relative aspect-[9/16] max-h-[500px] mx-auto rounded-xl overflow-hidden bg-muted/20">
-                    <video
-                      ref={runwayVideoRef}
-                      src={runwayVideoUrl}
-                      controls
-                      loop
-                      playsInline
-                      className="w-full h-full object-cover"
-                    />
-                    <span className="absolute top-3 right-3 text-[10px] px-2 py-1 rounded-lg bg-primary/20 backdrop-blur text-primary font-bold">
-                      9:16 · MP4 · Runway AI
-                    </span>
-                  </div>
-                </motion.div>
-              )}
+                  </motion.div>
+                )}
+
+                {/* Video Results */}
+                {Object.keys(runwayVideoUrls).length > 0 && (
+                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+                    {/* Angle Tabs (if multiple) */}
+                    {Object.keys(runwayVideoUrls).length > 1 && (
+                      <div className="flex flex-wrap gap-2">
+                        {Object.keys(runwayVideoUrls).map(angleId => {
+                          const angleLabel = VIDEO_CAMERA_ANGLES.find(a => a.id === angleId)?.label || angleId;
+                          return (
+                            <button
+                              key={angleId}
+                              onClick={() => {
+                                setActiveVideoAngle(angleId);
+                                setRunwayVideoUrl(runwayVideoUrls[angleId]);
+                              }}
+                              className={`text-xs px-3 py-1.5 rounded-lg font-semibold transition-all border ${
+                                activeVideoAngle === angleId
+                                  ? "bg-primary/15 text-primary border-primary/30"
+                                  : "bg-muted/50 text-muted-foreground border-border hover:text-foreground"
+                              }`}
+                            >
+                              {angleLabel}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Video Player */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Video className="w-4 h-4 text-primary" />
+                        <p className="text-sm font-bold">
+                          {VIDEO_CAMERA_ANGLES.find(a => a.id === activeVideoAngle)?.label || "Front"} — Ready
+                        </p>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/20 text-primary font-bold">AI Generated</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" className="rounded-xl text-xs gap-1.5"
+                          onClick={() => {
+                            const url = runwayVideoUrls[activeVideoAngle];
+                            if (!url) return;
+                            const a = document.createElement("a");
+                            a.href = url;
+                            a.download = `ActiveForge-${selectedMovement.replace(/\s+/g, "-")}-${activeVideoAngle}.mp4`;
+                            a.target = "_blank";
+                            a.click();
+                          }}>
+                          <Download className="w-3 h-3" /> Download MP4
+                        </Button>
+                        <Button variant="outline" size="sm" className="rounded-xl text-xs gap-1.5 border-destructive/20 text-muted-foreground hover:text-foreground"
+                          onClick={handleGenerateRunwayVideo}>
+                          <Zap className="w-3 h-3" /> Retry
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="relative aspect-[9/16] max-h-[500px] mx-auto rounded-xl overflow-hidden bg-muted/20">
+                      <video
+                        ref={runwayVideoRef}
+                        src={runwayVideoUrls[activeVideoAngle]}
+                        controls
+                        loop
+                        playsInline
+                        className="w-full h-full object-cover"
+                      />
+                      <span className="absolute top-3 right-3 text-[10px] px-2 py-1 rounded-lg bg-primary/20 backdrop-blur text-primary font-bold">
+                        9:16 · MP4 · {VIDEO_CAMERA_ANGLES.find(a => a.id === activeVideoAngle)?.label}
+                      </span>
+                    </div>
+                  </motion.div>
+                )}
 
               {/* Send to Brand (creator mode) */}
               {showSimplifiedUI && (
