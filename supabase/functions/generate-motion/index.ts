@@ -594,7 +594,16 @@ ${logoInstructions}`;
             const imgUrl = extractImageFromResponse(choice as Record<string, unknown>);
 
             if (imgUrl) {
-              console.log(`Got image for ${angle}`);
+              // Validate on first attempt only (to avoid slowing retries)
+              if (attempts === 1) {
+                const validation = await validateImage(imgUrl, LOVABLE_API_KEY, angle, movement);
+                if (!validation.valid) {
+                  console.warn(`Image validation failed for ${angle}: ${validation.issues.join(", ")} — retrying`);
+                  await new Promise(r => setTimeout(r, 1000));
+                  continue; // retry with next attempt
+                }
+              }
+              console.log(`✅ ${angle} view generated & validated (attempt ${attempts})`);
               return imgUrl;
             } else {
               console.warn(`No image in response for ${angle} (attempt ${attempts})`);
