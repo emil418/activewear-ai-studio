@@ -39,11 +39,12 @@ const bodyTypes = ["Lean Runner", "Athletic", "Muscular", "Plus-Size", "Adaptive
 
 const loadingMessages = [
   "Smart Model Router initializing...",
-  "Analyzing fabric with Gemini 3 Flash...",
-  "Removing backgrounds with Nano Banana 2...",
+  "Analyzing fabric & removing backgrounds...",
   "Computing fabric physics simulation...",
-  "Generating photorealistic images (Gemini 3 Pro)...",
-  "Validating image quality & anatomy...",
+  "Generating front view (Gemini 3 Pro)...",
+  "Validating front view quality...",
+  "Generating side view...",
+  "Generating back view...",
   "Storing high-res assets...",
   "Almost there — finalizing render...",
 ];
@@ -212,22 +213,71 @@ const Create = () => {
       identity_seed: selectedAthlete.identity_seed,
     } : undefined;
 
-    const response = await supabase.functions.invoke("generate-motion", {
-      body: {
-        garmentName: garmentFile?.name || "Activewear",
-        garmentBase64,
-        gender: selectedAthlete?.gender || selectedGender,
-        size,
-        bodyType: selectedAthlete?.body_type || selectedBody,
-        movement: selectedMovement,
-        intensity: intensity[0],
-        logoBase64,
-        logoPosition: logoPosition || undefined,
-        athleteIdentity,
-      },
+    const commonBody = {
+      garmentName: garmentFile?.name || "Activewear",
+      garmentBase64,
+      gender: selectedAthlete?.gender || selectedGender,
+      size,
+      bodyType: selectedAthlete?.body_type || selectedBody,
+      movement: selectedMovement,
+      intensity: intensity[0],
+      logoBase64,
+      logoPosition: logoPosition || undefined,
+      athleteIdentity,
+    };
+
+    // Phase 1: Analyze (bg removal + garment analysis + physics) — fast ~30s
+    setLoadingMsg(1);
+    const analyzeResp = await supabase.functions.invoke("generate-motion", {
+      body: { ...commonBody, mode: "analyze" },
     });
-    if (!response.data || response.data.error) throw new Error(response.data?.error || "Generation failed");
-    return response.data as GenerationResult;
+    if (!analyzeResp.data || analyzeResp.data.error) throw new Error(analyzeResp.data?.error || "Analysis failed");
+    const analyzeData = analyzeResp.data;
+
+    // Phase 2: Generate each angle separately (~60s each)
+    const images: Record<string, string | null> = {};
+    const storedUrls: Record<string, string> = {};
+    const angleNames = ["front", "side", "back"];
+
+    for (let i = 0; i < angleNames.length; i++) {
+      const angle = angleNames[i];
+      setLoadingMsg(3 + i); // "Generating front/side/back view..."
+
+      const angleResp = await supabase.functions.invoke("generate-motion", {
+        body: {
+          ...commonBody,
+          mode: "generate_angle",
+          angle,
+          processedGarment: analyzeData.processedGarment,
+          processedLogo: analyzeData.processedLogo,
+          garmentAnalysis: analyzeData.garment_analysis,
+          physicsData: analyzeData.physics,
+        },
+      });
+
+      if (angleResp.data?.success) {
+        images[angle] = angleResp.data.image;
+        if (angleResp.data.stored_url) storedUrls[angle] = angleResp.data.stored_url;
+      } else {
+        console.warn(`Angle ${angle} failed:`, angleResp.data?.error);
+        images[angle] = null;
+      }
+    }
+
+    setLoadingMsg(7); // Storing...
+
+    return {
+      garment_analysis: analyzeData.garment_analysis,
+      physics: analyzeData.physics,
+      images,
+      stored_urls: storedUrls,
+      model_router: {
+        ...analyzeData.model_router,
+        image_generation: "google/gemini-3-pro-image-preview",
+        image_validation: "google/gemini-3-flash-preview",
+        video: "runway/gen4-turbo",
+      },
+    } as GenerationResult;
   };
 
   const handleGenerate = async () => {
@@ -239,7 +289,7 @@ const Create = () => {
 
     const interval = setInterval(() => {
       setLoadingMsg(prev => prev >= loadingMessages.length - 1 ? prev : prev + 1);
-    }, 3000);
+    }, 8000); // Slower interval — each phase now has its own network call
 
     try {
       const garmentBase64 = garmentFile ? await fileToBase64(garmentFile) : null;
