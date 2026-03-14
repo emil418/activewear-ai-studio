@@ -78,12 +78,12 @@ const EXERCISE_DEFS: Record<string, ExerciseMotionDef> = {
     fabricCue: "Back of shirt stretches dramatically showing lat engagement, sleeves compress around biceps at top",
   },
   "bench press": {
-    start: { position: "Lying on ground floor press position, arms extended upward", joints: "Elbows straight, shoulders neutral", weight: "Back flat on ground" },
-    mid: { position: "Arms lowering, elbows bending outward, upper arms approaching ground", joints: "Elbows 100°, shoulders externally rotated", weight: "Back pressed into ground" },
-    peak: { position: "Upper arms touching floor, elbows at 90°, chest stretched", joints: "Elbows 90°, deep chest stretch", weight: "Stable on ground" },
-    sceneRules: ["No bench", "No barbell", "No weights", "Floor press only", "Full body visible"],
-    camera: "Stable slight side angle, framing upper body and arms",
-    fabricCue: "Shirt stretches across chest, bunches at armpits when arms lowered",
+    start: { position: "Athlete lying flat on a weight bench, feet flat on floor, hands gripping barbell above chest at full arm extension, shoulder blades pinched together, slight arch in lower back", joints: "Elbows locked out, wrists stacked directly over elbows", weight: "Bar supported at full extension above chest" },
+    mid: { position: "Lowering barbell with control toward lower chest, elbows at 45° angle from torso, bar descending slowly, athlete lying on bench", joints: "Elbows 90°, shoulders externally rotated, deep pec stretch", weight: "Bar descending under control to chest" },
+    peak: { position: "Explosive press upward, driving barbell off chest, arms extending fully to lockout, athlete still lying flat on bench", joints: "Full elbow extension, chest contracted, bar stable overhead", weight: "Pressing through palms, driving weight upward" },
+    sceneRules: ["Weight bench MUST be visible underneath athlete", "Barbell MUST be visible in hands", "Athlete MUST be lying on back on bench", "NEVER standing", "NEVER in plank or push-up position", "Feet flat on floor beside bench", "Full upper body and bar visible"],
+    camera: "Stable slight side angle, framing upper body with bar path visible",
+    fabricCue: "Shirt stretches across chest during press, fabric tightens at shoulders under load",
   },
   "sprint": {
     start: { position: "Standing tall, ready position, slight forward lean", joints: "Neutral standing", weight: "Balls of feet" },
