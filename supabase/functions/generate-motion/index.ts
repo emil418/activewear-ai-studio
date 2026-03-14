@@ -62,12 +62,12 @@ const EXERCISE_DEFS: Record<string, ExerciseMotionDef> = {
     fabricCue: "Shirt stretches across upper back and shoulders, compresses at chest — garment behavior clearly visible",
   },
   "deadlifts": {
-    start: { position: "Standing tall, then hinging forward at hips, flat back, hands reaching toward shins", joints: "Hips hinged 80°, knees slightly bent 130°", weight: "Mid-foot" },
-    mid: { position: "Torso at 45° angle, back flat, arms hanging straight down", joints: "Hips 100°, knees 140°", weight: "Balanced mid-foot to heels" },
-    peak: { position: "Full standing lockout, hips fully extended, glutes squeezed, chest tall", joints: "Knees 180°, hips 180°, fully extended", weight: "Centered, stable" },
-    sceneRules: ["No barbell", "No weights", "Bodyweight hip hinge only", "Full body visible head to toe", "Feet stay on ground"],
-    camera: "WIDE full-body shot from 30° side angle, head to toe with space around athlete, stable tripod",
-    fabricCue: "Fabric stretches at hamstrings and lower back during hinge, releases on extension — garment stretch clearly visible",
+    start: { position: "Standing behind barbell on floor, hinging at hips to grip bar, flat back, shoulders over bar", joints: "Hips hinged 80°, knees slightly bent 130°, spine neutral", weight: "Mid-foot, loaded into hamstrings" },
+    mid: { position: "Pulling barbell off ground, bar close to shins, back angle constant, driving through legs", joints: "Hips and knees extending together, bar past knees", weight: "Shifting from quads to posterior chain" },
+    peak: { position: "Full standing lockout, hips fully extended, barbell at hip level, glutes squeezed, chest tall, then controlled lower back to floor", joints: "Knees 180°, hips 180°, fully extended", weight: "Centered, stable at top" },
+    sceneRules: ["Barbell MUST be visible on the ground and in hands", "Barbell NEVER cut off at edges", "WIDE full-body shot head to toe", "Feet stay planted", "Bar travels close to body"],
+    camera: "WIDE full-body shot from 30° side angle, head to toe with space around athlete, barbell fully visible, stable tripod",
+    fabricCue: "Fabric stretches at hamstrings and lower back during pull, shirt tightens across upper back at lockout — garment stretch clearly visible",
   },
   "lunges": {
     start: { position: "Standing upright, feet hip-width apart", joints: "Knees straight, hips neutral", weight: "Centered" },
