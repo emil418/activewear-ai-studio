@@ -113,6 +113,13 @@ const EXERCISE_DEFS: Record<string, ExerciseMotionDef> = {
     sceneRules: ["In place", "No treadmill", "Full body visible"],
     fabricCue: "Intense fabric ripple with explosive strides",
   },
+  "bench press": {
+    start: { position: "Athlete lying flat on a weight bench, feet flat on floor, hands gripping barbell above chest at full arm extension, shoulder blades pinched together", joints: "Elbows locked out, wrists stacked over elbows", weight: "Bar supported at full extension above chest" },
+    mid: { position: "Lowering barbell with control toward lower chest, elbows at 45° angle, athlete lying on bench", joints: "Elbows 90°, shoulders externally rotated, deep pec stretch", weight: "Bar descending under control to chest" },
+    peak: { position: "Explosive press upward, driving barbell off chest, arms extending fully, athlete still lying flat on bench", joints: "Full elbow extension, chest contracted, bar stable overhead", weight: "Pressing through palms, driving weight upward" },
+    sceneRules: ["Weight bench MUST be visible underneath athlete", "Barbell MUST be visible in hands", "Athlete MUST be lying on back on bench", "NEVER standing", "NEVER in plank or push-up position", "Feet flat on floor"],
+    fabricCue: "Shirt stretches across chest during press, fabric tightens at shoulders under load",
+  },
 };
 
 function getMovementPhases(movement: string, intensity: number): MovementPhase[] {
