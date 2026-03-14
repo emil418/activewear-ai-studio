@@ -106,13 +106,6 @@ const EXERCISE_DEFS: Record<string, ExerciseMotionDef> = {
     sceneRules: ["No equipment", "Standing in place", "Full body visible"],
     fabricCue: "Leggings stretch at hip, shirt bounces with movement",
   },
-  "mountain climbers": {
-    start: { position: "High plank, arms extended", joints: "Shoulders over wrists, core engaged", weight: "Hands and toes" },
-    mid: { position: "One knee driving to chest, other leg extended", joints: "Hip flexion on drive leg", weight: "Hands and one foot" },
-    peak: { position: "Knee at chest, rapid switch", joints: "Maximum hip flexion", weight: "Dynamic alternating" },
-    sceneRules: ["No equipment", "On floor", "Full body visible"],
-    fabricCue: "Shirt stretches across back, leggings stretch at hip flexors",
-  },
   "sprint": {
     start: { position: "Standing, slight forward lean", joints: "Neutral", weight: "Balls of feet" },
     mid: { position: "Sprinting in place, knee high, arm pumping", joints: "Drive knee 90°, elbow 90°", weight: "Single-leg" },
