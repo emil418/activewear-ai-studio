@@ -200,6 +200,7 @@ MID MOVEMENT: ${def.mid.position}. Joints: ${def.mid.joints}. Weight: ${def.mid.
 PEAK POSITION: ${def.peak.position}. Joints: ${def.peak.joints}. Weight: ${def.peak.weight}.
 
 The athlete should be shown at the MID or PEAK phase of this movement — the most dynamic and visually impactful moment.
+FULL RANGE OF MOTION: The movement must show COMPLETE range — all the way down AND all the way back up. Never show partial reps.
 ${angleReinforcement}
 SCENE RULES (STRICT): ${sceneStr}.
 CAMERA: ${def.camera}.
