@@ -456,7 +456,7 @@ LOGO VISIBILITY:
 - This is the ${angle} view — the logo is NOT visible from this angle.
 - Do NOT show any logo or branding on this view.`) : "";
 
-          const FRAMING = `FRAMING (CRITICAL): Show COMPLETE athlete from head to toe. Full-body framing — never crop at waist or torso.`;
+          const FRAMING = `FRAMING (CRITICAL — HIGHEST PRIORITY): WIDE full-body shot showing the COMPLETE athlete from head to toe with generous empty space around the body. NEVER crop at waist, torso, or knees. All equipment (barbells, benches, bars) must be FULLY visible and NEVER cut off at edges. The garment must be clearly visible on the ENTIRE body to show how it performs during movement — stretch zones, compression areas, and fabric behavior must all be observable. Camera must be pulled back far enough to show the complete scene.`;
 
           const MOTIF_RULES = angle === "front"
             ? `EXISTING MOTIFS: Reproduce any front prints/motifs faithfully from the reference — same position, size, colors.`
