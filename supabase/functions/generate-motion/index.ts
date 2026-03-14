@@ -118,12 +118,12 @@ const EXERCISE_DEFS: Record<string, ExerciseMotionDef> = {
     fabricCue: "Leggings stretch at hip with each knee drive, shirt bounces — garment motion clearly visible",
   },
   "box jumps": {
-    start: { position: "Quarter squat, arms drawn back, ready to explode", joints: "Knees 130°, hips 120°", weight: "Balls of feet" },
-    mid: { position: "Airborne, body rising, knees tucking slightly", joints: "Full extension transitioning to tuck", weight: "Airborne" },
-    peak: { position: "Landing in soft squat on imaginary elevated surface", joints: "Knees 100°, absorbing impact", weight: "Landing through mid-foot" },
-    sceneRules: ["No actual box", "Jumping upward and forward", "Full body visible head to toe with headroom"],
-    camera: "WIDE full-body shot from slight side angle, head to toe with generous headroom, stable tripod",
-    fabricCue: "Strong fabric stretch during crouch, visible compression at knees on landing — garment performance clearly visible",
+    start: { position: "Athletic quarter squat facing a plyometric box, arms drawn back, coiling to explode", joints: "Knees 130°, hips 120°, ankles loaded", weight: "Balls of feet, loading posterior chain" },
+    mid: { position: "Explosive triple extension, body launching upward, knees tucking to clear box", joints: "Full extension then rapid knee tuck", weight: "Airborne, traveling upward" },
+    peak: { position: "Landing softly on top of the box in athletic squat, absorbing impact, then standing tall on box", joints: "Knees 100°, absorbing impact, then full stand", weight: "Soft landing through mid-foot on box surface" },
+    sceneRules: ["Plyometric box or platform MUST be visible", "Athlete jumps ONTO the box", "WIDE full-body shot head to toe with headroom", "Box fully visible"],
+    camera: "WIDE full-body shot from slight side angle, head to toe including box, generous headroom, stable tripod",
+    fabricCue: "Strong fabric stretch during loading crouch, visible compression at knees on soft landing — garment performance clearly visible",
   },
   "squat jumps": {
     start: { position: "Standing, then dropping into full squat", joints: "Knees 75°, deep squat", weight: "Deep in heels" },
