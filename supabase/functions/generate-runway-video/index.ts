@@ -213,55 +213,56 @@ function buildMotionPrompt(
   const cameraPrompt = CAMERA_ANGLE_PROMPTS[cameraKey] || CAMERA_ANGLE_PROMPTS["front"];
   const isNonFront = cameraKey !== "front";
 
-  // For non-front angles, make camera the dominant instruction and trim everything else
+  // Ultra-realism preamble — sets the entire tone for the generation
+  const REALISM_PREAMBLE = `Cinematic 24fps gym footage shot on RED camera. Ultra-realistic human athletic motion with REAL PHYSICS: natural weight and gravity, visible muscle contraction under skin, controlled eccentric descent (2s), explosive concentric drive (1.5s). Natural breathing rhythm — ribcage expanding on eccentric, sharp exhale on effort. Subtle sweat sheen on skin. Micro balance adjustments and slight natural asymmetry between reps like a real trained athlete. ZERO robotic stiffness, ZERO bouncing, ZERO floating, ZERO AI artifacts. Movement has genuine mass, inertia and follow-through.`;
+
   const parts: string[] = [];
 
   // #1: Camera perspective — FIRST and strongest
-  parts.push(`CAMERA PERSPECTIVE (CRITICAL): ${cameraPrompt} WIDE full-body shot head to toe.`);
+  parts.push(`CAMERA (CRITICAL): ${cameraPrompt} WIDE full-body head to toe.`);
 
-  // For non-front: add negative reinforcement
   if (isNonFront) {
-    parts.push(`IMPORTANT: The camera MUST stay at the ${cameraKey.replace("-", " ")} angle for the ENTIRE video. Do NOT rotate to front view. Do NOT show the front of the athlete.`);
+    parts.push(`Camera MUST stay at ${cameraKey.replace("-", " ")} angle for ENTIRE video. NEVER rotate to front view.`);
   }
 
-  // #2: Exercise and athlete
+  // #2: Realism preamble — second priority
+  parts.push(REALISM_PREAMBLE);
+
+  // #3: Exercise and athlete
   parts.push(`${g} ${bt} athlete performs ${key}, ${intensityLabel} tempo.`);
 
-  // #3: Condensed realism (shorter for non-front to save space for camera reinforcement)
-  if (isNonFront) {
-    parts.push(`Real gym footage look, natural muscle tension, visible effort, controlled tempo with natural human timing.`);
-  } else {
-    const realismCues = `MUST look like REAL GYM FOOTAGE, NOT CGI. Natural muscle tension, visible breathing, realistic momentum. Slight natural imperfections: micro balance adjustments, facial effort, skin texture.`;
-    parts.push(realismCues);
-  }
-
-  // #4: Condensed motion description (use shorter version for non-front)
+  // #4: Exercise-specific motion — condensed for non-front to save chars
   const humanMotion = REALISTIC_MOTION[key];
   if (humanMotion) {
     if (isNonFront) {
-      // Extract just the key movement description, skip the "NOT CGI" parts already covered
+      // Keep only the biomechanical movement description
       const condensed = humanMotion
-        .replace(/must look like actual.*?NOT CGI[^.]*\./gi, "")
-        .replace(/NOT robotic[^.]*\./gi, "")
-        .replace(/REALISTIC HUMAN TEMPO[^.]*\./gi, "")
+        .replace(/must look like actual.*?NOT CGI[^.]*\.\s*/gi, "")
+        .replace(/NOT robotic[^.]*\.\s*/gi, "")
+        .replace(/REALISTIC HUMAN TEMPO[^.]*\.\s*/gi, "")
+        .replace(/NOT bouncy[^.]*\.\s*/gi, "")
+        .replace(/NOT elastic[^.]*\.\s*/gi, "")
+        .replace(/NOT puppet[^.]*\.\s*/gi, "")
+        .replace(/NOT CGI[^.]*\.\s*/gi, "")
+        .replace(/NOT springy[^.]*\.\s*/gi, "")
         .trim()
-        .slice(0, 200);
-      parts.push(condensed);
+        .slice(0, 250);
+      if (condensed.length > 20) parts.push(condensed);
     } else {
       parts.push(humanMotion);
     }
   }
 
-  // #5: Fabric (short)
-  const fabricCue = def?.fabricCue || "Garment stretches and compresses naturally with movement.";
+  // #5: Fabric physics — short
+  const fabricCue = def?.fabricCue || "Garment stretches and compresses naturally with each movement phase.";
   parts.push(fabricCue);
 
-  // #6: Identity preservation
-  parts.push(`Preserve identity, garment, logo from reference. Dark studio, cinematic lighting.`);
+  // #6: Identity lock — strong conditioning to reference image
+  parts.push(`STRICT: Preserve exact athlete identity, garment design, colors, logo and fabric texture from reference image — zero modifications. Dark studio, cinematic lighting, shallow depth of field.`);
 
-  // #7: For non-front angles, REPEAT camera instruction at end (bookend strategy)
+  // #7: Bookend camera for non-front
   if (isNonFront) {
-    parts.push(`REMINDER: ${cameraKey.replace("-", " ").toUpperCase()} camera angle throughout entire video.`);
+    parts.push(`REMINDER: ${cameraKey.replace("-", " ").toUpperCase()} angle for entire duration.`);
   }
 
   let prompt = parts.join(" ");
