@@ -659,14 +659,49 @@ ${logoInstructions}`;
       return null;
     }
 
-    // Generate angles sequentially to avoid rate-limit issues
+    // Generate angles sequentially
     const angleResults: (string | null)[] = [];
-    for (const angle of angles) {
-      const result = await generateAngle(angle);
-      angleResults.push(result);
+    for (const a of angles) {
+      const r = await generateAngle(a);
+      angleResults.push(r);
     }
     const generatedImages: Record<string, string | null> = {};
     angles.forEach((a, i) => { generatedImages[a] = angleResults[i]; });
+
+    // ── If mode is "generate_angle", return just this angle's result ──
+    if (mode === "generate_angle" && requestedAngle) {
+      // Upload to storage if base64
+      const imgData = generatedImages[requestedAngle];
+      let storedUrl: string | null = null;
+      if (imgData && imgData.startsWith("data:")) {
+        try {
+          const base64Data = imgData.split(",")[1];
+          const binaryData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+          const fileName = `${user.id}/${Date.now()}_${requestedAngle}.png`;
+          const { error: uploadError } = await supabase.storage
+            .from("generated-images")
+            .upload(fileName, binaryData, { contentType: "image/png", upsert: true });
+          if (!uploadError) {
+            const { data: urlData } = supabase.storage.from("generated-images").getPublicUrl(fileName);
+            storedUrl = urlData.publicUrl;
+          }
+        } catch (e) {
+          console.error(`Storage upload error for ${requestedAngle}:`, e);
+        }
+      }
+
+      console.log(`Generate angle "${requestedAngle}" complete.`);
+      return new Response(
+        JSON.stringify({
+          success: true,
+          mode: "generate_angle",
+          angle: requestedAngle,
+          image: imgData,
+          stored_url: storedUrl,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // ── Step 4: Store results ──
     console.log("Step 4: Storing results...");
