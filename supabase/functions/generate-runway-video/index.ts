@@ -212,7 +212,10 @@ function buildMotionPrompt(
   const isNonFront = cameraKey !== "front";
 
   // Core realism mandate — every generation gets this
-  const REALISM = `Cinematic 24fps real gym footage on RED camera. REAL PHYSICS throughout: genuine weight, gravity, mass, inertia. Visible muscle contraction under skin, natural sweat sheen, subtle skin pores and texture. Breathing rhythm — ribcage expands on eccentric, sharp exhale on exertion. Natural micro-asymmetry between reps. ZERO robotic stiffness, ZERO rubber-band bouncing, ZERO floating, ZERO AI artifacts.`;
+  const REALISM = `Cinematic 24fps RED camera gym footage. REAL PHYSICS: genuine weight, gravity, mass, inertia. Visible muscle contraction, natural sweat sheen, skin pores. Breathing rhythm — ribcage expands on eccentric, sharp exhale on exertion. Natural micro-asymmetry. ZERO robotic stiffness, ZERO bouncing, ZERO floating, ZERO AI artifacts.`;
+
+  // Garment consistency — prevents blurry/distorted clothing
+  const GARMENT_LOCK = `GARMENT LOCK: Clothing is a FIXED physical object — logo placement, fabric texture, seams, stitching, colors, silhouette stay pixel-sharp every frame. Fabric stretches/compresses/folds driven by body skeleton with real gravity. NEVER warp, melt, blur, or dissolve garment. Logos stay legible, edges stay crisp, wrinkles physically consistent frame-to-frame. Garment is ONE continuous object across entire motion, not regenerated per frame.`;
 
   const parts: string[] = [];
 
@@ -225,35 +228,37 @@ function buildMotionPrompt(
   // #2: Realism mandate
   parts.push(REALISM);
 
-  // #3: Athlete + exercise
+  // #3: Garment consistency — high priority
+  parts.push(GARMENT_LOCK);
+
+  // #4: Athlete + exercise
   const intensityLabel = intensity > 70 ? "powerful explosive" : intensity > 40 ? "controlled athletic" : "slow deliberate";
   parts.push(`${g} ${bt} athlete performs ${key}, ${intensityLabel} tempo.`);
 
-  // #4: Biomechanical cues — the core of realism
+  // #5: Biomechanical cues
   const biomech = BIOMECH_CUES[key];
   if (biomech) {
     if (isNonFront) {
-      // Condense for non-front to save chars for camera instructions
-      parts.push(biomech.slice(0, 280));
+      parts.push(biomech.slice(0, 200));
     } else {
       parts.push(biomech);
     }
   }
 
-  // #5: Scene rules from exercise def
+  // #6: Scene rules from exercise def
   if (def?.sceneRules) {
     const rules = def.sceneRules.slice(0, 3).join(". ");
     parts.push(rules + ".");
   }
 
-  // #6: Fabric physics — short
-  const fabric = def?.fabricCue || "Garment stretches and compresses naturally with movement.";
-  parts.push(fabric);
+  // #7: Fabric physics — body-driven
+  const fabric = def?.fabricCue || "Garment stretches and compresses naturally with body movement, maintaining sharp detail.";
+  parts.push(`FABRIC: ${fabric} Torso and garment clearly visible throughout.`);
 
-  // #7: Identity lock
-  parts.push(`STRICT: Preserve exact athlete identity, garment, colors, logo from reference. Dark studio, cinematic lighting.`);
+  // #8: Identity + garment lock
+  parts.push(`STRICT: Preserve exact athlete identity, garment design, colors, logo from reference. Dark studio, cinematic lighting. Garment detail stays sharp every frame.`);
 
-  // #8: Bookend camera for non-front
+  // #9: Bookend camera for non-front
   if (isNonFront) {
     parts.push(`FINAL: ${cameraKey.replace("-", " ").toUpperCase()} perspective only.`);
   }
