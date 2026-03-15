@@ -162,38 +162,38 @@ const EXERCISE_DEFS: Record<string, ExerciseMotionDef> = {
 
 // ---------------------------------------------------------------------------
 // Realistic human-motion prompt builder
-// Prioritizes: natural biomechanics > fabric behavior > framing > scene rules
+// Priority: Realism > Camera > Biomechanics > Fabric > Identity
 // ---------------------------------------------------------------------------
 
-// Exercise-specific hyper-detailed movement descriptions for maximum realism
-const REALISTIC_MOTION: Record<string, string> = {
-  "squats": "REAL HUMAN BODYWEIGHT SQUAT — must look like actual gym footage, NOT CGI or animation. NO barbell, NO weights, NO equipment. Athlete stands with arms extended forward for balance. Takes a visible breath, braces core. SLOW CONTROLLED DESCENT taking 2 full seconds — hips break first then knees. Knees track naturally over toes. Thighs reach parallel or below with VISIBLE muscle tension in quads and glutes — skin taut over working muscles. Brief pause at bottom showing genuine physical effort on face. Then CONTROLLED drive upward taking 1.5 seconds — NOT bouncing, NOT springy. Hips and knees extend together to full lockout. REALISTIC HUMAN TEMPO — deliberate, weighted, with natural acceleration and deceleration. NOT robotic, NOT bouncy like a rubber toy. Each rep has slightly different micro-timing like a real person. Visible breathing rhythm. Hands remain empty and visible at all times.",
-  "bench press": "REAL HUMAN BENCH PRESS — must look like actual gym footage, NOT CGI. Athlete lying flat on bench, slight natural arch, feet firmly planted. Barbell held at arms length above chest — slight natural arm tremor from weight. SLOW CONTROLLED DESCENT taking 2 full seconds ALL THE WAY DOWN to mid-chest, elbows at 45 degrees. Brief touch at chest with visible effort on face. Then CONTROLLED PRESS taking 1.5 seconds ALL THE WAY UP to full lockout — NOT bouncing the bar off chest, NOT springy or elastic. Visible chest and tricep contraction under skin. Arms lock out with controlled deceleration. REALISTIC HUMAN TEMPO — deliberate, effortful, with natural weight feel. NOT robotic, NOT bouncy. Visible breathing — ribcage expanding on descent, forceful exhale on press. Natural micro-tremor in arms under load.",
-  "deadlifts": "REAL HUMAN DEADLIFT — must look like actual gym footage, NOT CGI. Athlete approaches bar, sets feet hip-width. Hinges at hips to grip bar, flattens back, takes slack out with visible tension building in arms and back. CONTROLLED PULL — bar breaks from ground smoothly staying close to shins, taking 2 seconds floor to lockout. As bar passes knees, hips drive forward powerfully. Full lockout with glutes squeezed, chest proud. Then CONTROLLED ECCENTRIC taking 2 seconds ALL THE WAY BACK DOWN — NOT dropping the bar, NOT bouncing. REALISTIC HUMAN TEMPO — visible physical strain, slight facial grimace from effort, natural grip adjustments. NOT robotic, NOT elastic. Natural weight shift throughout, bar has visible mass and inertia.",
-  "pull-ups": "REAL HUMAN PULL-UP — must look like actual gym footage, NOT CGI. Dead hang from overhead bar, body still, lats fully stretched. Initiates with scapular depression — shoulders drop first. Then CONTROLLED PULL taking 2 seconds ALL THE WAY UP — chin clears bar with brief hold showing peak back contraction. Visible forearm tension, lat engagement through shirt, slight body sway that a real person would have. Then SLOW CONTROLLED NEGATIVE taking 2 seconds ALL THE WAY BACK DOWN to full dead hang — NOT dropping, NOT elastic snapping back. REALISTIC HUMAN TEMPO — visible effort, slight facial strain, natural grip micro-adjustments. NOT bouncy, NOT springy like a rubber band.",
-  "push-ups": "REAL HUMAN PUSH-UP — must look like actual gym footage of a real person, NOT a CGI character or rubber mannequin. Athlete in high plank, palms flat shoulder-width apart. Body forms RIGID straight line from head to heels — hips do NOT sag, do NOT pike. SLOW CONTROLLED DESCENT taking 2 full seconds: elbows bend at 45 degrees, shoulder blades visibly squeeze together, chest lowers ALL THE WAY DOWN until 2 inches from floor. Brief visible pause at bottom, facial expression shows effort. Then CONTROLLED PRESS BACK UP taking 1.5 seconds — NOT bouncing, NOT springy, NOT rubbery. Triceps and chest visibly contract under skin. Arms extend to full lockout. REALISTIC HUMAN TEMPO — deliberate, effortful, with natural acceleration and deceleration. NOT robotic, NOT bouncy like a rubber toy. Each rep slightly different micro-timing like a real human. Skin shows natural texture, veins visible on forearms.",
-  "lunges": "REAL HUMAN LUNGE — must look like actual gym footage, NOT CGI. Steps forward with purpose — foot plants heel-to-toe with visible weight transfer. CONTROLLED DESCENT taking 1.5 seconds — front knee bends ALL THE WAY to 90 degrees, back knee lowers to 2 inches above floor. Torso stays upright with visible core bracing. Brief pause at bottom showing genuine effort. Then CONTROLLED DRIVE UP taking 1.5 seconds through front heel — NOT bouncing, NOT springy. REALISTIC HUMAN TEMPO — natural balance micro-adjustments, slight wobble that a real person would have, visible quad and glute engagement under skin. NOT robotic, NOT elastic.",
-  "sprint": "REAL HUMAN SPRINT — must look like actual athletic footage, NOT CGI. Explosive alternating knee drives with aggressive arm pump. Balls of feet striking ground with visible impact force. Natural forward lean at 15 degrees. High knee drive past 90 degrees. Arms driving hard at 90-degree angles. REALISTIC HUMAN TEMPO — natural acceleration, visible physical exertion on face, slight asymmetry between strides like a real runner. NOT robotic, NOT puppet-like. Visible breathing, natural sweat sheen, muscles visibly contracting through fabric with each stride.",
-  "burpees": "REAL HUMAN BURPEE — must look like actual gym footage, NOT CGI. Fluid continuous sequence: drop into squat with hands to floor — visible weight transfer. Jump feet back to plank. FULL push-up with controlled descent and press — NOT bouncing off floor. Jump feet forward with visible hip flexion effort. Explosive vertical jump with arms overhead. CONTROLLED LANDING absorbing impact. REALISTIC HUMAN TEMPO — each phase has natural transition time, visible fatigue and effort, slight imperfections in form like a real person. NOT robotic, NOT bouncy, NOT elastic between phases.",
-  "kettlebell swings": "REAL HUMAN KETTLEBELL SWING — must look like actual gym footage, NOT CGI. Kettlebell visible in both hands. Deep hip hinge on backswing with flat back — visible hamstring stretch. Explosive hip snap drives kettlebell to chest height — power from hips, arms relaxed. Brief float at top. CONTROLLED pendulum arc back down — NOT jerky, NOT elastic. REALISTIC HUMAN TEMPO — visible physical effort, natural grip adjustments, facial concentration. Sharp exhale on each hip snap. Kettlebell has visible weight and inertia — NOT weightless looking. NOT bouncy or springy.",
-  "battle ropes": "REAL HUMAN BATTLE ROPES — must look like actual gym footage, NOT CGI. Athletic half-squat gripping rope ends. Powerful alternating arm waves — one up while other slams down. Visible undulating wave patterns traveling down ropes with real physics. REALISTIC HUMAN TEMPO — natural rhythm with slight variations in timing like a real athlete, visible shoulder fatigue building, facial effort. Ropes have visible weight and resistance — NOT weightless ribbons. NOT robotic, NOT puppet-like arm movements. Core visibly bracing to maintain lower body stability.",
-  "high knees": "REAL HUMAN HIGH KNEES — must look like actual gym footage, NOT CGI. Standing in place, rapid alternating knee drives to chest height. Powerful hip flexion each rep, opposite arm pumping. Balls of feet bouncing with athletic cadence. REALISTIC HUMAN TEMPO — natural rhythm with micro-variations like a real athlete, visible physical exertion on face, natural breathing. NOT robotic, NOT puppet-like. Visible quad and hip flexor engagement through fabric, slight natural torso rotation with each drive.",
-  "box jumps": "REAL HUMAN BOX JUMP — must look like actual gym footage, NOT CGI. Athlete faces box. Loads into athletic squat, arms drawn back. Explosive triple extension launching upward — visible power and effort. Knees tuck to clear edge. SOFT CONTROLLED LANDING on box in squat position absorbing impact naturally, then stands tall. REALISTIC HUMAN TEMPO — visible loading phase tension, genuine explosive effort, natural balance adjustments on landing. NOT bouncy, NOT elastic, NOT weightless-looking. Visible facial concentration throughout.",
-  "squat jumps": "REAL HUMAN SQUAT JUMP — must look like actual gym footage, NOT CGI. Deep bodyweight squat with arms back. Explosive drive upward — full triple extension launching body airborne with visible effort. Arms swing overhead at peak. CONTROLLED SOFT LANDING absorbing back into deep squat — NOT bouncing like a rubber ball. REALISTIC HUMAN TEMPO — visible loading tension, genuine explosive effort, natural landing absorption with slight balance adjustments. NOT elastic, NOT springy. Each rep slightly different like a real person.",
-  "jump rope": "REAL HUMAN JUMP ROPE — must look like actual gym footage, NOT CGI. Holding rope handles, elbows close to body. Wrists drive rope rotation. Light bounces on balls of feet — barely leaving ground. Rope visibly rotating with real physics. REALISTIC HUMAN TEMPO — natural rhythm with micro-variations, visible calf engagement, slight natural timing adjustments like a real athlete. NOT robotic, NOT puppet-like. Natural breathing, slight forearm fatigue visible.",
-  "running": "REAL HUMAN RUNNING — must look like actual footage, NOT CGI. Natural running stride with alternating leg drives and opposite arm swing. Heel-to-toe foot strike with visible ground impact. REALISTIC HUMAN TEMPO — natural gait with slight asymmetry between strides, visible breathing rhythm, natural arm swing with micro-variations. NOT robotic, NOT puppet-like. Shirt bounces naturally, leggings flex at knees and hips with each stride. Smooth fluid human locomotion.",
-  "jumping": "REAL HUMAN JUMP — must look like actual gym footage, NOT CGI. Athletic squat loading position, arms drawn back with visible tension. Explosive vertical jump with full triple extension — visible power and effort. Arms drive overhead. Full body extension at peak. CONTROLLED SOFT LANDING absorbing impact back into squat — NOT bouncing like a rubber ball. REALISTIC HUMAN TEMPO — visible loading effort, genuine explosive power, natural landing absorption with balance adjustments. NOT elastic, NOT springy, NOT weightless.",
+// Concise biomechanical cues per exercise — pure movement physics, no fluff
+const BIOMECH_CUES: Record<string, string> = {
+  "squats": "BODYWEIGHT SQUAT, NO barbell/equipment. Arms forward for balance. Braces core, inhales. 2s controlled hip-hinge descent — knees track toes, thighs below parallel, visible quad/glute tension, skin taut over straining muscles. 0.5s pause at bottom showing effort on face. 1.5s drive up through mid-foot — hips and knees extend together, glutes squeeze at lockout. Slight forward torso lean throughout. Natural micro-wobble in balance.",
+  "bench press": "BENCH PRESS on flat bench. Lying supine, natural back arch, feet planted. Barbell at arms length, slight arm tremor from load. 2s descent — bar lowers to mid-chest, elbows 45°, pecs stretching under visible strain. Brief touch, grimace of effort. 1.5s press — forceful exhale, chest/triceps contract visibly, arms lock out with controlled deceleration. Natural micro-tremor under weight.",
+  "deadlifts": "DEADLIFT with barbell. Feet hip-width, hinges to grip bar, flattens back, takes slack out — visible tension building in traps and lats. 2s pull — bar breaks floor staying close to shins, hips drive forward past knees, full lockout with proud chest, glutes squeezed. 2s controlled eccentric back to floor. Slight facial grimace, natural grip shifts, bar has visible mass and inertia.",
+  "pull-ups": "PULL-UP from overhead bar. Dead hang, lats fully stretched, body still. Scapular depression initiates — shoulders drop first. 2s controlled pull — chin clears bar, forearms straining, lats flaring visibly through shirt, slight natural body sway. 0.5s hold at top. 2s slow negative to full dead hang. Visible effort on face, natural grip micro-adjustments between reps.",
+  "push-ups": "PUSH-UP from high plank. Body rigid head-to-heels — NO hip sag, NO pike. 2s descent — elbows 45°, scapulae pinch, chest 2in from floor. Visible pause, effort on face. 1.5s press — chest/triceps contract under skin, full lockout. Forearm veins visible. Slight micro-timing variation between reps like a real human.",
+  "lunges": "LUNGE — steps forward heel-to-toe with visible weight transfer. 1.5s descent — front knee 90°, back knee 2in above floor, torso upright with core bracing. 1.5s drive up through front heel. Natural balance micro-adjustments, slight wobble, visible quad and glute engagement under skin.",
+  "sprint": "SPRINT — explosive alternating knee drives past 90°, aggressive 90° arm pump, 15° forward lean, balls of feet striking with visible impact. Natural acceleration, slight stride asymmetry, visible exertion on face, muscles contracting through fabric with each stride.",
+  "burpees": "BURPEE — fluid continuous sequence: squat-hands down, jump back to plank, full push-up (controlled descent and press), jump feet forward, explosive vertical jump with arms overhead, controlled landing absorbing impact. Natural transition timing between phases, visible fatigue.",
+  "kettlebell swings": "KETTLEBELL SWING — kettlebell in both hands. Deep hip hinge with flat back, visible hamstring stretch. Explosive hip snap drives bell to chest height — power from hips, arms relaxed. Brief float at top. Controlled pendulum back down. Sharp exhale on each snap. Bell has visible weight and inertia.",
+  "battle ropes": "BATTLE ROPES — athletic half-squat gripping rope ends. Powerful alternating arm waves with undulating wave patterns traveling down ropes with real physics. Natural rhythm with slight variations, visible shoulder fatigue building. Ropes have visible weight and resistance. Core visibly bracing.",
+  "high knees": "HIGH KNEES — rapid alternating knee drives to chest height, opposite arm pumping, balls of feet with athletic cadence. Natural rhythm micro-variations, visible exertion, slight natural torso rotation with each drive.",
+  "box jumps": "BOX JUMP — loads into squat, arms back. Explosive triple extension launching upward, knees tuck to clear edge. Soft controlled landing on box absorbing impact, stands tall. Visible loading tension, genuine explosive effort, natural balance on landing.",
+  "squat jumps": "SQUAT JUMP — deep squat, arms back. Explosive triple extension launching airborne, arms overhead at peak. Controlled soft landing absorbing back into squat. Visible loading tension, natural landing absorption with balance adjustments.",
+  "jump rope": "JUMP ROPE — rope handles in hands, elbows at sides. Wrists drive rope rotation, light bounces on balls of feet barely leaving ground. Rope visibly rotating with real physics. Natural rhythm, visible calf engagement.",
+  "running": "RUNNING — natural stride with alternating leg drives and opposite arm swing. Heel-to-toe foot strike with visible ground contact. Natural gait with slight asymmetry, visible breathing rhythm, smooth fluid locomotion.",
+  "jumping": "JUMP — athletic squat loading, arms back. Explosive vertical jump with full triple extension, arms overhead. Full body extension at peak. Controlled soft landing absorbing impact. Visible power and effort throughout.",
 };
 
-// Camera angle descriptions for video generation — maximally explicit
+// Camera angle descriptions — maximally explicit
 const CAMERA_ANGLE_PROMPTS: Record<string, string> = {
-  "front": "Camera positioned directly in front of the athlete, straight-on frontal view, stable and centered.",
-  "side-left": "Camera is placed 90 degrees to the LEFT of the athlete. We see a FULL LEFT PROFILE VIEW — the athlete's left arm closest to camera, right arm farthest. This is a SIDE VIEW, NOT a front view.",
-  "side-right": "Camera is placed 90 degrees to the RIGHT of the athlete. We see a FULL RIGHT PROFILE VIEW — the athlete's right arm closest to camera, left arm farthest. This is a SIDE VIEW, NOT a front view.",
-  "back": "Camera is placed DIRECTLY BEHIND the athlete. We see the athlete's BACK, spine, shoulder blades, and the back of their head. Their FACE IS NOT VISIBLE. This is a REAR VIEW, NOT a front view.",
-  "45-overhead": "Camera is placed at a 45-degree elevated angle looking DOWN at the athlete from above. Bird's eye perspective tilted downward. This is an OVERHEAD ANGLE, NOT a front view.",
-  "low-angle": "Camera is at GROUND LEVEL looking UP at the athlete. Dramatic low angle emphasizing power and height, feet prominent in foreground.",
-  "dynamic-follow": "Camera SLOWLY ORBITING around the athlete during the movement, gentle cinematic tracking arc from front to side, smooth steady movement.",
+  "front": "Camera directly in front, straight-on frontal view, stable centered.",
+  "side-left": "Camera 90° to the LEFT. FULL LEFT PROFILE VIEW — left arm closest, right arm farthest. SIDE VIEW not front.",
+  "side-right": "Camera 90° to the RIGHT. FULL RIGHT PROFILE VIEW — right arm closest, left arm farthest. SIDE VIEW not front.",
+  "back": "Camera DIRECTLY BEHIND athlete. We see BACK, spine, shoulder blades, back of head. FACE NOT VISIBLE. REAR VIEW not front.",
+  "45-overhead": "Camera at 45° elevated angle looking DOWN at athlete from above. Bird's eye tilted downward. OVERHEAD not front.",
+  "low-angle": "Camera at GROUND LEVEL looking UP at athlete. Dramatic low angle, feet prominent in foreground.",
+  "dynamic-follow": "Camera SLOWLY ORBITING around athlete during movement, gentle cinematic tracking arc front to side.",
 };
 
 function buildMotionPrompt(
@@ -205,64 +205,57 @@ function buildMotionPrompt(
 ): string {
   const key = movement.toLowerCase().replace(/-/g, " ");
   const def = EXERCISE_DEFS[key];
-  const intensityLabel = intensity > 70 ? "explosive, powerful" : intensity > 40 ? "controlled, athletic" : "slow, deliberate";
   const g = gender || "Female";
   const bt = bodyType || "athletic";
-
   const cameraKey = cameraAngle || "front";
   const cameraPrompt = CAMERA_ANGLE_PROMPTS[cameraKey] || CAMERA_ANGLE_PROMPTS["front"];
   const isNonFront = cameraKey !== "front";
 
-  // Ultra-realism preamble — sets the entire tone for the generation
-  const REALISM_PREAMBLE = `Cinematic 24fps gym footage shot on RED camera. Ultra-realistic human athletic motion with REAL PHYSICS: natural weight and gravity, visible muscle contraction under skin, controlled eccentric descent (2s), explosive concentric drive (1.5s). Natural breathing rhythm — ribcage expanding on eccentric, sharp exhale on effort. Subtle sweat sheen on skin. Micro balance adjustments and slight natural asymmetry between reps like a real trained athlete. ZERO robotic stiffness, ZERO bouncing, ZERO floating, ZERO AI artifacts. Movement has genuine mass, inertia and follow-through.`;
+  // Core realism mandate — every generation gets this
+  const REALISM = `Cinematic 24fps real gym footage on RED camera. REAL PHYSICS throughout: genuine weight, gravity, mass, inertia. Visible muscle contraction under skin, natural sweat sheen, subtle skin pores and texture. Breathing rhythm — ribcage expands on eccentric, sharp exhale on exertion. Natural micro-asymmetry between reps. ZERO robotic stiffness, ZERO rubber-band bouncing, ZERO floating, ZERO AI artifacts.`;
 
   const parts: string[] = [];
 
-  // #1: Camera perspective — FIRST and strongest
-  parts.push(`CAMERA (CRITICAL): ${cameraPrompt} WIDE full-body head to toe.`);
-
+  // #1: Camera — FIRST
+  parts.push(`CAMERA: ${cameraPrompt} WIDE full-body head to toe.`);
   if (isNonFront) {
-    parts.push(`Camera MUST stay at ${cameraKey.replace("-", " ")} angle for ENTIRE video. NEVER rotate to front view.`);
+    parts.push(`LOCKED ${cameraKey.replace("-", " ").toUpperCase()} angle entire video. NEVER rotate to front.`);
   }
 
-  // #2: Realism preamble — second priority
-  parts.push(REALISM_PREAMBLE);
+  // #2: Realism mandate
+  parts.push(REALISM);
 
-  // #3: Exercise and athlete
+  // #3: Athlete + exercise
+  const intensityLabel = intensity > 70 ? "powerful explosive" : intensity > 40 ? "controlled athletic" : "slow deliberate";
   parts.push(`${g} ${bt} athlete performs ${key}, ${intensityLabel} tempo.`);
 
-  // #4: Exercise-specific motion — condensed for non-front to save chars
-  const humanMotion = REALISTIC_MOTION[key];
-  if (humanMotion) {
+  // #4: Biomechanical cues — the core of realism
+  const biomech = BIOMECH_CUES[key];
+  if (biomech) {
     if (isNonFront) {
-      // Keep only the biomechanical movement description
-      const condensed = humanMotion
-        .replace(/must look like actual.*?NOT CGI[^.]*\.\s*/gi, "")
-        .replace(/NOT robotic[^.]*\.\s*/gi, "")
-        .replace(/REALISTIC HUMAN TEMPO[^.]*\.\s*/gi, "")
-        .replace(/NOT bouncy[^.]*\.\s*/gi, "")
-        .replace(/NOT elastic[^.]*\.\s*/gi, "")
-        .replace(/NOT puppet[^.]*\.\s*/gi, "")
-        .replace(/NOT CGI[^.]*\.\s*/gi, "")
-        .replace(/NOT springy[^.]*\.\s*/gi, "")
-        .trim()
-        .slice(0, 250);
-      if (condensed.length > 20) parts.push(condensed);
+      // Condense for non-front to save chars for camera instructions
+      parts.push(biomech.slice(0, 280));
     } else {
-      parts.push(humanMotion);
+      parts.push(biomech);
     }
   }
 
-  // #5: Fabric physics — short
-  const fabricCue = def?.fabricCue || "Garment stretches and compresses naturally with each movement phase.";
-  parts.push(fabricCue);
+  // #5: Scene rules from exercise def
+  if (def?.sceneRules) {
+    const rules = def.sceneRules.slice(0, 3).join(". ");
+    parts.push(rules + ".");
+  }
 
-  // #6: Identity lock — strong conditioning to reference image
-  parts.push(`STRICT: Preserve exact athlete identity, garment design, colors, logo and fabric texture from reference image — zero modifications. Dark studio, cinematic lighting, shallow depth of field.`);
+  // #6: Fabric physics — short
+  const fabric = def?.fabricCue || "Garment stretches and compresses naturally with movement.";
+  parts.push(fabric);
 
-  // #7: Bookend camera for non-front
+  // #7: Identity lock
+  parts.push(`STRICT: Preserve exact athlete identity, garment, colors, logo from reference. Dark studio, cinematic lighting.`);
+
+  // #8: Bookend camera for non-front
   if (isNonFront) {
-    parts.push(`REMINDER: ${cameraKey.replace("-", " ").toUpperCase()} angle for entire duration.`);
+    parts.push(`FINAL: ${cameraKey.replace("-", " ").toUpperCase()} perspective only.`);
   }
 
   let prompt = parts.join(" ");
