@@ -22,35 +22,47 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get initial session first, before subscribing to changes
-    let initialised = false;
+    let mounted = true;
+    let initialSessionResolved = false;
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-      initialised = true;
-    });
+    const applySession = (nextSession: Session | null, event?: string) => {
+      if (!mounted) return;
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      // Don't clear an existing session on transient token errors
-      // Only clear on explicit sign-out or user deletion
-      if (!session && event !== 'SIGNED_OUT' && user) {
-        // Likely a rate-limit / transient failure — keep existing session
-        console.warn('[Auth] Transient auth event with null session, keeping current user:', event);
+      const isExplicitLogout = event === "SIGNED_OUT" || event === "USER_DELETED";
+
+      // Ignore transient null sessions caused by refresh token race/rate-limit issues
+      if (!nextSession && !isExplicitLogout && initialSessionResolved) {
+        console.warn("[Auth] Ignoring transient null session event:", event);
         return;
       }
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (initialised) {
-        // Only update loading after initial session is set
-      } else {
+
+      setSession(nextSession);
+      setUser(nextSession?.user ?? null);
+
+      if (!initialSessionResolved) {
+        initialSessionResolved = true;
         setLoading(false);
-        initialised = true;
       }
+    };
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, nextSession) => {
+      applySession(nextSession, event);
     });
 
-    return () => subscription.unsubscribe();
+    supabase.auth.getSession()
+      .then(({ data: { session: initialSession } }) => {
+        applySession(initialSession, "INITIAL_SESSION");
+      })
+      .catch(() => {
+        if (!mounted) return;
+        initialSessionResolved = true;
+        setLoading(false);
+      });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signOut = async () => {
