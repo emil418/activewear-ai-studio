@@ -250,6 +250,17 @@ ${hasReference ? `CRITICAL REFERENCE IMAGE: A reference image of this EXACT athl
 - The lighting style and studio environment from the reference
 - This is the ground truth — every frame must look like the same person in the same clothes` : ""}
 
+GARMENT CONSISTENCY LOCK:
+The uploaded garment is a FIXED VISUAL OBJECT that NEVER changes identity between frames.
+- Logo placement must remain pixel-sharp and in the exact same position on the garment
+- Fabric texture, seam lines, stitching details must stay crisp and consistent
+- Garment color values must not shift, fade, or change between frames
+- Garment silhouette and shape must remain structurally identical
+- Fabric motion is DRIVEN BY THE BODY — it stretches, compresses, folds with natural gravity following the athlete's skeleton
+- NEVER warp, melt, blur, smear, or dissolve the garment
+- Wrinkles must be physically consistent with the pose — not randomly generated
+- The garment behaves as ONE continuous physical object across the entire sequence
+
 ${athleteLabel}
 
 POSE (frame ${i + 1}):
@@ -259,26 +270,27 @@ MUSCLE STATE: ${phase.muscleState}
 JOINT POSITIONS: ${phase.jointAngles}
 WEIGHT DISTRIBUTION: ${phase.weightShift}
 
-GARMENT BEHAVIOR:
+BODY-DRIVEN FABRIC BEHAVIOR:
 The athlete is wearing the uploaded activewear garment.
 Fabric state: ${phase.fabricState}
-- Fabric must react physically to the body's position
-- Stretch and compression must be anatomically accurate
-- Seams, logos, and details must remain intact and undistorted
+- Fabric reacts to the body's position through physical simulation — stretch at extension points, compression at flexion points
+- Gravity pulls loose fabric downward naturally
+- Seams, logos, and details remain intact, undistorted, and sharp at all times
+- High-resolution fabric detail must be maintained — no blur, no softening
 
 CAMERA: ${cameraLabel}
 LIGHTING: Consistent clean studio lighting throughout the entire sequence. Professional sportswear campaign quality.
-FORMAT: WIDE full-body shot, head to toe with generous space around athlete, 9:16 vertical portrait (1080x1920). NEVER crop any body part or equipment. Focus on how the garment stretches, compresses, and moves with the body.
+FORMAT: WIDE full-body shot, head to toe with generous space around athlete, 9:16 vertical portrait (1080x1920). NEVER crop any body part or equipment. Athlete's torso and garment must remain clearly visible and in sharp focus.
 BACKGROUND: Dark studio, matte black or deep charcoal
 
-CRITICAL IDENTITY RULES:
+CRITICAL IDENTITY + GARMENT RULES:
 - The athlete's face, body, skin, hair must be IDENTICAL to all other frames${hasReference ? " AND to the reference image" : ""}
-- ONLY the pose changes between frames — identity NEVER changes
-- If this frame were placed next to any other frame, the person must be unmistakably the same individual
-- Natural anatomical proportions must be maintained throughout
-- The garment must be the EXACT same garment in every frame — same color, same logo, same design
+- ONLY the pose changes between frames — identity and garment NEVER change
+- The garment must be the EXACT same garment in every frame — same color, same logo, same design, same fabric texture
+- Garment details (logos, stitching, edges) must remain sharp and legible in every frame
+- If this frame were placed next to any other frame, the person and clothing must be unmistakably identical
 
-DO NOT include: text, watermarks, UI elements, other people, props, barbells, dumbbells, gym equipment of any kind`;
+DO NOT include: text, watermarks, UI elements, other people, props not specified in the exercise definition`;
 
       const contentParts: Array<Record<string, unknown>> = [
         { type: "text", text: framePrompt },
