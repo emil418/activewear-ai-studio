@@ -142,15 +142,18 @@ const Create = () => {
   const runwayVideoRef = useRef<HTMLVideoElement>(null);
 
   const { toast } = useToast();
-  const { session: _session, user } = useAuth();
+  const { session: _session, user, authReady } = useAuth();
   const { influencerMode } = useInfluencerMode();
 
-  // Load athletes + templates + brand kit
+  // Load athletes + templates + brand kit only after auth is fully restored
   useEffect(() => {
+    let mounted = true;
+
     const load = async () => {
-      if (!user) return;
+      if (!authReady || !user) return;
+
       const { data: brand } = await supabase.from("brands").select("id").eq("owner_id", user.id).limit(1).single();
-      if (!brand) return;
+      if (!mounted || !brand) return;
 
       const [athleteRes, templateRes, kitRes] = await Promise.all([
         supabase.from("athlete_profiles").select("*").eq("brand_id", brand.id).order("created_at", { ascending: false }),
@@ -158,12 +161,18 @@ const Create = () => {
         supabase.from("brand_kits").select("*").eq("brand_id", brand.id).limit(1).single(),
       ]);
 
+      if (!mounted) return;
       setAthletes((athleteRes.data as unknown as AthleteProfile[]) || []);
       setTemplates((templateRes.data as unknown as TemplateData[]) || []);
       if (kitRes.data) setBrandKit(kitRes.data as unknown as BrandKitData);
     };
+
     load();
-  }, [user]);
+
+    return () => {
+      mounted = false;
+    };
+  }, [authReady, user]);
 
   const handleFileDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
