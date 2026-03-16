@@ -43,7 +43,7 @@ interface BrandKit {
 
 const BrandSettings = () => {
   const { influencerMode, setInfluencerMode } = useInfluencerMode();
-  const { user } = useAuth();
+  const { user, authReady } = useAuth();
   const { toast } = useToast();
 
   const [loading, setLoading] = useState(true);
@@ -69,10 +69,21 @@ const BrandSettings = () => {
 
   // Load brand + brand kit
   useEffect(() => {
+    let mounted = true;
+
     const load = async () => {
-      if (!user) return;
+      if (!authReady) return;
+      if (!user) {
+        if (mounted) setLoading(false);
+        return;
+      }
+
       const { data: brand } = await supabase.from("brands").select("id, name").eq("owner_id", user.id).limit(1).single();
-      if (!brand) { setLoading(false); return; }
+      if (!mounted) return;
+      if (!brand) {
+        setLoading(false);
+        return;
+      }
       setBrandId(brand.id);
       setBrandName(brand.name);
 
@@ -83,6 +94,7 @@ const BrandSettings = () => {
         .limit(1)
         .single();
 
+      if (!mounted) return;
       if (kit) {
         const k = kit as unknown as BrandKit;
         setKitId(k.id);
@@ -100,8 +112,13 @@ const BrandSettings = () => {
       }
       setLoading(false);
     };
-    load();
-  }, [user]);
+
+    void load();
+
+    return () => {
+      mounted = false;
+    };
+  }, [authReady, user]);
 
   const uploadLogo = useCallback(async (file: File, type: "primary" | "secondary") => {
     if (!brandId) return;

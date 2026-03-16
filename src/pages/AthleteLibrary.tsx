@@ -57,13 +57,17 @@ const AthleteLibrary = () => {
   const [form, setForm] = useState(defaultAthlete);
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, authReady } = useAuth();
 
   const fetchAthletes = async () => {
-    if (!user) return;
+    if (!authReady) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
-    
-    // Get brand
+
     const { data: brand } = await supabase
       .from("brands")
       .select("id")
@@ -86,7 +90,7 @@ const AthleteLibrary = () => {
     setLoading(false);
   };
 
-  useEffect(() => { fetchAthletes(); }, [user]);
+  useEffect(() => { void fetchAthletes(); }, [authReady, user]);
 
   const handleSave = async () => {
     if (!user || !form.name.trim()) {

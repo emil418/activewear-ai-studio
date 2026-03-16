@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Activity, ArrowRight, Eye, EyeOff } from "lucide-react";
@@ -7,26 +7,38 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [pendingRedirect, setPendingRedirect] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, authReady } = useAuth();
+
+  useEffect(() => {
+    if (pendingRedirect && authReady && user) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [pendingRedirect, authReady, user, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setPendingRedirect(false);
+
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
 
     if (error) {
+      setLoading(false);
       toast({ title: "Login failed", description: error.message, variant: "destructive" });
-    } else {
-      navigate("/dashboard");
+      return;
     }
+
+    setPendingRedirect(true);
   };
 
   return (
@@ -82,8 +94,8 @@ const Login = () => {
                 </button>
               </div>
             </div>
-            <Button type="submit" disabled={loading} className="w-full rounded-xl font-bold gap-2">
-              {loading ? "Signing in..." : "Sign In"} <ArrowRight className="w-4 h-4" />
+            <Button type="submit" disabled={loading || pendingRedirect} className="w-full rounded-xl font-bold gap-2">
+              {loading || pendingRedirect ? "Signing in..." : "Sign In"} <ArrowRight className="w-4 h-4" />
             </Button>
           </form>
 

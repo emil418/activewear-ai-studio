@@ -54,7 +54,7 @@ interface Template {
 }
 
 const Templates = () => {
-  const { user } = useAuth();
+  const { user, authReady } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [brandId, setBrandId] = useState<string | null>(null);
@@ -67,10 +67,23 @@ const Templates = () => {
 
   // Load data
   useEffect(() => {
+    let mounted = true;
+
     const load = async () => {
-      if (!user) return;
+      if (!authReady) return;
+      if (!user) {
+        if (mounted) setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+
       const { data: brand } = await supabase.from("brands").select("id").eq("owner_id", user.id).limit(1).single();
-      if (!brand) { setLoading(false); return; }
+      if (!mounted) return;
+      if (!brand) {
+        setLoading(false);
+        return;
+      }
       setBrandId(brand.id);
 
       const [templatesRes, athletesRes, kitsRes] = await Promise.all([
@@ -79,13 +92,19 @@ const Templates = () => {
         supabase.from("brand_kits").select("id, vibe, primary_color").eq("brand_id", brand.id),
       ]);
 
+      if (!mounted) return;
       setTemplates((templatesRes.data as unknown as Template[]) || []);
       setAthletes((athletesRes.data as unknown as Athlete[]) || []);
       setBrandKits((kitsRes.data as unknown as BrandKitRef[]) || []);
       setLoading(false);
     };
-    load();
-  }, [user]);
+
+    void load();
+
+    return () => {
+      mounted = false;
+    };
+  }, [authReady, user]);
 
   const createNew = () => {
     if (!brandId) return;
