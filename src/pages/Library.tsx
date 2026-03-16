@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Image, Search, Download, Plus, Calendar, Zap, Loader2, Package } from "lucide-react";
+import { Image, Search, Download, Plus, Calendar, Zap, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Link } from "react-router-dom";
@@ -26,23 +26,36 @@ const Library = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [selectedAsset, setSelectedAsset] = useState<AssetRow | null>(null);
-  const { session } = useAuth();
+  const { session, authReady } = useAuth();
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!session) return;
+    let mounted = true;
+
     const fetchAssets = async () => {
+      if (!authReady) return;
+      if (!session) {
+        if (mounted) setLoading(false);
+        return;
+      }
+
       setLoading(true);
       const { data, error } = await supabase
         .from("assets")
         .select("id, name, status, thumbnail_url, created_at, metadata, physics_settings, motion_settings")
         .order("created_at", { ascending: false });
 
+      if (!mounted) return;
       if (!error && data) setAssets(data);
       setLoading(false);
     };
-    fetchAssets();
-  }, [session]);
+
+    void fetchAssets();
+
+    return () => {
+      mounted = false;
+    };
+  }, [authReady, session]);
 
   const filtered = assets.filter(a =>
     a.name.toLowerCase().includes(search.toLowerCase())
