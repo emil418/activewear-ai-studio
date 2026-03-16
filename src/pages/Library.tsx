@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Image, Search, Download, Plus, Calendar, Zap, Loader2, Package } from "lucide-react";
+import { Image, Search, Download, Plus, Calendar, Zap, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Link } from "react-router-dom";

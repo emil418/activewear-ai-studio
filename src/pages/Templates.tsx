@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, FileText, Trash2, Edit2, Lock, Unlock, Save, X, Loader2, Users, Zap } from "lucide-react";
+import { Plus, FileText, Trash2, Edit2, Lock, Unlock, Save, X, Loader2, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
