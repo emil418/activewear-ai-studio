@@ -208,7 +208,12 @@ const Create = () => {
       reader.readAsDataURL(file);
     });
 
-  const generateForSize = async (size: string, garmentBase64: string | null, logoBase64: string | null): Promise<GenerationResult> => {
+  const generateForSize = async (
+    size: string,
+    garmentBase64: string | null,
+    logoBase64: string | null,
+    baseMasterScene: MasterScenePayload,
+  ): Promise<GenerationResult> => {
     const athleteIdentity = selectedAthlete ? {
       name: selectedAthlete.name,
       gender: selectedAthlete.gender,
@@ -224,6 +229,15 @@ const Create = () => {
       identity_seed: selectedAthlete.identity_seed,
     } : undefined;
 
+    let masterScene: MasterScenePayload = {
+      ...baseMasterScene,
+      garment_lock: {
+        ...baseMasterScene.garment_lock,
+        requested_size: size,
+      },
+      anchor_image_url: undefined,
+    };
+
     const commonBody = {
       garmentName: garmentFile?.name || "Activewear",
       garmentBase64,
@@ -235,6 +249,7 @@ const Create = () => {
       logoBase64,
       logoPosition: logoPosition || undefined,
       athleteIdentity,
+      masterScene,
     };
 
     // Phase 1: Analyze (bg removal + garment analysis + physics) — fast ~30s
@@ -244,6 +259,7 @@ const Create = () => {
     });
     if (!analyzeResp.data || analyzeResp.data.error) throw new Error(analyzeResp.data?.error || "Analysis failed");
     const analyzeData = analyzeResp.data;
+    masterScene = (analyzeData.master_scene as MasterScenePayload | undefined) || masterScene;
 
     // Phase 2: Generate each angle separately (~60s each)
     const images: Record<string, string | null> = {};
@@ -259,6 +275,7 @@ const Create = () => {
           ...commonBody,
           mode: "generate_angle",
           angle,
+          masterScene,
           processedGarment: analyzeData.processedGarment,
           processedLogo: analyzeData.processedLogo,
           garmentAnalysis: analyzeData.garment_analysis,
@@ -269,6 +286,14 @@ const Create = () => {
       if (angleResp.data?.success) {
         images[angle] = angleResp.data.image;
         if (angleResp.data.stored_url) storedUrls[angle] = angleResp.data.stored_url;
+        if (angleResp.data.master_scene) {
+          masterScene = angleResp.data.master_scene as MasterScenePayload;
+        } else if (angle === "front") {
+          masterScene = {
+            ...masterScene,
+            anchor_image_url: angleResp.data.stored_url || angleResp.data.image || masterScene.anchor_image_url,
+          };
+        }
       } else {
         console.warn(`Angle ${angle} failed:`, angleResp.data?.error);
         images[angle] = null;
@@ -282,6 +307,7 @@ const Create = () => {
       physics: analyzeData.physics,
       images,
       stored_urls: storedUrls,
+      master_scene: masterScene,
       model_router: {
         ...analyzeData.model_router,
         image_generation: "google/gemini-3-pro-image-preview",
