@@ -207,7 +207,19 @@ serve(async (req) => {
       athleteIdentity,
       cameraStyle,  // "static" | "slow_tracking"
       referenceImageUrl, // URL of generated front image to use as identity/garment reference
+      logoPosition,
+      masterScene: rawMasterScene,
     } = await req.json();
+
+    const masterScene = normalizeMasterScene(rawMasterScene, {
+      garmentName: garmentName || "Activewear",
+      movement: movement || "squats",
+      size: size || "M",
+      gender: gender || "Female",
+      bodyType: bodyType || "Athletic",
+      athleteIdentity,
+      logoPosition,
+    });
 
     const allPhases = getMovementPhases(movement, intensity);
     // Pick 6 evenly-spaced phases from the 10 available
