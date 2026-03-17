@@ -63,6 +63,7 @@ interface GenerationResult {
   images: Record<string, string | null>;
   stored_urls: Record<string, string>;
   model_router: Record<string, string>;
+  master_scene?: MasterScenePayload;
 }
 
 interface AthleteProfile {
