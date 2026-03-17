@@ -817,22 +817,31 @@ const Create = () => {
       // Step 1: Start all jobs in parallel (returns instantly)
       const startResults = await Promise.allSettled(
         anglesToGenerate.map(angle =>
-          supabase.functions.invoke("generate-runway-video", {
-            body: {
-              mode: "start",
-              referenceImageUrl: frontUrl,
-              movement: selectedMovement,
-              intensity: intensity[0],
-              gender: selectedAthlete?.gender || selectedGender,
-              bodyType: selectedAthlete?.body_type || selectedBody,
-              cameraAngle: angle,
-              duration: 5,
-            },
-          }).then(response => {
-            if (response.error) throw new Error(response.error.message || "Failed to start");
-            if (!response.data?.runway_task_id) throw new Error(response.data?.error || "No task ID returned");
-            return { angle, taskId: response.data.runway_task_id as string };
-          })
+            supabase.functions.invoke("generate-runway-video", {
+              body: {
+                mode: "start",
+                referenceImageUrl: frontUrl,
+                movement: selectedMovement,
+                intensity: intensity[0],
+                gender: selectedAthlete?.gender || selectedGender,
+                bodyType: selectedAthlete?.body_type || selectedBody,
+                cameraAngle: angle,
+                duration: 5,
+                masterScene: result?.master_scene || buildMasterScene({
+                  garmentName: garmentFile?.name || "Activewear",
+                  size: selectedSize,
+                  movement: selectedMovement,
+                  selectedGender: selectedAthlete?.gender || selectedGender,
+                  selectedBody: selectedAthlete?.body_type || selectedBody,
+                  athleteIdentity: selectedAthlete || undefined,
+                  logoPosition,
+                }),
+              },
+            }).then(response => {
+              if (response.error) throw new Error(response.error.message || "Failed to start");
+              if (!response.data?.runway_task_id) throw new Error(response.data?.error || "No task ID returned");
+              return { angle, taskId: response.data.runway_task_id as string };
+            })
         )
       );
 
