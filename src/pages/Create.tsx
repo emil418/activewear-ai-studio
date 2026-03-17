@@ -331,7 +331,16 @@ const Create = () => {
     try {
       const garmentBase64 = garmentFile ? await fileToBase64(garmentFile) : null;
       const logoBase64 = logoFile ? await fileToBase64(logoFile) : null;
-      const typedData = await generateForSize(selectedSize, garmentBase64, logoBase64);
+      const masterScene = buildMasterScene({
+        garmentName: garmentFile?.name || "Activewear",
+        size: selectedSize,
+        movement: selectedMovement,
+        selectedGender: selectedAthlete?.gender || selectedGender,
+        selectedBody: selectedAthlete?.body_type || selectedBody,
+        athleteIdentity: selectedAthlete || undefined,
+        logoPosition,
+      });
+      const typedData = await generateForSize(selectedSize, garmentBase64, logoBase64, masterScene);
 
       clearInterval(interval);
       setResult(typedData);
