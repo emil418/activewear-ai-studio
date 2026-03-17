@@ -377,11 +377,27 @@ const Create = () => {
       const garmentBase64 = await fileToBase64(garmentFile);
       const logoBase64 = logoFile ? await fileToBase64(logoFile) : null;
       const remainingSizes = ALL_SIZES.filter(s => s !== selectedSize);
+      const sharedMasterScene = result?.master_scene || buildMasterScene({
+        garmentName: garmentFile?.name || "Activewear",
+        size: selectedSize,
+        movement: selectedMovement,
+        selectedGender: selectedAthlete?.gender || selectedGender,
+        selectedBody: selectedAthlete?.body_type || selectedBody,
+        athleteIdentity: selectedAthlete || undefined,
+        logoPosition,
+      });
 
       for (const size of remainingSizes) {
         setSizeProgress(`Generating ${size}...`);
         try {
-          variants[size] = await generateForSize(size, garmentBase64, logoBase64);
+          variants[size] = await generateForSize(size, garmentBase64, logoBase64, {
+            ...sharedMasterScene,
+            anchor_image_url: undefined,
+            garment_lock: {
+              ...sharedMasterScene.garment_lock,
+              requested_size: size,
+            },
+          });
         } catch {
           variants[size] = null;
         }
