@@ -14,6 +14,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useInfluencerMode } from "@/hooks/useInfluencerMode";
 import { supabase } from "@/integrations/supabase/client";
 import LogoPlacer, { type LogoPosition } from "@/components/LogoPlacer";
+import { buildMasterScene, type MasterScenePayload } from "@/lib/consistency";
 import JSZip from "jszip";
 import { jsPDF } from "jspdf";
 
@@ -62,6 +63,7 @@ interface GenerationResult {
   images: Record<string, string | null>;
   stored_urls: Record<string, string>;
   model_router: Record<string, string>;
+  master_scene?: MasterScenePayload;
 }
 
 interface AthleteProfile {
@@ -206,7 +208,12 @@ const Create = () => {
       reader.readAsDataURL(file);
     });
 
-  const generateForSize = async (size: string, garmentBase64: string | null, logoBase64: string | null): Promise<GenerationResult> => {
+  const generateForSize = async (
+    size: string,
+    garmentBase64: string | null,
+    logoBase64: string | null,
+    baseMasterScene: MasterScenePayload,
+  ): Promise<GenerationResult> => {
     const athleteIdentity = selectedAthlete ? {
       name: selectedAthlete.name,
       gender: selectedAthlete.gender,
@@ -222,6 +229,15 @@ const Create = () => {
       identity_seed: selectedAthlete.identity_seed,
     } : undefined;
 
+    let masterScene: MasterScenePayload = {
+      ...baseMasterScene,
+      garment_lock: {
+        ...baseMasterScene.garment_lock,
+        requested_size: size,
+      },
+      anchor_image_url: undefined,
+    };
+
     const commonBody = {
       garmentName: garmentFile?.name || "Activewear",
       garmentBase64,
@@ -233,6 +249,7 @@ const Create = () => {
       logoBase64,
       logoPosition: logoPosition || undefined,
       athleteIdentity,
+      masterScene,
     };
 
     // Phase 1: Analyze (bg removal + garment analysis + physics) — fast ~30s
@@ -242,6 +259,7 @@ const Create = () => {
     });
     if (!analyzeResp.data || analyzeResp.data.error) throw new Error(analyzeResp.data?.error || "Analysis failed");
     const analyzeData = analyzeResp.data;
+    masterScene = (analyzeData.master_scene as MasterScenePayload | undefined) || masterScene;
 
     // Phase 2: Generate each angle separately (~60s each)
     const images: Record<string, string | null> = {};
@@ -257,6 +275,7 @@ const Create = () => {
           ...commonBody,
           mode: "generate_angle",
           angle,
+          masterScene,
           processedGarment: analyzeData.processedGarment,
           processedLogo: analyzeData.processedLogo,
           garmentAnalysis: analyzeData.garment_analysis,
@@ -267,6 +286,14 @@ const Create = () => {
       if (angleResp.data?.success) {
         images[angle] = angleResp.data.image;
         if (angleResp.data.stored_url) storedUrls[angle] = angleResp.data.stored_url;
+        if (angleResp.data.master_scene) {
+          masterScene = angleResp.data.master_scene as MasterScenePayload;
+        } else if (angle === "front") {
+          masterScene = {
+            ...masterScene,
+            anchor_image_url: angleResp.data.stored_url || angleResp.data.image || masterScene.anchor_image_url,
+          };
+        }
       } else {
         console.warn(`Angle ${angle} failed:`, angleResp.data?.error);
         images[angle] = null;
@@ -280,6 +307,7 @@ const Create = () => {
       physics: analyzeData.physics,
       images,
       stored_urls: storedUrls,
+      master_scene: masterScene,
       model_router: {
         ...analyzeData.model_router,
         image_generation: "google/gemini-3-pro-image-preview",
@@ -303,7 +331,16 @@ const Create = () => {
     try {
       const garmentBase64 = garmentFile ? await fileToBase64(garmentFile) : null;
       const logoBase64 = logoFile ? await fileToBase64(logoFile) : null;
-      const typedData = await generateForSize(selectedSize, garmentBase64, logoBase64);
+      const masterScene = buildMasterScene({
+        garmentName: garmentFile?.name || "Activewear",
+        size: selectedSize,
+        movement: selectedMovement,
+        selectedGender: selectedAthlete?.gender || selectedGender,
+        selectedBody: selectedAthlete?.body_type || selectedBody,
+        athleteIdentity: selectedAthlete || undefined,
+        logoPosition,
+      });
+      const typedData = await generateForSize(selectedSize, garmentBase64, logoBase64, masterScene);
 
       clearInterval(interval);
       setResult(typedData);
@@ -340,11 +377,27 @@ const Create = () => {
       const garmentBase64 = await fileToBase64(garmentFile);
       const logoBase64 = logoFile ? await fileToBase64(logoFile) : null;
       const remainingSizes = ALL_SIZES.filter(s => s !== selectedSize);
+      const sharedMasterScene = result?.master_scene || buildMasterScene({
+        garmentName: garmentFile?.name || "Activewear",
+        size: selectedSize,
+        movement: selectedMovement,
+        selectedGender: selectedAthlete?.gender || selectedGender,
+        selectedBody: selectedAthlete?.body_type || selectedBody,
+        athleteIdentity: selectedAthlete || undefined,
+        logoPosition,
+      });
 
       for (const size of remainingSizes) {
         setSizeProgress(`Generating ${size}...`);
         try {
-          variants[size] = await generateForSize(size, garmentBase64, logoBase64);
+          variants[size] = await generateForSize(size, garmentBase64, logoBase64, {
+            ...sharedMasterScene,
+            anchor_image_url: undefined,
+            garment_lock: {
+              ...sharedMasterScene.garment_lock,
+              requested_size: size,
+            },
+          });
         } catch {
           variants[size] = null;
         }
@@ -764,22 +817,31 @@ const Create = () => {
       // Step 1: Start all jobs in parallel (returns instantly)
       const startResults = await Promise.allSettled(
         anglesToGenerate.map(angle =>
-          supabase.functions.invoke("generate-runway-video", {
-            body: {
-              mode: "start",
-              referenceImageUrl: frontUrl,
-              movement: selectedMovement,
-              intensity: intensity[0],
-              gender: selectedAthlete?.gender || selectedGender,
-              bodyType: selectedAthlete?.body_type || selectedBody,
-              cameraAngle: angle,
-              duration: 5,
-            },
-          }).then(response => {
-            if (response.error) throw new Error(response.error.message || "Failed to start");
-            if (!response.data?.runway_task_id) throw new Error(response.data?.error || "No task ID returned");
-            return { angle, taskId: response.data.runway_task_id as string };
-          })
+            supabase.functions.invoke("generate-runway-video", {
+              body: {
+                mode: "start",
+                referenceImageUrl: frontUrl,
+                movement: selectedMovement,
+                intensity: intensity[0],
+                gender: selectedAthlete?.gender || selectedGender,
+                bodyType: selectedAthlete?.body_type || selectedBody,
+                cameraAngle: angle,
+                duration: 5,
+                masterScene: result?.master_scene || buildMasterScene({
+                  garmentName: garmentFile?.name || "Activewear",
+                  size: selectedSize,
+                  movement: selectedMovement,
+                  selectedGender: selectedAthlete?.gender || selectedGender,
+                  selectedBody: selectedAthlete?.body_type || selectedBody,
+                  athleteIdentity: selectedAthlete || undefined,
+                  logoPosition,
+                }),
+              },
+            }).then(response => {
+              if (response.error) throw new Error(response.error.message || "Failed to start");
+              if (!response.data?.runway_task_id) throw new Error(response.data?.error || "No task ID returned");
+              return { angle, taskId: response.data.runway_task_id as string };
+            })
         )
       );
 

@@ -1,5 +1,11 @@
 import { serve } from "https://deno.land/std@0.200.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import {
+  buildConsistencyValidationPrompt,
+  describeMasterSceneCompact,
+  normalizeMasterScene,
+  type MasterScenePayload,
+} from "../_shared/consistency.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -262,9 +268,28 @@ async function removeBackground(base64Image: string, apiKey: string, label: stri
   return base64Image;
 }
 
-// ── Helper: validate generated image quality ──
-async function validateImage(imageUrl: string, apiKey: string, angle: string, movement: string): Promise<{ valid: boolean; issues: string[] }> {
+// ── Helper: validate generated image quality + master scene consistency ──
+async function validateImage(
+  imageUrl: string,
+  apiKey: string,
+  angle: string,
+  movement: string,
+  masterScene: MasterScenePayload,
+  referenceImageUrl?: string,
+): Promise<{ valid: boolean; issues: string[] }> {
   try {
+    const validationPrompt = buildConsistencyValidationPrompt(masterScene, {
+      angle,
+      movement,
+      hasReferenceImage: !!referenceImageUrl,
+    });
+
+    const contentParts: Array<Record<string, unknown>> = [
+      { type: "text", text: validationPrompt },
+      ...(referenceImageUrl ? [{ type: "image_url", image_url: { url: referenceImageUrl } }] : []),
+      { type: "image_url", image_url: { url: imageUrl } },
+    ];
+
     const resp = await fetch(AI_GATEWAY, {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
@@ -272,17 +297,7 @@ async function validateImage(imageUrl: string, apiKey: string, angle: string, mo
         model: MODEL_ROUTER.validate_image,
         messages: [{
           role: "user",
-          content: [
-            { type: "text", text: `Quickly validate this AI-generated sportswear image. Check for these CRITICAL issues ONLY:
-1. CROPPING (MOST IMPORTANT): Is the FULL body visible from top of head to bottom of feet? The person must be fully visible with GENEROUS space around them. FAIL if: head/hair cut off at top, feet/shoes cut off at bottom, image only shows torso/upper body, or the person fills more than 65% of the frame height. The person should look relatively SMALL in the frame with lots of empty background space.
-2. ANATOMY: Are there obvious anatomical errors? (extra fingers, wrong limb count, distorted face)
-3. HALLUCINATION: Is the athlete in a completely wrong pose for "${movement}"?
-4. GARMENT: Is the garment obviously wrong (missing, duplicated, floating)?
-
-Return JSON: {"valid": true/false, "issues": ["issue1", "issue2"]}
-Be strict about CROPPING — the full person head-to-toe is mandatory. Be lenient on other issues.` },
-            { type: "image_url", image_url: { url: imageUrl } },
-          ],
+          content: contentParts,
         }],
       }),
     });
@@ -345,6 +360,16 @@ serve(async (req) => {
     const body = await req.json();
     const { garmentName, garmentBase64, gender, size, bodyType, movement, intensity, logoBase64, logoPosition, athleteIdentity } = body;
     const mode = body.mode || "full"; // "analyze" | "generate_angle" | "full" (legacy)
+
+    let masterScene = normalizeMasterScene(body.masterScene, {
+      garmentName: garmentName || "Activewear",
+      movement: movement || "squats",
+      size: size || "M",
+      gender: gender || "Female",
+      bodyType: bodyType || "Athletic",
+      athleteIdentity,
+      logoPosition,
+    });
 
     // ── Step 0: Pre-process uploads – remove backgrounds ──
     console.log("Step 0: Removing backgrounds from uploaded images...");
@@ -502,6 +527,7 @@ ABSOLUTE RULES:
           physics: physicsData,
           processedGarment,
           processedLogo,
+          master_scene: masterScene,
           model_router: {
             analysis: MODEL_ROUTER.analyze,
             physics: MODEL_ROUTER.describe_physics,
@@ -590,8 +616,11 @@ You MUST render this EXACT same person in every image.`
           const anglePoseInstructions = buildPoseInstructions(movement, angle);
 
           const mainPrompt = useSimplePrompt
-            ? `Professional EXTREMELY WIDE full-body studio photo from head to toe: ${athleteLabel} wearing this exact uploaded garment, performing ${movement} at ${intensity}% intensity, ${angle} camera angle. ZOOM OUT VERY FAR — the athlete must occupy only 45-55% of the frame height with massive empty space above head (20%+) and below feet (15%+). Camera is 5 meters away. The ENTIRE person from top of head to bottom of feet MUST be clearly visible and SMALL in the frame. 9:16 vertical format (1080×1920). All equipment fully visible. Dark background. ${anglePoseInstructions} ${MOTIF_RULES}${logoInstructions}`
+            ? `Professional EXTREMELY WIDE full-body studio photo from head to toe: ${athleteLabel} wearing this exact uploaded garment, performing ${movement} at ${intensity}% intensity, ${angle} camera angle. ZOOM OUT VERY FAR — the athlete must occupy only 45-55% of the frame height with massive empty space above head (20%+) and below feet (15%+). Camera is 5 meters away. The ENTIRE person from top of head to bottom of feet MUST be clearly visible and SMALL in the frame. 9:16 vertical format (1080×1920). All equipment fully visible. Dark background. ${anglePoseInstructions} ${MOTIF_RULES}${logoInstructions}. GLOBAL MASTER SCENE LOCK: ${describeMasterSceneCompact(masterScene)}`
             : `PHOTOREALISTIC SPORTSWEAR CAMPAIGN — ${angle.toUpperCase()} VIEW
+
+GLOBAL MASTER SCENE — SINGLE SOURCE OF TRUTH:
+${describeMasterSceneCompact(masterScene)}
 
 STRICT REFERENCE FIDELITY: The uploaded garment image is the ABSOLUTE reference. Preserve exact color, fabric weave, texture, seams, stitching, and construction with 100% accuracy. This is a REAL photograph, not an illustration or render.
 
@@ -645,7 +674,8 @@ ${logoInstructions}`;
             if (imgUrl) {
               // Validate on first attempt only (to avoid slowing retries)
               if (attempts === 1) {
-                const validation = await validateImage(imgUrl, LOVABLE_API_KEY, angle, movement);
+                const referenceImageUrl = masterScene.anchor_image_url;
+                const validation = await validateImage(imgUrl, LOVABLE_API_KEY, angle, movement, masterScene, referenceImageUrl);
                 if (!validation.valid) {
                   console.warn(`Image validation failed for ${angle}: ${validation.issues.join(", ")} — retrying`);
                   await new Promise(r => setTimeout(r, 1000));
@@ -703,6 +733,13 @@ ${logoInstructions}`;
         }
       }
 
+      if (requestedAngle === "front") {
+        masterScene = {
+          ...masterScene,
+          anchor_image_url: storedUrl || imgData || masterScene.anchor_image_url,
+        };
+      }
+
       console.log(`Generate angle "${requestedAngle}" complete.`);
       return new Response(
         JSON.stringify({
@@ -711,6 +748,7 @@ ${logoInstructions}`;
           angle: requestedAngle,
           image: imgData,
           stored_url: storedUrl,
+          master_scene: masterScene,
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -815,6 +853,13 @@ ${logoInstructions}`;
       });
     }
 
+    if (storedImageUrls.front && !masterScene.anchor_image_url) {
+      masterScene = {
+        ...masterScene,
+        anchor_image_url: storedImageUrls.front,
+      };
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
@@ -822,6 +867,7 @@ ${logoInstructions}`;
         physics: physicsData,
         images: generatedImages,
         stored_urls: storedImageUrls,
+        master_scene: masterScene,
         model_router: {
           analysis: MODEL_ROUTER.analyze,
           physics: MODEL_ROUTER.describe_physics,
