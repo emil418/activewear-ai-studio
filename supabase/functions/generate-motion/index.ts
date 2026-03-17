@@ -674,7 +674,8 @@ ${logoInstructions}`;
             if (imgUrl) {
               // Validate on first attempt only (to avoid slowing retries)
               if (attempts === 1) {
-                const validation = await validateImage(imgUrl, LOVABLE_API_KEY, angle, movement);
+                const referenceImageUrl = masterScene.anchor_image_url;
+                const validation = await validateImage(imgUrl, LOVABLE_API_KEY, angle, movement, masterScene, referenceImageUrl);
                 if (!validation.valid) {
                   console.warn(`Image validation failed for ${angle}: ${validation.issues.join(", ")} — retrying`);
                   await new Promise(r => setTimeout(r, 1000));
