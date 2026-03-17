@@ -255,6 +255,9 @@ serve(async (req) => {
       const hasReference = !!referenceImageUrl;
       const framePrompt = `MOTION SEQUENCE FRAME ${i + 1} of ${FRAME_COUNT} — CONTINUOUS ATHLETIC MOVEMENT
 
+GLOBAL MASTER SCENE — SINGLE SOURCE OF TRUTH:
+${describeMasterScene(masterScene)}
+
 This is one frame in a smooth, continuous motion sequence. Every frame must look like it belongs to a single unbroken video of an athlete performing "${movement}".
 
 ${hasReference ? `CRITICAL REFERENCE IMAGE: A reference image of this EXACT athlete wearing this EXACT garment is provided. You MUST match:
@@ -292,9 +295,9 @@ Fabric state: ${phase.fabricState}
 - High-resolution fabric detail must be maintained — no blur, no softening
 
 CAMERA: ${cameraLabel}
-LIGHTING: Consistent clean studio lighting throughout the entire sequence. Professional sportswear campaign quality.
+LIGHTING: ${masterScene.environment_lock.lighting}
 FORMAT: WIDE full-body shot, head to toe with generous space around athlete, 9:16 vertical portrait (1080x1920). NEVER crop any body part or equipment. Athlete's torso and garment must remain clearly visible and in sharp focus.
-BACKGROUND: Dark studio, matte black or deep charcoal
+BACKGROUND: ${masterScene.environment_lock.background}
 
 CRITICAL IDENTITY + GARMENT RULES:
 - The athlete's face, body, skin, hair must be IDENTICAL to all other frames${hasReference ? " AND to the reference image" : ""}
