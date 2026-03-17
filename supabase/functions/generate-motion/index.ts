@@ -853,6 +853,13 @@ ${logoInstructions}`;
       });
     }
 
+    if (storedImageUrls.front && !masterScene.anchor_image_url) {
+      masterScene = {
+        ...masterScene,
+        anchor_image_url: storedImageUrls.front,
+      };
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
@@ -860,6 +867,7 @@ ${logoInstructions}`;
         physics: physicsData,
         images: generatedImages,
         stored_urls: storedImageUrls,
+        master_scene: masterScene,
         model_router: {
           analysis: MODEL_ROUTER.analyze,
           physics: MODEL_ROUTER.describe_physics,
