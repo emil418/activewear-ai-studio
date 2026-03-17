@@ -404,6 +404,11 @@ serve(async (req) => {
       bodyType,
       cameraAngle,
       duration,
+      masterScene: rawMasterScene,
+      garmentName,
+      size,
+      athleteIdentity,
+      logoPosition,
     } = body;
 
     if (!referenceImageUrl) {
@@ -413,7 +418,24 @@ serve(async (req) => {
       });
     }
 
-    let motionPrompt = buildMotionPrompt(movement || "squats", intensity || 50, gender || "Female", bodyType || "athletic", cameraAngle || "front");
+    const masterScene = normalizeMasterScene(rawMasterScene, {
+      garmentName: garmentName || "Activewear",
+      movement: movement || "squats",
+      size: size || "M",
+      gender: gender || "Female",
+      bodyType: bodyType || "Athletic",
+      athleteIdentity,
+      logoPosition,
+    });
+
+    let motionPrompt = buildMotionPrompt(
+      movement || "squats",
+      intensity || 50,
+      gender || "Female",
+      bodyType || "athletic",
+      cameraAngle || "front",
+      describeMasterSceneCompact(masterScene),
+    );
 
     const MAX_PROMPT = 1000;
     if (motionPrompt.length > MAX_PROMPT) {
@@ -436,6 +458,7 @@ serve(async (req) => {
         promptText: motionPrompt,
         duration: duration || 5,
         ratio: "720:1280",
+        seed: masterScene.video_lock.same_seed,
       }),
     });
 
