@@ -361,6 +361,16 @@ serve(async (req) => {
     const { garmentName, garmentBase64, gender, size, bodyType, movement, intensity, logoBase64, logoPosition, athleteIdentity } = body;
     const mode = body.mode || "full"; // "analyze" | "generate_angle" | "full" (legacy)
 
+    let masterScene = normalizeMasterScene(body.masterScene, {
+      garmentName: garmentName || "Activewear",
+      movement: movement || "squats",
+      size: size || "M",
+      gender: gender || "Female",
+      bodyType: bodyType || "Athletic",
+      athleteIdentity,
+      logoPosition,
+    });
+
     // ── Step 0: Pre-process uploads – remove backgrounds ──
     console.log("Step 0: Removing backgrounds from uploaded images...");
 
