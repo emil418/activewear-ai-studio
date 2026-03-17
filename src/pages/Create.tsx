@@ -14,6 +14,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useInfluencerMode } from "@/hooks/useInfluencerMode";
 import { supabase } from "@/integrations/supabase/client";
 import LogoPlacer, { type LogoPosition } from "@/components/LogoPlacer";
+import { buildMasterScene, type MasterScenePayload } from "@/lib/consistency";
 import JSZip from "jszip";
 import { jsPDF } from "jspdf";
 
