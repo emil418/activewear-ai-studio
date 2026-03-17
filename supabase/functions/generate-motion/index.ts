@@ -527,6 +527,7 @@ ABSOLUTE RULES:
           physics: physicsData,
           processedGarment,
           processedLogo,
+          master_scene: masterScene,
           model_router: {
             analysis: MODEL_ROUTER.analyze,
             physics: MODEL_ROUTER.describe_physics,
