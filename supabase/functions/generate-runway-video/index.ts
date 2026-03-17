@@ -203,6 +203,7 @@ function buildMotionPrompt(
   gender: string,
   bodyType: string,
   cameraAngle?: string,
+  masterSceneSummary?: string,
 ): string {
   const key = movement.toLowerCase().replace(/-/g, " ");
   const def = EXERCISE_DEFS[key];
@@ -212,61 +213,42 @@ function buildMotionPrompt(
   const cameraPrompt = CAMERA_ANGLE_PROMPTS[cameraKey] || CAMERA_ANGLE_PROMPTS["front"];
   const isNonFront = cameraKey !== "front";
 
-  // Core realism mandate — every generation gets this
   const REALISM = `Cinematic 24fps RED camera gym footage. REAL PHYSICS: genuine weight, gravity, mass, inertia. Visible muscle contraction, natural sweat sheen, skin pores. Breathing rhythm — ribcage expands on eccentric, sharp exhale on exertion. Natural micro-asymmetry. ZERO robotic stiffness, ZERO bouncing, ZERO floating, ZERO AI artifacts.`;
-
-  // Garment consistency — prevents blurry/distorted clothing
   const GARMENT_LOCK = `GARMENT LOCK: Clothing is a FIXED physical object — logo placement, fabric texture, seams, stitching, colors, silhouette stay pixel-sharp every frame. Fabric stretches/compresses/folds driven by body skeleton with real gravity. NEVER warp, melt, blur, or dissolve garment. Logos stay legible, edges stay crisp, wrinkles physically consistent frame-to-frame. Garment is ONE continuous object across entire motion, not regenerated per frame.`;
 
   const parts: string[] = [];
-
-  // #1: Camera — FIRST
   parts.push(`CAMERA: ${cameraPrompt} WIDE full-body head to toe.`);
   if (isNonFront) {
     parts.push(`LOCKED ${cameraKey.replace("-", " ").toUpperCase()} angle entire video. NEVER rotate to front.`);
   }
-
-  // #2: Realism mandate
   parts.push(REALISM);
-
-  // #3: Garment consistency — high priority
   parts.push(GARMENT_LOCK);
+  if (masterSceneSummary) {
+    parts.push(`GLOBAL MASTER SCENE: ${masterSceneSummary}`);
+  }
 
-  // #4: Athlete + exercise
   const intensityLabel = intensity > 70 ? "powerful explosive" : intensity > 40 ? "controlled athletic" : "slow deliberate";
   parts.push(`${g} ${bt} athlete performs ${key}, ${intensityLabel} tempo.`);
 
-  // #5: Biomechanical cues
   const biomech = BIOMECH_CUES[key];
   if (biomech) {
-    if (isNonFront) {
-      parts.push(biomech.slice(0, 200));
-    } else {
-      parts.push(biomech);
-    }
+    parts.push(isNonFront ? biomech.slice(0, 200) : biomech);
   }
 
-  // #6: Scene rules from exercise def
   if (def?.sceneRules) {
     const rules = def.sceneRules.slice(0, 3).join(". ");
     parts.push(rules + ".");
   }
 
-  // #7: Fabric physics — body-driven
   const fabric = def?.fabricCue || "Garment stretches and compresses naturally with body movement, maintaining sharp detail.";
   parts.push(`FABRIC: ${fabric} Torso and garment clearly visible throughout.`);
+  parts.push(`STRICT: Preserve exact athlete identity, garment design, colors, logo from reference. ${masterSceneSummary ? "Use the locked master scene without background or object drift." : "Dark studio, cinematic lighting."} Garment detail stays sharp every frame.`);
 
-  // #8: Identity + garment lock
-  parts.push(`STRICT: Preserve exact athlete identity, garment design, colors, logo from reference. Dark studio, cinematic lighting. Garment detail stays sharp every frame.`);
-
-  // #9: Bookend camera for non-front
   if (isNonFront) {
     parts.push(`FINAL: ${cameraKey.replace("-", " ").toUpperCase()} perspective only.`);
   }
 
   let prompt = parts.join(" ");
-
-  // Hard cap at sentence boundary
   const MAX = 1000;
   if (prompt.length > MAX) {
     prompt = prompt.slice(0, MAX);
