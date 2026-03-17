@@ -733,6 +733,13 @@ ${logoInstructions}`;
         }
       }
 
+      if (requestedAngle === "front") {
+        masterScene = {
+          ...masterScene,
+          anchor_image_url: storedUrl || imgData || masterScene.anchor_image_url,
+        };
+      }
+
       console.log(`Generate angle "${requestedAngle}" complete.`);
       return new Response(
         JSON.stringify({
@@ -741,6 +748,7 @@ ${logoInstructions}`;
           angle: requestedAngle,
           image: imgData,
           stored_url: storedUrl,
+          master_scene: masterScene,
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
