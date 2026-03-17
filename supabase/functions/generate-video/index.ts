@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.200.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { describeMasterScene, normalizeMasterScene } from "../_shared/consistency.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
