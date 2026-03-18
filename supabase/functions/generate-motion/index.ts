@@ -611,6 +611,9 @@ ZOOM OUT EXTREMELY FAR. Pull the camera VERY FAR back. This is a DISTANT FULL-BO
 - The output image is 9:16 vertical (1080×1920) — the person should feel like they have ROOM in the frame
 - IMAGINE you are photographing from across the room, not close up`;
 
+          const garmentCategory = masterScene.garment_lock.garment_category || "activewear";
+          const garmentTypeEnforcement = `GARMENT TYPE LOCK (HIGHEST PRIORITY): The garment is a "${garmentCategory}". This type is IMMUTABLE. If it is shorts, it MUST be shorts in this view — never pants, leggings, or any other type. If it is a t-shirt, it MUST be a t-shirt — never a tank top or hoodie. The garment's type, length, cut, and silhouette are LOCKED and must be identical to the uploaded reference image.${masterScene.garment_lock.garment_descriptor ? ` LOCKED DESCRIPTOR: ${masterScene.garment_lock.garment_descriptor}` : ""}`;
+
           const MOTIF_RULES = angle === "front"
             ? `EXISTING MOTIFS: Reproduce any front prints/motifs faithfully from the reference — same position, size, colors.`
             : `MOTIF DUPLICATION BAN: Any prints/motifs in the reference are FRONT ONLY. The ${angle} must be COMPLETELY PLAIN — no prints, text, or graphics.`;
