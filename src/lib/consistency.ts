@@ -35,6 +35,8 @@ export interface MasterScenePayload {
   };
   garment_lock: {
     garment_name: string;
+    garment_category: string;
+    garment_descriptor: string;
     requested_size: string;
     logo_placement: string;
     notes: string[];
@@ -197,11 +199,15 @@ export function buildMasterScene({
     },
     garment_lock: {
       garment_name: garmentName,
+      garment_category: "unknown",
+      garment_descriptor: "",
       requested_size: size,
       logo_placement: logoPosition?.placement || "none",
       notes: [
-        "Exact color, seams, logo placement, silhouette, and fabric texture are locked.",
-        "Only body-driven deformation is allowed.",
+        "The uploaded garment is a FIXED PHYSICAL OBJECT. Its type (shorts, leggings, t-shirt, etc.) must NEVER change.",
+        "Exact color, seams, logo placement, silhouette, cut, length, and fabric texture are locked.",
+        "Only body-driven deformation (stretch, compression, folds from movement) is allowed.",
+        "If the garment is shorts, it MUST remain shorts in every angle and frame. It must NEVER become pants, leggings, or any other garment type.",
       ],
     },
     environment_lock: {
@@ -253,6 +259,7 @@ export function buildMasterScene({
         "background change",
         "lighting mismatch",
         "object appearance drift",
+        "garment type change (e.g. shorts becoming pants)",
         "garment structure drift",
         "athlete identity drift",
       ],

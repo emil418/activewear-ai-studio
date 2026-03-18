@@ -19,6 +19,8 @@ export interface MasterScenePayload {
   };
   garment_lock: {
     garment_name: string;
+    garment_category: string;
+    garment_descriptor: string;
     requested_size: string;
     logo_placement: string;
     notes: string[];
@@ -179,11 +181,15 @@ export function buildServerMasterSceneFallback({
     },
     garment_lock: {
       garment_name: garmentName,
+      garment_category: "unknown",
+      garment_descriptor: "",
       requested_size: size,
       logo_placement: logoPosition?.placement || "none",
       notes: [
-        "Exact color, seams, logo placement, silhouette, and fabric texture are locked.",
-        "Only body-driven deformation is allowed.",
+        "The uploaded garment is a FIXED PHYSICAL OBJECT. Its type (shorts, leggings, t-shirt, etc.) must NEVER change.",
+        "Exact color, seams, logo placement, silhouette, cut, length, and fabric texture are locked.",
+        "Only body-driven deformation (stretch, compression, folds from movement) is allowed.",
+        "If the garment is shorts, it MUST remain shorts. If leggings, it MUST remain leggings. No garment type changes allowed.",
       ],
     },
     environment_lock: {
@@ -235,6 +241,7 @@ export function buildServerMasterSceneFallback({
         "background change",
         "lighting mismatch",
         "object appearance drift",
+        "garment type change (e.g. shorts becoming pants)",
         "garment structure drift",
         "athlete identity drift",
       ],
@@ -313,7 +320,7 @@ SCENE ID: ${scene.scene_id}
 SCENE SEED: ${scene.scene_seed}
 SAME MOMENT LOCK: ${scene.same_moment_id}
 ATHLETE IDENTITY LOCK: ${scene.athlete_lock.gender}, ${scene.athlete_lock.body_type}${scene.athlete_lock.skin_tone ? `, ${scene.athlete_lock.skin_tone} skin` : ""}${scene.athlete_lock.face_structure ? `, ${scene.athlete_lock.face_structure} face` : ""}${scene.athlete_lock.hair_style ? `, ${scene.athlete_lock.hair_style} hair` : ""}${scene.athlete_lock.identity_seed ? `, seed ${scene.athlete_lock.identity_seed}` : ""}
-GARMENT LOCK: ${scene.garment_lock.garment_name}, size ${scene.garment_lock.requested_size}, logo at ${scene.garment_lock.logo_placement}. ${scene.garment_lock.notes.join(" ")}
+GARMENT LOCK (CRITICAL — GARMENT TYPE MUST NEVER CHANGE): ${scene.garment_lock.garment_category} "${scene.garment_lock.garment_name}", size ${scene.garment_lock.requested_size}, logo at ${scene.garment_lock.logo_placement}. ${scene.garment_lock.garment_descriptor ? `LOCKED DESCRIPTOR: ${scene.garment_lock.garment_descriptor}. ` : ""}${scene.garment_lock.notes.join(" ")}
 ENVIRONMENT LOCK: ${scene.environment_lock.location}. Background: ${scene.environment_lock.background}. Floor: ${scene.environment_lock.floor}. Lighting: ${scene.environment_lock.lighting}. Shadows: ${scene.environment_lock.shadows}. Framing: ${scene.environment_lock.framing}.
 OBJECT LOCK: Required objects -> ${scene.object_lock.required_objects.join(", ") || "none"}. Forbidden objects -> ${scene.object_lock.forbidden_objects.join(", ") || "none"}. ${scene.object_lock.lock_rules.join(" ")}
 MOTION SYSTEM: ${scene.motion_lock.strategy}. Allowed changes -> ${scene.motion_lock.allowed_changes.join(", ")}. Forbidden -> ${scene.motion_lock.forbidden_changes.join(", ")}.
@@ -323,7 +330,10 @@ VALIDATION: If any of these drift, the output is INVALID and must be regenerated
 }
 
 export function describeMasterSceneCompact(scene: MasterScenePayload) {
-  return `Scene seed ${scene.scene_seed}. Same locked studio environment: ${scene.environment_lock.background}, ${scene.environment_lock.floor}, ${scene.environment_lock.lighting}. Same athlete identity, same garment structure and logo placement, same object set (${scene.object_lock.required_objects.join(", ") || "none"}). Multi-angle outputs are camera rotations around the same moment, and video is one continuous temporally consistent sequence.`;
+  const garmentDesc = scene.garment_lock.garment_descriptor
+    ? `GARMENT TYPE LOCK: ${scene.garment_lock.garment_category} — ${scene.garment_lock.garment_descriptor}. This garment type is IMMUTABLE — shorts stay shorts, leggings stay leggings, t-shirts stay t-shirts. NEVER change the garment type, length, or cut.`
+    : `GARMENT TYPE LOCK: ${scene.garment_lock.garment_category}. This garment type is IMMUTABLE — NEVER change it.`;
+  return `Scene seed ${scene.scene_seed}. ${garmentDesc} Same locked studio environment: ${scene.environment_lock.background}, ${scene.environment_lock.floor}, ${scene.environment_lock.lighting}. Same athlete identity, same garment structure and logo placement, same object set (${scene.object_lock.required_objects.join(", ") || "none"}). Multi-angle outputs are camera rotations around the same moment, and video is one continuous temporally consistent sequence.`;
 }
 
 export function buildConsistencyValidationPrompt(scene: MasterScenePayload, options: { angle: string; movement: string; hasReferenceImage: boolean }) {
@@ -332,7 +342,7 @@ export function buildConsistencyValidationPrompt(scene: MasterScenePayload, opti
 Check ONLY these failure cases:
 1. BACKGROUND / ENVIRONMENT DRIFT: background, floor, lighting, shadow direction, or overall studio setup changes.
 2. OBJECT DRIFT: equipment, shoes, ropes, bars, boxes, benches, props, or their color/size/material/position change.
-3. GARMENT DRIFT: garment texture, seam lines, logo placement, silhouette, color, or structure change beyond natural deformation.
+3. GARMENT TYPE DRIFT (CRITICAL): The garment MUST be a "${scene.garment_lock.garment_category}". ${scene.garment_lock.garment_descriptor ? `It must match: ${scene.garment_lock.garment_descriptor}.` : ""} If shorts become pants, or a t-shirt becomes a tank top, or the garment type/length/cut changes in ANY way — this is an IMMEDIATE FAIL. The garment type, texture, seam lines, logo placement, silhouette, color, and structure must NOT change beyond natural deformation from movement.
 4. IDENTITY DRIFT: face, hair, skin tone, body proportions, or athlete identity change.
 5. ANGLE / MOMENT FAILURE: for ${options.angle}, the view does not look like a camera rotation around the same locked scene and same moment for movement "${options.movement}".
 6. CROPPING / ANATOMY FAILURE: the full body or required object is cropped, or there are obvious anatomy errors.
@@ -343,5 +353,5 @@ ${describeMasterScene(scene)}
 Return strict JSON only:
 {"valid": true/false, "issues": ["issue1", "issue2"]}
 
-Mark invalid if ANY of these drift categories appear.`;
+Mark invalid if ANY of these drift categories appear. GARMENT TYPE changes are the HIGHEST priority failure.`;
 }
