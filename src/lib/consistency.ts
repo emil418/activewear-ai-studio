@@ -199,11 +199,15 @@ export function buildMasterScene({
     },
     garment_lock: {
       garment_name: garmentName,
+      garment_category: "unknown",
+      garment_descriptor: "",
       requested_size: size,
       logo_placement: logoPosition?.placement || "none",
       notes: [
-        "Exact color, seams, logo placement, silhouette, and fabric texture are locked.",
-        "Only body-driven deformation is allowed.",
+        "The uploaded garment is a FIXED PHYSICAL OBJECT. Its type (shorts, leggings, t-shirt, etc.) must NEVER change.",
+        "Exact color, seams, logo placement, silhouette, cut, length, and fabric texture are locked.",
+        "Only body-driven deformation (stretch, compression, folds from movement) is allowed.",
+        "If the garment is shorts, it MUST remain shorts in every angle and frame. It must NEVER become pants, leggings, or any other garment type.",
       ],
     },
     environment_lock: {
