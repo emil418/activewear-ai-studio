@@ -319,7 +319,7 @@ SCENE ID: ${scene.scene_id}
 SCENE SEED: ${scene.scene_seed}
 SAME MOMENT LOCK: ${scene.same_moment_id}
 ATHLETE IDENTITY LOCK: ${scene.athlete_lock.gender}, ${scene.athlete_lock.body_type}${scene.athlete_lock.skin_tone ? `, ${scene.athlete_lock.skin_tone} skin` : ""}${scene.athlete_lock.face_structure ? `, ${scene.athlete_lock.face_structure} face` : ""}${scene.athlete_lock.hair_style ? `, ${scene.athlete_lock.hair_style} hair` : ""}${scene.athlete_lock.identity_seed ? `, seed ${scene.athlete_lock.identity_seed}` : ""}
-GARMENT LOCK: ${scene.garment_lock.garment_name}, size ${scene.garment_lock.requested_size}, logo at ${scene.garment_lock.logo_placement}. ${scene.garment_lock.notes.join(" ")}
+GARMENT LOCK (CRITICAL — GARMENT TYPE MUST NEVER CHANGE): ${scene.garment_lock.garment_category} "${scene.garment_lock.garment_name}", size ${scene.garment_lock.requested_size}, logo at ${scene.garment_lock.logo_placement}. ${scene.garment_lock.garment_descriptor ? `LOCKED DESCRIPTOR: ${scene.garment_lock.garment_descriptor}. ` : ""}${scene.garment_lock.notes.join(" ")}
 ENVIRONMENT LOCK: ${scene.environment_lock.location}. Background: ${scene.environment_lock.background}. Floor: ${scene.environment_lock.floor}. Lighting: ${scene.environment_lock.lighting}. Shadows: ${scene.environment_lock.shadows}. Framing: ${scene.environment_lock.framing}.
 OBJECT LOCK: Required objects -> ${scene.object_lock.required_objects.join(", ") || "none"}. Forbidden objects -> ${scene.object_lock.forbidden_objects.join(", ") || "none"}. ${scene.object_lock.lock_rules.join(" ")}
 MOTION SYSTEM: ${scene.motion_lock.strategy}. Allowed changes -> ${scene.motion_lock.allowed_changes.join(", ")}. Forbidden -> ${scene.motion_lock.forbidden_changes.join(", ")}.
