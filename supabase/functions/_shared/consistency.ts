@@ -19,6 +19,8 @@ export interface MasterScenePayload {
   };
   garment_lock: {
     garment_name: string;
+    garment_category: string;
+    garment_descriptor: string;
     requested_size: string;
     logo_placement: string;
     notes: string[];
