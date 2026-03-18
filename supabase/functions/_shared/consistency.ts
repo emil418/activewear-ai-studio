@@ -341,7 +341,7 @@ export function buildConsistencyValidationPrompt(scene: MasterScenePayload, opti
 Check ONLY these failure cases:
 1. BACKGROUND / ENVIRONMENT DRIFT: background, floor, lighting, shadow direction, or overall studio setup changes.
 2. OBJECT DRIFT: equipment, shoes, ropes, bars, boxes, benches, props, or their color/size/material/position change.
-3. GARMENT DRIFT: garment texture, seam lines, logo placement, silhouette, color, or structure change beyond natural deformation.
+3. GARMENT TYPE DRIFT (CRITICAL): The garment MUST be a "${scene.garment_lock.garment_category}". ${scene.garment_lock.garment_descriptor ? `It must match: ${scene.garment_lock.garment_descriptor}.` : ""} If shorts become pants, or a t-shirt becomes a tank top, or the garment type/length/cut changes in ANY way — this is an IMMEDIATE FAIL. The garment type, texture, seam lines, logo placement, silhouette, color, and structure must NOT change beyond natural deformation from movement.
 4. IDENTITY DRIFT: face, hair, skin tone, body proportions, or athlete identity change.
 5. ANGLE / MOMENT FAILURE: for ${options.angle}, the view does not look like a camera rotation around the same locked scene and same moment for movement "${options.movement}".
 6. CROPPING / ANATOMY FAILURE: the full body or required object is cropped, or there are obvious anatomy errors.
@@ -352,5 +352,5 @@ ${describeMasterScene(scene)}
 Return strict JSON only:
 {"valid": true/false, "issues": ["issue1", "issue2"]}
 
-Mark invalid if ANY of these drift categories appear.`;
+Mark invalid if ANY of these drift categories appear. GARMENT TYPE changes are the HIGHEST priority failure.`;
 }
