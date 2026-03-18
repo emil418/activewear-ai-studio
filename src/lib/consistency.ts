@@ -259,6 +259,7 @@ export function buildMasterScene({
         "background change",
         "lighting mismatch",
         "object appearance drift",
+        "garment type change (e.g. shorts becoming pants)",
         "garment structure drift",
         "athlete identity drift",
       ],
