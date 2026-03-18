@@ -634,13 +634,15 @@ You MUST render this EXACT same person in every image.`
           const anglePoseInstructions = buildPoseInstructions(movement, angle);
 
           const mainPrompt = useSimplePrompt
-            ? `Professional EXTREMELY WIDE full-body studio photo from head to toe: ${athleteLabel} wearing this exact uploaded garment, performing ${movement} at ${intensity}% intensity, ${angle} camera angle. ZOOM OUT VERY FAR — the athlete must occupy only 45-55% of the frame height with massive empty space above head (20%+) and below feet (15%+). Camera is 5 meters away. The ENTIRE person from top of head to bottom of feet MUST be clearly visible and SMALL in the frame. 9:16 vertical format (1080×1920). All equipment fully visible. Dark background. ${anglePoseInstructions} ${MOTIF_RULES}${logoInstructions}. GLOBAL MASTER SCENE LOCK: ${describeMasterSceneCompact(masterScene)}`
+            ? `Professional EXTREMELY WIDE full-body studio photo from head to toe: ${athleteLabel} wearing this exact uploaded garment (${garmentCategory}), performing ${movement} at ${intensity}% intensity, ${angle} camera angle. ${garmentTypeEnforcement} ZOOM OUT VERY FAR — the athlete must occupy only 45-55% of the frame height with massive empty space above head (20%+) and below feet (15%+). Camera is 5 meters away. The ENTIRE person from top of head to bottom of feet MUST be clearly visible and SMALL in the frame. 9:16 vertical format (1080×1920). All equipment fully visible. Dark background. ${anglePoseInstructions} ${MOTIF_RULES}${logoInstructions}. GLOBAL MASTER SCENE LOCK: ${describeMasterSceneCompact(masterScene)}`
             : `PHOTOREALISTIC SPORTSWEAR CAMPAIGN — ${angle.toUpperCase()} VIEW
 
 GLOBAL MASTER SCENE — SINGLE SOURCE OF TRUTH:
 ${describeMasterSceneCompact(masterScene)}
 
-STRICT REFERENCE FIDELITY: The uploaded garment image is the ABSOLUTE reference. Preserve exact color, fabric weave, texture, seams, stitching, and construction with 100% accuracy. This is a REAL photograph, not an illustration or render.
+${garmentTypeEnforcement}
+
+STRICT REFERENCE FIDELITY: The uploaded garment image is the ABSOLUTE reference. The garment is a "${garmentCategory}" — this type MUST NOT change. Preserve exact type, cut, length, color, fabric weave, texture, seams, stitching, and construction with 100% accuracy. If the reference shows shorts, the output MUST show shorts. If it shows leggings, the output MUST show leggings. This is a REAL photograph, not an illustration or render.
 
 ${MOTIF_RULES}
 ${FRAMING}
@@ -648,7 +650,7 @@ ${athleteDesc}
 
 ${anglePoseInstructions}
 
-SUBJECT: ${athleteLabel}, size ${size}, wearing EXACTLY this uploaded garment performing ${movement} at ${intensity}% intensity.
+SUBJECT: ${athleteLabel}, size ${size}, wearing EXACTLY this uploaded ${garmentCategory} performing ${movement} at ${intensity}% intensity.
 
 PHOTOREALISM REQUIREMENTS:
 - Shot on a Canon EOS R5 with 24mm f/2.8 wide-angle lens — VERY wide full-body framing from 5 meters distance, cinematic studio lighting
