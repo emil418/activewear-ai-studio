@@ -516,6 +516,21 @@ ABSOLUTE RULES:
       }
     }
 
+    // ── Lock garment category into master scene after analysis ──
+    const analyzedCategory = (garmentAnalysis as Record<string, unknown>).garment_category as string || "unknown";
+    const analyzedColors = (garmentAnalysis as Record<string, unknown>).color_palette as string[] || [];
+    const analyzedFabric = (garmentAnalysis as Record<string, unknown>).fabric_type as string || "";
+    const garmentDescriptor = `${analyzedCategory}, ${analyzedFabric}, colors: ${analyzedColors.join(", ") || "dark"}. This is the EXACT garment type — it must NEVER change across any angle, frame, or size variant.`;
+
+    masterScene = {
+      ...masterScene,
+      garment_lock: {
+        ...masterScene.garment_lock,
+        garment_category: analyzedCategory,
+        garment_descriptor: garmentDescriptor,
+      },
+    };
+
     // ── If mode is "analyze", return early with analysis results ──
     if (mode === "analyze") {
       console.log("Analyze mode complete — returning analysis results.");
