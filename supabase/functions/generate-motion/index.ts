@@ -186,18 +186,20 @@ function buildPoseInstructions(movement: string, angle: string): string {
 
   // Angle-specific pose reinforcement for exercises where body orientation is critical
   let angleReinforcement = "";
+  const isSide = angle === "side" || angle === "side-left" || angle === "side-right";
+  const angleLabel = angle.replace("-", " ").toUpperCase();
   if (key === "bench press") {
     if (angle === "front") {
       angleReinforcement = `\nANGLE-SPECIFIC (FRONT VIEW): Camera positioned at the athlete's feet looking toward the head. Athlete is LYING FLAT on the bench, face visible, barbell above chest. The bench runs away from camera. Athlete is HORIZONTAL, NOT sitting, NOT standing.`;
-    } else if (angle === "side") {
-      angleReinforcement = `\nANGLE-SPECIFIC (SIDE VIEW): Camera positioned at the side of the bench. Athlete is LYING FLAT on the bench seen from the side — head on one end, feet on the floor at the other end. The full horizontal body position must be clearly visible. Barbell above chest. Athlete is HORIZONTAL, NOT sitting up, NOT vertical.`;
+    } else if (isSide) {
+      angleReinforcement = `\nANGLE-SPECIFIC (${angleLabel} VIEW): Camera positioned at the ${angle === "side-right" ? "right" : "left"} side of the bench. Athlete is LYING FLAT on the bench seen from the side — head on one end, feet on the floor at the other end. The full horizontal body position must be clearly visible. Barbell above chest. Athlete is HORIZONTAL, NOT sitting up, NOT vertical.`;
     } else if (angle === "back") {
       angleReinforcement = `\nANGLE-SPECIFIC (BACK VIEW): Camera positioned behind the athlete's head looking down the bench. Athlete is LYING FLAT on the bench, back of head visible, barbell above chest. Athlete is HORIZONTAL, NOT sitting, NOT standing.`;
     }
   } else if (key === "pull-ups") {
-    angleReinforcement = `\nANGLE-SPECIFIC (${angle.toUpperCase()} VIEW): Athlete is HANGING from a bar ABOVE — body is VERTICAL and SUSPENDED, feet off the ground. The bar is at the TOP of the frame, feet at the BOTTOM. Camera shows ${angle} of the hanging athlete.`;
+    angleReinforcement = `\nANGLE-SPECIFIC (${angleLabel} VIEW): Athlete is HANGING from a bar ABOVE — body is VERTICAL and SUSPENDED, feet off the ground. The bar is at the TOP of the frame, feet at the BOTTOM. Camera shows ${angleLabel.toLowerCase()} of the hanging athlete.`;
   } else if (key === "push-ups") {
-    angleReinforcement = `\nANGLE-SPECIFIC (${angle.toUpperCase()} VIEW): Athlete is in HORIZONTAL plank/push-up position on the FLOOR. Body is PARALLEL to the ground, NOT standing, NOT sitting. Camera shows ${angle} of the athlete on the floor.`;
+    angleReinforcement = `\nANGLE-SPECIFIC (${angleLabel} VIEW): Athlete is in HORIZONTAL plank/push-up position on the FLOOR. Body is PARALLEL to the ground, NOT standing, NOT sitting. Camera shows ${angleLabel.toLowerCase()} of the athlete on the floor.`;
   }
 
   return `BIOMECHANICAL MOVEMENT DEFINITION for ${movement}:
