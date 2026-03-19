@@ -563,6 +563,15 @@ ABSOLUTE RULES:
     // Get biomechanical pose instructions for this movement
     const poseInstructions = buildPoseInstructions(movement, "front");
 
+    // Camera position enforcement prompts for each angle
+    const CAMERA_POSITIONS: Record<string, string> = {
+      "front": "CAMERA POSITION: Camera is placed DIRECTLY IN FRONT of the athlete, straight-on frontal view. The athlete faces the camera. We see the FRONT of the body — face, chest, front of legs.",
+      "side-left": "CAMERA POSITION: Camera is placed 90° to the athlete's LEFT side. FULL LEFT PROFILE VIEW — the athlete's left arm is closest to camera, right arm is farthest. We see the LEFT SIDE of the body. This is a TRUE SIDE VIEW, NOT a front view. The athlete does NOT face the camera.",
+      "side-right": "CAMERA POSITION: Camera is placed 90° to the athlete's RIGHT side. FULL RIGHT PROFILE VIEW — the athlete's right arm is closest to camera, left arm is farthest. We see the RIGHT SIDE of the body. This is a TRUE SIDE VIEW, NOT a front view. The athlete does NOT face the camera.",
+      "back": "CAMERA POSITION: Camera is placed DIRECTLY BEHIND the athlete. We see the BACK of the body — back of head, spine, shoulder blades, back of legs. The FACE is NOT VISIBLE. This is a REAR VIEW, NOT a front view.",
+      "side": "CAMERA POSITION: Camera is placed 90° to the athlete's LEFT side. FULL LEFT PROFILE VIEW — the athlete's left arm is closest to camera. This is a TRUE SIDE VIEW, NOT a front view.",
+    };
+
     async function generateAngle(angle: string): Promise<string | null> {
       let attempts = 0;
       while (attempts < MAX_RETRIES) {
