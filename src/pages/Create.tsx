@@ -38,7 +38,13 @@ const movements = [
 
 const genders = ["Male", "Female", "Non-binary"];
 const ALL_SIZES = ["XS", "S", "M", "L", "XL", "XXL"] as const;
-const ANGLES = ["front", "side", "back"] as const;
+const ANGLES = ["front", "side-left", "side-right", "back"] as const;
+const ANGLE_LABELS: Record<string, string> = {
+  "front": "Front",
+  "side-left": "Side Left",
+  "side-right": "Side Right",
+  "back": "Back",
+};
 const bodyTypes = ["Lean Runner", "Athletic", "Muscular", "Plus-Size", "Adaptive"];
 
 const loadingMessages = [
