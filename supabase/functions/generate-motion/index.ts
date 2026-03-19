@@ -617,7 +617,7 @@ ZOOM OUT EXTREMELY FAR. Pull the camera VERY FAR back. This is a DISTANT FULL-BO
 
           const MOTIF_RULES = angle === "front"
             ? `EXISTING MOTIFS: Reproduce any front prints/motifs faithfully from the reference — same position, size, colors.`
-            : `MOTIF DUPLICATION BAN: Any prints/motifs in the reference are FRONT ONLY. The ${angle} must be COMPLETELY PLAIN — no prints, text, or graphics.`;
+            : `MOTIF DUPLICATION BAN: Any prints/motifs in the reference are FRONT ONLY. The ${angle.replace("-", " ")} view must be COMPLETELY PLAIN — no prints, text, or graphics.`;
 
           const athleteDesc = athleteIdentity
             ? `ATHLETE IDENTITY (CONSISTENT across ALL angles):
