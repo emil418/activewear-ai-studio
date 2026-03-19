@@ -634,9 +634,14 @@ You MUST render this EXACT same person in every image.`
           // Get angle-specific pose instructions
           const anglePoseInstructions = buildPoseInstructions(movement, angle);
 
+          const cameraPositionPrompt = CAMERA_POSITIONS[angle] || CAMERA_POSITIONS["front"];
+          const angleDisplayName = angle.replace("-", " ").toUpperCase();
+
           const mainPrompt = useSimplePrompt
-            ? `Professional EXTREMELY WIDE full-body studio photo from head to toe: ${athleteLabel} wearing this exact uploaded garment (${garmentCategory}), performing ${movement} at ${intensity}% intensity, ${angle} camera angle. ${garmentTypeEnforcement} ZOOM OUT VERY FAR — the athlete must occupy only 45-55% of the frame height with massive empty space above head (20%+) and below feet (15%+). Camera is 5 meters away. The ENTIRE person from top of head to bottom of feet MUST be clearly visible and SMALL in the frame. 9:16 vertical format (1080×1920). All equipment fully visible. Dark background. ${anglePoseInstructions} ${MOTIF_RULES}${logoInstructions}. GLOBAL MASTER SCENE LOCK: ${describeMasterSceneCompact(masterScene)}`
-            : `PHOTOREALISTIC SPORTSWEAR CAMPAIGN — ${angle.toUpperCase()} VIEW
+            ? `${cameraPositionPrompt} Professional EXTREMELY WIDE full-body studio photo from head to toe: ${athleteLabel} wearing this exact uploaded garment (${garmentCategory}), performing ${movement} at ${intensity}% intensity, ${angleDisplayName} camera angle. ${garmentTypeEnforcement} ZOOM OUT VERY FAR — the athlete must occupy only 45-55% of the frame height with massive empty space above head (20%+) and below feet (15%+). Camera is 5 meters away. The ENTIRE person from top of head to bottom of feet MUST be clearly visible and SMALL in the frame. 9:16 vertical format (1080×1920). All equipment fully visible. Dark background. ${anglePoseInstructions} ${MOTIF_RULES}${logoInstructions}. STRICT: ${angleDisplayName} PERSPECTIVE ONLY — camera does NOT move to front. GLOBAL MASTER SCENE LOCK: ${describeMasterSceneCompact(masterScene)}`
+            : `PHOTOREALISTIC SPORTSWEAR CAMPAIGN — ${angleDisplayName} VIEW
+
+${cameraPositionPrompt}
 
 GLOBAL MASTER SCENE — SINGLE SOURCE OF TRUTH:
 ${describeMasterSceneCompact(masterScene)}
