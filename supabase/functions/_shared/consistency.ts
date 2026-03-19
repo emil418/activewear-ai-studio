@@ -164,6 +164,7 @@ export function buildServerMasterSceneFallback({
   bodyType,
   athleteIdentity,
   logoPosition,
+  environment,
 }: FallbackOptions): MasterScenePayload {
   const objectRules = getObjectRules(movement);
   const sceneSeed = createServerSceneSeed();
