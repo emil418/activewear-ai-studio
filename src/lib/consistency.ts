@@ -86,6 +86,14 @@ interface BuildMasterSceneOptions {
   selectedBody: string;
   athleteIdentity?: AthleteIdentityInput;
   logoPosition?: LogoPosition | null;
+  environment?: {
+    location: string;
+    background: string;
+    floor: string;
+    lighting: string;
+    shadows: string;
+    framing: string;
+  } | null;
 }
 
 const BODYWEIGHT_ONLY_MOVEMENTS = new Set([
