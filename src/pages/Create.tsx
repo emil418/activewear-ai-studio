@@ -1203,8 +1203,8 @@ const Create = () => {
           </motion.div>
         )}
 
-        {/* STEP 3 — Generate */}
-        {step === 3 && (
+        {/* STEP 4 — Generate */}
+        {step === 4 && (
           <motion.div key="generate" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
             <div>
               <h2 className="font-display text-2xl font-bold tracking-tight mb-1">Ready to generate</h2>
