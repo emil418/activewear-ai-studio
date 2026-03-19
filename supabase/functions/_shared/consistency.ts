@@ -70,6 +70,14 @@ interface FallbackOptions {
   bodyType: string;
   athleteIdentity?: Record<string, unknown>;
   logoPosition?: { placement?: string } | null;
+  environment?: {
+    location: string;
+    background: string;
+    floor: string;
+    lighting: string;
+    shadows: string;
+    framing: string;
+  } | null;
 }
 
 const BODYWEIGHT_ONLY_MOVEMENTS = new Set([
