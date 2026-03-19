@@ -25,6 +25,7 @@ const STEPS = [
   { label: "Upload Gear", icon: Upload },
   { label: "Choose Athlete", icon: User },
   { label: "Choose Movement", icon: Activity },
+  { label: "Environment", icon: MapPin },
   { label: "Generate", icon: Zap },
   { label: "Preview & Export", icon: Download },
 ];
