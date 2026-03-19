@@ -1591,14 +1591,14 @@ const Create = () => {
       </AnimatePresence>
 
       {/* Navigation buttons */}
-      {step < 4 && !generating && (
+      {step < 5 && !generating && (
         <div className="flex items-center justify-between pt-4 border-t border-border">
           <Button variant="ghost" onClick={back} disabled={step === 0} className="gap-2 text-muted-foreground">
             <ArrowLeft className="w-4 h-4" /> Back
           </Button>
           <Button onClick={next} disabled={!canProceed()}
             className={`gap-2 rounded-xl font-bold ${showSimplifiedUI ? "px-12 py-5 text-base" : "px-8"}`}>
-            {step === 3 ? "Generate" : "Continue"} <ArrowRight className="w-4 h-4" />
+            {step === 4 ? "Generate" : "Continue"} <ArrowRight className="w-4 h-4" />
           </Button>
         </div>
       )}
