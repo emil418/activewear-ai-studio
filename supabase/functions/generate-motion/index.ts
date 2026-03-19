@@ -577,10 +577,11 @@ ABSOLUTE RULES:
           const isBackPlacement = placementLabel.startsWith("back");
           const isSleevePlacement = placementLabel.startsWith("sleeve");
 
+          const isSideAngle = angle === "side" || angle === "side-left" || angle === "side-right";
           const showLogoThisAngle =
             (angle === "front" && isFrontPlacement) ||
             (angle === "back" && isBackPlacement) ||
-            (angle === "side" && isSleevePlacement);
+            (isSideAngle && isSleevePlacement);
 
           const logoInstructions = processedLogo ? (showLogoThisAngle
             ? `
