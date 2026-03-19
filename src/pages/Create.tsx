@@ -1253,6 +1253,10 @@ const Create = () => {
                   <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold">Intensity</p>
                   <p className="text-sm font-medium">{intensity[0]}%</p>
                 </div>
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold">Environment</p>
+                  <p className="text-sm font-medium">{selectedEnvironment.name}</p>
+                </div>
                 {logoFile && (
                   <div className="space-y-1">
                     <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold">Logo</p>
