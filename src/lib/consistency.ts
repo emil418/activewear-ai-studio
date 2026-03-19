@@ -182,6 +182,7 @@ export function buildMasterScene({
   selectedBody,
   athleteIdentity,
   logoPosition,
+  environment,
 }: BuildMasterSceneOptions): MasterScenePayload {
   const objectRules = getObjectRules(movement);
   const sceneSeed = createSceneSeed();
