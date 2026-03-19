@@ -426,12 +426,13 @@ const Create = () => {
     if (step === 0) return !!garmentFile;
     if (step === 1) return !!selectedGender && !!selectedSize && !!selectedBody;
     if (step === 2) return !!selectedMovement;
+    if (step === 3) return !!selectedEnvironment;
     return true;
   };
 
   const next = () => {
-    if (step === 3) { handleGenerate(); return; }
-    if (canProceed() && step < 4) setStep(step + 1);
+    if (step === 4) { handleGenerate(); return; }
+    if (canProceed() && step < 5) setStep(step + 1);
   };
   const back = () => { if (step > 0) setStep(step - 1); };
 
