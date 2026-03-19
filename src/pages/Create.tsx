@@ -276,7 +276,7 @@ const Create = () => {
     // Phase 2: Generate each angle separately (~60s each)
     const images: Record<string, string | null> = {};
     const storedUrls: Record<string, string> = {};
-    const angleNames = ["front", "side", "back"];
+    const angleNames = ["front", "side-left", "side-right", "back"];
 
     for (let i = 0; i < angleNames.length; i++) {
       const angle = angleNames[i];

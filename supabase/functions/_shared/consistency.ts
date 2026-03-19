@@ -237,7 +237,7 @@ export function buildServerMasterSceneFallback({
     multi_angle_lock: {
       same_moment: true,
       strategy: "camera_rotation_around_same_scene",
-      required_angles: ["front", "side", "back"],
+      required_angles: ["front", "side-left", "side-right", "back"],
     },
     video_lock: {
       same_seed: sceneSeed,
