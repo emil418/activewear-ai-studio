@@ -353,7 +353,7 @@ const Create = () => {
       clearInterval(interval);
       setResult(typedData);
       setGenerated(true);
-      setStep(4);
+      setStep(5);
       setActiveSizeTab(selectedSize);
 
       const allImages = { ...typedData.images, ...typedData.stored_urls };
