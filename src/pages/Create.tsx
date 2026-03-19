@@ -1272,8 +1272,8 @@ const Create = () => {
           </motion.div>
         )}
 
-        {/* STEP 4 — Preview & Export */}
-        {step === 4 && generated && (
+        {/* STEP 5 — Preview & Export */}
+        {step === 5 && generated && (
           <motion.div key="preview" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
             <div className="flex items-center justify-between">
               <div>
