@@ -218,7 +218,7 @@ export function buildMasterScene({
         "If the garment is shorts, it MUST remain shorts in every angle and frame. It must NEVER become pants, leggings, or any other garment type.",
       ],
     },
-    environment_lock: {
+    environment_lock: environment || {
       location: "ActiveForge campaign studio",
       background: "Dark charcoal seamless sports studio background",
       floor: "Matte dark performance floor",
