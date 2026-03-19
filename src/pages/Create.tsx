@@ -577,7 +577,7 @@ const Create = () => {
       pdf.setTextColor(200, 200, 200);
       pdf.text(`Movement: ${selectedMovement}`, 20, 50);
       pdf.text(`Intensity: ${intensity[0]}%`, 20, 60);
-      pdf.text(`Camera Angles: Front, Side, Back`, 20, 70);
+      pdf.text(`Camera Angles: Front, Side Left, Side Right, Back`, 20, 70);
 
       // --- PERFORMANCE METRICS PAGE ---
       pdf.addPage();
