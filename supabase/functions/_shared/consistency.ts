@@ -167,7 +167,14 @@ export function buildServerMasterSceneFallback({
 }: FallbackOptions): MasterScenePayload {
   const objectRules = getObjectRules(movement);
   const sceneSeed = createServerSceneSeed();
-
+  const envLock = environment || {
+    location: "ActiveForge campaign studio",
+    background: "Dark charcoal seamless sports studio background",
+    floor: "Matte dark performance floor",
+    lighting: "Locked 3-point athletic campaign lighting",
+    shadows: "Soft grounded contact shadows with fixed direction and density",
+    framing: "Wide full-body vertical composition with generous negative space",
+  };
   return {
     scene_id: createServerSceneId(),
     scene_seed: sceneSeed,
