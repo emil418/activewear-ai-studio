@@ -845,6 +845,7 @@ const Create = () => {
                   selectedBody: selectedAthlete?.body_type || selectedBody,
                   athleteIdentity: selectedAthlete || undefined,
                   logoPosition,
+                  environment: environmentToLock(selectedEnvironment),
                 }),
               },
             }).then(response => {
