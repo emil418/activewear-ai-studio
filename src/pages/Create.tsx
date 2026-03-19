@@ -1333,12 +1333,12 @@ const Create = () => {
                 </TabsList>
                 {ALL_SIZES.map(size => (
                   <TabsContent key={size} value={size}>
-                    <div className="grid grid-cols-3 gap-4 mt-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4">
                       {ANGLES.map(angle => {
                         const imgSrc = getImageUrl(sizeVariants[size], angle);
                         return (
                           <div key={angle} className="glass-card aspect-[3/4] rounded-2xl flex flex-col items-center justify-center relative overflow-hidden group">
-                            <span className="absolute top-3 left-3 text-[10px] font-bold text-muted-foreground/40 uppercase tracking-wider">{angle}</span>
+                            <span className="absolute top-3 left-3 text-[10px] font-bold text-muted-foreground/40 uppercase tracking-wider">{ANGLE_LABELS[angle] || angle}</span>
                             <span className="absolute top-3 right-3 text-[10px] font-bold text-primary/50 uppercase">{size}</span>
                             {imgSrc ? (
                               <img src={imgSrc} alt={`${size} ${angle}`} className="w-full h-full object-cover rounded-2xl" />
