@@ -186,18 +186,20 @@ function buildPoseInstructions(movement: string, angle: string): string {
 
   // Angle-specific pose reinforcement for exercises where body orientation is critical
   let angleReinforcement = "";
+  const isSide = angle === "side" || angle === "side-left" || angle === "side-right";
+  const angleLabel = angle.replace("-", " ").toUpperCase();
   if (key === "bench press") {
     if (angle === "front") {
       angleReinforcement = `\nANGLE-SPECIFIC (FRONT VIEW): Camera positioned at the athlete's feet looking toward the head. Athlete is LYING FLAT on the bench, face visible, barbell above chest. The bench runs away from camera. Athlete is HORIZONTAL, NOT sitting, NOT standing.`;
-    } else if (angle === "side") {
-      angleReinforcement = `\nANGLE-SPECIFIC (SIDE VIEW): Camera positioned at the side of the bench. Athlete is LYING FLAT on the bench seen from the side — head on one end, feet on the floor at the other end. The full horizontal body position must be clearly visible. Barbell above chest. Athlete is HORIZONTAL, NOT sitting up, NOT vertical.`;
+    } else if (isSide) {
+      angleReinforcement = `\nANGLE-SPECIFIC (${angleLabel} VIEW): Camera positioned at the ${angle === "side-right" ? "right" : "left"} side of the bench. Athlete is LYING FLAT on the bench seen from the side — head on one end, feet on the floor at the other end. The full horizontal body position must be clearly visible. Barbell above chest. Athlete is HORIZONTAL, NOT sitting up, NOT vertical.`;
     } else if (angle === "back") {
       angleReinforcement = `\nANGLE-SPECIFIC (BACK VIEW): Camera positioned behind the athlete's head looking down the bench. Athlete is LYING FLAT on the bench, back of head visible, barbell above chest. Athlete is HORIZONTAL, NOT sitting, NOT standing.`;
     }
   } else if (key === "pull-ups") {
-    angleReinforcement = `\nANGLE-SPECIFIC (${angle.toUpperCase()} VIEW): Athlete is HANGING from a bar ABOVE — body is VERTICAL and SUSPENDED, feet off the ground. The bar is at the TOP of the frame, feet at the BOTTOM. Camera shows ${angle} of the hanging athlete.`;
+    angleReinforcement = `\nANGLE-SPECIFIC (${angleLabel} VIEW): Athlete is HANGING from a bar ABOVE — body is VERTICAL and SUSPENDED, feet off the ground. The bar is at the TOP of the frame, feet at the BOTTOM. Camera shows ${angleLabel.toLowerCase()} of the hanging athlete.`;
   } else if (key === "push-ups") {
-    angleReinforcement = `\nANGLE-SPECIFIC (${angle.toUpperCase()} VIEW): Athlete is in HORIZONTAL plank/push-up position on the FLOOR. Body is PARALLEL to the ground, NOT standing, NOT sitting. Camera shows ${angle} of the athlete on the floor.`;
+    angleReinforcement = `\nANGLE-SPECIFIC (${angleLabel} VIEW): Athlete is in HORIZONTAL plank/push-up position on the FLOOR. Body is PARALLEL to the ground, NOT standing, NOT sitting. Camera shows ${angleLabel.toLowerCase()} of the athlete on the floor.`;
   }
 
   return `BIOMECHANICAL MOVEMENT DEFINITION for ${movement}:
@@ -555,13 +557,22 @@ ABSOLUTE RULES:
 
     // ── Step 3: Generate images ──
     // In "generate_angle" mode, only generate the requested angle
-    const requestedAngle = body.angle; // e.g. "front", "side", "back"
-    const angles = mode === "generate_angle" && requestedAngle ? [requestedAngle] : ["front", "side", "back"];
+    const requestedAngle = body.angle; // e.g. "front", "side-left", "side-right", "back"
+    const angles = mode === "generate_angle" && requestedAngle ? [requestedAngle] : ["front", "side-left", "side-right", "back"];
     console.log(`Step 3: Generating ${angles.join(", ")} images (mode: ${mode})...`);
     const MAX_RETRIES = 3;
 
     // Get biomechanical pose instructions for this movement
     const poseInstructions = buildPoseInstructions(movement, "front");
+
+    // Camera position enforcement prompts for each angle
+    const CAMERA_POSITIONS: Record<string, string> = {
+      "front": "CAMERA POSITION: Camera is placed DIRECTLY IN FRONT of the athlete, straight-on frontal view. The athlete faces the camera. We see the FRONT of the body — face, chest, front of legs.",
+      "side-left": "CAMERA POSITION: Camera is placed 90° to the athlete's LEFT side. FULL LEFT PROFILE VIEW — the athlete's left arm is closest to camera, right arm is farthest. We see the LEFT SIDE of the body. This is a TRUE SIDE VIEW, NOT a front view. The athlete does NOT face the camera.",
+      "side-right": "CAMERA POSITION: Camera is placed 90° to the athlete's RIGHT side. FULL RIGHT PROFILE VIEW — the athlete's right arm is closest to camera, left arm is farthest. We see the RIGHT SIDE of the body. This is a TRUE SIDE VIEW, NOT a front view. The athlete does NOT face the camera.",
+      "back": "CAMERA POSITION: Camera is placed DIRECTLY BEHIND the athlete. We see the BACK of the body — back of head, spine, shoulder blades, back of legs. The FACE is NOT VISIBLE. This is a REAR VIEW, NOT a front view.",
+      "side": "CAMERA POSITION: Camera is placed 90° to the athlete's LEFT side. FULL LEFT PROFILE VIEW — the athlete's left arm is closest to camera. This is a TRUE SIDE VIEW, NOT a front view.",
+    };
 
     async function generateAngle(angle: string): Promise<string | null> {
       let attempts = 0;
@@ -577,10 +588,11 @@ ABSOLUTE RULES:
           const isBackPlacement = placementLabel.startsWith("back");
           const isSleevePlacement = placementLabel.startsWith("sleeve");
 
+          const isSideAngle = angle === "side" || angle === "side-left" || angle === "side-right";
           const showLogoThisAngle =
             (angle === "front" && isFrontPlacement) ||
             (angle === "back" && isBackPlacement) ||
-            (angle === "side" && isSleevePlacement);
+            (isSideAngle && isSleevePlacement);
 
           const logoInstructions = processedLogo ? (showLogoThisAngle
             ? `
@@ -616,7 +628,7 @@ ZOOM OUT EXTREMELY FAR. Pull the camera VERY FAR back. This is a DISTANT FULL-BO
 
           const MOTIF_RULES = angle === "front"
             ? `EXISTING MOTIFS: Reproduce any front prints/motifs faithfully from the reference — same position, size, colors.`
-            : `MOTIF DUPLICATION BAN: Any prints/motifs in the reference are FRONT ONLY. The ${angle} must be COMPLETELY PLAIN — no prints, text, or graphics.`;
+            : `MOTIF DUPLICATION BAN: Any prints/motifs in the reference are FRONT ONLY. The ${angle.replace("-", " ")} view must be COMPLETELY PLAIN — no prints, text, or graphics.`;
 
           const athleteDesc = athleteIdentity
             ? `ATHLETE IDENTITY (CONSISTENT across ALL angles):
@@ -633,9 +645,14 @@ You MUST render this EXACT same person in every image.`
           // Get angle-specific pose instructions
           const anglePoseInstructions = buildPoseInstructions(movement, angle);
 
+          const cameraPositionPrompt = CAMERA_POSITIONS[angle] || CAMERA_POSITIONS["front"];
+          const angleDisplayName = angle.replace("-", " ").toUpperCase();
+
           const mainPrompt = useSimplePrompt
-            ? `Professional EXTREMELY WIDE full-body studio photo from head to toe: ${athleteLabel} wearing this exact uploaded garment (${garmentCategory}), performing ${movement} at ${intensity}% intensity, ${angle} camera angle. ${garmentTypeEnforcement} ZOOM OUT VERY FAR — the athlete must occupy only 45-55% of the frame height with massive empty space above head (20%+) and below feet (15%+). Camera is 5 meters away. The ENTIRE person from top of head to bottom of feet MUST be clearly visible and SMALL in the frame. 9:16 vertical format (1080×1920). All equipment fully visible. Dark background. ${anglePoseInstructions} ${MOTIF_RULES}${logoInstructions}. GLOBAL MASTER SCENE LOCK: ${describeMasterSceneCompact(masterScene)}`
-            : `PHOTOREALISTIC SPORTSWEAR CAMPAIGN — ${angle.toUpperCase()} VIEW
+            ? `${cameraPositionPrompt} Professional EXTREMELY WIDE full-body studio photo from head to toe: ${athleteLabel} wearing this exact uploaded garment (${garmentCategory}), performing ${movement} at ${intensity}% intensity, ${angleDisplayName} camera angle. ${garmentTypeEnforcement} ZOOM OUT VERY FAR — the athlete must occupy only 45-55% of the frame height with massive empty space above head (20%+) and below feet (15%+). Camera is 5 meters away. The ENTIRE person from top of head to bottom of feet MUST be clearly visible and SMALL in the frame. 9:16 vertical format (1080×1920). All equipment fully visible. Dark background. ${anglePoseInstructions} ${MOTIF_RULES}${logoInstructions}. STRICT: ${angleDisplayName} PERSPECTIVE ONLY — camera does NOT move to front. GLOBAL MASTER SCENE LOCK: ${describeMasterSceneCompact(masterScene)}`
+            : `PHOTOREALISTIC SPORTSWEAR CAMPAIGN — ${angleDisplayName} VIEW
+
+${cameraPositionPrompt}
 
 GLOBAL MASTER SCENE — SINGLE SOURCE OF TRUTH:
 ${describeMasterSceneCompact(masterScene)}
@@ -657,7 +674,7 @@ PHOTOREALISM REQUIREMENTS:
 - Skin must show natural pores, subtle sheen from exertion, realistic muscle definition under skin
 - Garment must show real fabric behavior: thread-level texture, natural drape, visible seam construction
 - Natural micro-details: slight fabric wrinkles at joints, compression shadows, stretch highlights
-- ${angle !== "front" ? `The ${angle} of the garment must be COMPLETELY PLAIN — no prints, text, or graphics` : "Faithfully reproduce existing prints/motifs from reference"}
+- ${angle !== "front" ? `The ${angle.replace("-", " ")} view of the garment must be COMPLETELY PLAIN — no prints, text, or graphics` : "Faithfully reproduce existing prints/motifs from reference"}
 - Dark studio background with 3-point professional lighting setup
 - This must be INDISTINGUISHABLE from a real photoshoot
 ${logoInstructions}`;

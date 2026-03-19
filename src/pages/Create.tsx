@@ -38,7 +38,13 @@ const movements = [
 
 const genders = ["Male", "Female", "Non-binary"];
 const ALL_SIZES = ["XS", "S", "M", "L", "XL", "XXL"] as const;
-const ANGLES = ["front", "side", "back"] as const;
+const ANGLES = ["front", "side-left", "side-right", "back"] as const;
+const ANGLE_LABELS: Record<string, string> = {
+  "front": "Front",
+  "side-left": "Side Left",
+  "side-right": "Side Right",
+  "back": "Back",
+};
 const bodyTypes = ["Lean Runner", "Athletic", "Muscular", "Plus-Size", "Adaptive"];
 
 const loadingMessages = [
@@ -47,7 +53,8 @@ const loadingMessages = [
   "Computing fabric physics simulation...",
   "Generating front view (Gemini 3 Pro)...",
   "Validating front view quality...",
-  "Generating side view...",
+  "Generating side left view...",
+  "Generating side right view...",
   "Generating back view...",
   "Storing high-res assets...",
   "Almost there — finalizing render...",
@@ -270,11 +277,11 @@ const Create = () => {
     // Phase 2: Generate each angle separately (~60s each)
     const images: Record<string, string | null> = {};
     const storedUrls: Record<string, string> = {};
-    const angleNames = ["front", "side", "back"];
+    const angleNames = ["front", "side-left", "side-right", "back"];
 
     for (let i = 0; i < angleNames.length; i++) {
       const angle = angleNames[i];
-      setLoadingMsg(3 + i); // "Generating front/side/back view..."
+      setLoadingMsg(3 + i); // "Generating front/side-left/side-right/back view..."
 
       const angleResp = await supabase.functions.invoke("generate-motion", {
         body: {
@@ -363,7 +370,7 @@ const Create = () => {
 
       toast({
         title: "✅ Generation complete — ready for export",
-        description: `${garmentLabel} rendered in ${successCount}/3 angles. ${successCount === 3 ? "All views generated successfully." : "Some views may need retry."}`,
+        description: `${garmentLabel} rendered in ${successCount}/4 angles. ${successCount === 4 ? "All views generated successfully." : "Some views may need retry."}`,
       });
     } catch (err: unknown) {
       clearInterval(interval);
@@ -570,7 +577,7 @@ const Create = () => {
       pdf.setTextColor(200, 200, 200);
       pdf.text(`Movement: ${selectedMovement}`, 20, 50);
       pdf.text(`Intensity: ${intensity[0]}%`, 20, 60);
-      pdf.text(`Camera Angles: Front, Side, Back`, 20, 70);
+      pdf.text(`Camera Angles: Front, Side Left, Side Right, Back`, 20, 70);
 
       // --- PERFORMANCE METRICS PAGE ---
       pdf.addPage();
@@ -1327,12 +1334,12 @@ const Create = () => {
                 </TabsList>
                 {ALL_SIZES.map(size => (
                   <TabsContent key={size} value={size}>
-                    <div className="grid grid-cols-3 gap-4 mt-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4">
                       {ANGLES.map(angle => {
                         const imgSrc = getImageUrl(sizeVariants[size], angle);
                         return (
                           <div key={angle} className="glass-card aspect-[3/4] rounded-2xl flex flex-col items-center justify-center relative overflow-hidden group">
-                            <span className="absolute top-3 left-3 text-[10px] font-bold text-muted-foreground/40 uppercase tracking-wider">{angle}</span>
+                            <span className="absolute top-3 left-3 text-[10px] font-bold text-muted-foreground/40 uppercase tracking-wider">{ANGLE_LABELS[angle] || angle}</span>
                             <span className="absolute top-3 right-3 text-[10px] font-bold text-primary/50 uppercase">{size}</span>
                             {imgSrc ? (
                               <img src={imgSrc} alt={`${size} ${angle}`} className="w-full h-full object-cover rounded-2xl" />
@@ -1350,13 +1357,13 @@ const Create = () => {
                 ))}
               </Tabs>
             ) : (
-              /* Single size: 3-angle grid */
-              <div className="grid grid-cols-3 gap-4">
+              /* Single size: 4-angle grid */
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 {ANGLES.map(angle => {
                   const imgSrc = getImageUrl(result, angle);
                   return (
                     <div key={angle} className="glass-card aspect-[3/4] rounded-2xl flex flex-col items-center justify-center relative overflow-hidden group cursor-pointer hover:border-primary/10 transition-all duration-500">
-                      <span className="absolute top-3 left-3 text-[10px] font-bold text-muted-foreground/40 uppercase tracking-wider">{angle}</span>
+                      <span className="absolute top-3 left-3 text-[10px] font-bold text-muted-foreground/40 uppercase tracking-wider">{ANGLE_LABELS[angle] || angle}</span>
                       {imgSrc ? (
                         <img src={imgSrc} alt={`${angle} view`} className="w-full h-full object-cover rounded-2xl" />
                       ) : (
