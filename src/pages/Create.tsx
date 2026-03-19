@@ -370,7 +370,7 @@ const Create = () => {
 
       toast({
         title: "✅ Generation complete — ready for export",
-        description: `${garmentLabel} rendered in ${successCount}/3 angles. ${successCount === 3 ? "All views generated successfully." : "Some views may need retry."}`,
+        description: `${garmentLabel} rendered in ${successCount}/4 angles. ${successCount === 4 ? "All views generated successfully." : "Some views may need retry."}`,
       });
     } catch (err: unknown) {
       clearInterval(interval);
