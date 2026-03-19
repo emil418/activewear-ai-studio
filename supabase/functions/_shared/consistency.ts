@@ -70,6 +70,14 @@ interface FallbackOptions {
   bodyType: string;
   athleteIdentity?: Record<string, unknown>;
   logoPosition?: { placement?: string } | null;
+  environment?: {
+    location: string;
+    background: string;
+    floor: string;
+    lighting: string;
+    shadows: string;
+    framing: string;
+  } | null;
 }
 
 const BODYWEIGHT_ONLY_MOVEMENTS = new Set([
@@ -159,7 +167,14 @@ export function buildServerMasterSceneFallback({
 }: FallbackOptions): MasterScenePayload {
   const objectRules = getObjectRules(movement);
   const sceneSeed = createServerSceneSeed();
-
+  const envLock = environment || {
+    location: "ActiveForge campaign studio",
+    background: "Dark charcoal seamless sports studio background",
+    floor: "Matte dark performance floor",
+    lighting: "Locked 3-point athletic campaign lighting",
+    shadows: "Soft grounded contact shadows with fixed direction and density",
+    framing: "Wide full-body vertical composition with generous negative space",
+  };
   return {
     scene_id: createServerSceneId(),
     scene_seed: sceneSeed,
@@ -192,14 +207,7 @@ export function buildServerMasterSceneFallback({
         "If the garment is shorts, it MUST remain shorts. If leggings, it MUST remain leggings. No garment type changes allowed.",
       ],
     },
-    environment_lock: {
-      location: "ActiveForge campaign studio",
-      background: "Dark charcoal seamless sports studio background",
-      floor: "Matte dark performance floor",
-      lighting: "Locked 3-point athletic campaign lighting",
-      shadows: "Soft grounded contact shadows with fixed direction and density",
-      framing: "Wide full-body vertical composition with generous negative space",
-    },
+    environment_lock: envLock,
     object_lock: {
       required_objects: unique(objectRules.required),
       forbidden_objects: unique(objectRules.forbidden),

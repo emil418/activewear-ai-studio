@@ -2,7 +2,7 @@ import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Upload, User, Zap, Download, ArrowRight, ArrowLeft,
-  Check, Image, Activity, Package, Layers, Send, Loader2, Users, Plus, FileText, Video
+  Check, Image, Activity, Package, Layers, Send, Loader2, Users, Plus, FileText, Video, MapPin
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,8 @@ import { useInfluencerMode } from "@/hooks/useInfluencerMode";
 import { supabase } from "@/integrations/supabase/client";
 import LogoPlacer, { type LogoPosition } from "@/components/LogoPlacer";
 import { buildMasterScene, type MasterScenePayload } from "@/lib/consistency";
+import { PREDEFINED_ENVIRONMENTS, type Environment, environmentToLock } from "@/lib/environments";
+import EnvironmentSelector from "@/components/EnvironmentSelector";
 import JSZip from "jszip";
 import { jsPDF } from "jspdf";
 
@@ -23,6 +25,7 @@ const STEPS = [
   { label: "Upload Gear", icon: Upload },
   { label: "Choose Athlete", icon: User },
   { label: "Choose Movement", icon: Activity },
+  { label: "Environment", icon: MapPin },
   { label: "Generate", icon: Zap },
   { label: "Preview & Export", icon: Download },
 ];
@@ -142,6 +145,9 @@ const Create = () => {
   const [generatingRunwayVideo, setGeneratingRunwayVideo] = useState(false);
   const [runwayVideoUrl, setRunwayVideoUrl] = useState<string | null>(null);
   const runwayVideoRef = useRef<HTMLVideoElement>(null);
+
+  // Environment selection
+  const [selectedEnvironment, setSelectedEnvironment] = useState<Environment>(PREDEFINED_ENVIRONMENTS[0]);
 
   const { toast } = useToast();
   const { session: _session, user, authReady } = useAuth();
@@ -331,6 +337,7 @@ const Create = () => {
     try {
       const garmentBase64 = garmentFile ? await fileToBase64(garmentFile) : null;
       const logoBase64 = logoFile ? await fileToBase64(logoFile) : null;
+      const envLock = environmentToLock(selectedEnvironment);
       const masterScene = buildMasterScene({
         garmentName: garmentFile?.name || "Activewear",
         size: selectedSize,
@@ -339,13 +346,14 @@ const Create = () => {
         selectedBody: selectedAthlete?.body_type || selectedBody,
         athleteIdentity: selectedAthlete || undefined,
         logoPosition,
+        environment: envLock,
       });
       const typedData = await generateForSize(selectedSize, garmentBase64, logoBase64, masterScene);
 
       clearInterval(interval);
       setResult(typedData);
       setGenerated(true);
-      setStep(4);
+      setStep(5);
       setActiveSizeTab(selectedSize);
 
       const allImages = { ...typedData.images, ...typedData.stored_urls };
@@ -385,6 +393,7 @@ const Create = () => {
         selectedBody: selectedAthlete?.body_type || selectedBody,
         athleteIdentity: selectedAthlete || undefined,
         logoPosition,
+        environment: environmentToLock(selectedEnvironment),
       });
 
       for (const size of remainingSizes) {
@@ -420,12 +429,13 @@ const Create = () => {
     if (step === 0) return !!garmentFile;
     if (step === 1) return !!selectedGender && !!selectedSize && !!selectedBody;
     if (step === 2) return !!selectedMovement;
+    if (step === 3) return !!selectedEnvironment;
     return true;
   };
 
   const next = () => {
-    if (step === 3) { handleGenerate(); return; }
-    if (canProceed() && step < 4) setStep(step + 1);
+    if (step === 4) { handleGenerate(); return; }
+    if (canProceed() && step < 5) setStep(step + 1);
   };
   const back = () => { if (step > 0) setStep(step - 1); };
 
@@ -835,6 +845,7 @@ const Create = () => {
                   selectedBody: selectedAthlete?.body_type || selectedBody,
                   athleteIdentity: selectedAthlete || undefined,
                   logoPosition,
+                  environment: environmentToLock(selectedEnvironment),
                 }),
               },
             }).then(response => {
@@ -1192,8 +1203,32 @@ const Create = () => {
           </motion.div>
         )}
 
-        {/* STEP 3 — Generate */}
+        {/* STEP 3 — Environment */}
         {step === 3 && (
+          <motion.div key="environment" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
+            <div>
+              <h2 className="font-display text-2xl font-bold tracking-tight mb-1">Choose your environment</h2>
+              <p className="text-sm text-muted-foreground">Select a studio or location — it will be locked across all outputs.</p>
+            </div>
+
+            <EnvironmentSelector selected={selectedEnvironment} onSelect={setSelectedEnvironment} />
+
+            <div className="glass-card p-4 space-y-2">
+              <div className="flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-primary" />
+                <p className="text-sm font-bold">Environment Lock</p>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                The selected environment becomes part of the Master Scene and will remain
+                <span className="text-primary font-semibold"> 100% identical</span> across all images, angles, and video frames.
+                No lighting changes, no background drift, no variation allowed.
+              </p>
+            </div>
+          </motion.div>
+        )}
+
+        {/* STEP 4 — Generate */}
+        {step === 4 && (
           <motion.div key="generate" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
             <div>
               <h2 className="font-display text-2xl font-bold tracking-tight mb-1">Ready to generate</h2>
@@ -1217,6 +1252,10 @@ const Create = () => {
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold">Intensity</p>
                   <p className="text-sm font-medium">{intensity[0]}%</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold">Environment</p>
+                  <p className="text-sm font-medium">{selectedEnvironment.name}</p>
                 </div>
                 {logoFile && (
                   <div className="space-y-1">
@@ -1261,8 +1300,8 @@ const Create = () => {
           </motion.div>
         )}
 
-        {/* STEP 4 — Preview & Export */}
-        {step === 4 && generated && (
+        {/* STEP 5 — Preview & Export */}
+        {step === 5 && generated && (
           <motion.div key="preview" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
             <div className="flex items-center justify-between">
               <div>
@@ -1580,14 +1619,14 @@ const Create = () => {
       </AnimatePresence>
 
       {/* Navigation buttons */}
-      {step < 4 && !generating && (
+      {step < 5 && !generating && (
         <div className="flex items-center justify-between pt-4 border-t border-border">
           <Button variant="ghost" onClick={back} disabled={step === 0} className="gap-2 text-muted-foreground">
             <ArrowLeft className="w-4 h-4" /> Back
           </Button>
           <Button onClick={next} disabled={!canProceed()}
             className={`gap-2 rounded-xl font-bold ${showSimplifiedUI ? "px-12 py-5 text-base" : "px-8"}`}>
-            {step === 3 ? "Generate" : "Continue"} <ArrowRight className="w-4 h-4" />
+            {step === 4 ? "Generate" : "Continue"} <ArrowRight className="w-4 h-4" />
           </Button>
         </div>
       )}

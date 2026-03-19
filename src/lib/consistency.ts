@@ -86,6 +86,14 @@ interface BuildMasterSceneOptions {
   selectedBody: string;
   athleteIdentity?: AthleteIdentityInput;
   logoPosition?: LogoPosition | null;
+  environment?: {
+    location: string;
+    background: string;
+    floor: string;
+    lighting: string;
+    shadows: string;
+    framing: string;
+  } | null;
 }
 
 const BODYWEIGHT_ONLY_MOVEMENTS = new Set([
@@ -174,6 +182,7 @@ export function buildMasterScene({
   selectedBody,
   athleteIdentity,
   logoPosition,
+  environment,
 }: BuildMasterSceneOptions): MasterScenePayload {
   const objectRules = getObjectRules(movement);
   const sceneSeed = createSceneSeed();
@@ -210,7 +219,7 @@ export function buildMasterScene({
         "If the garment is shorts, it MUST remain shorts in every angle and frame. It must NEVER become pants, leggings, or any other garment type.",
       ],
     },
-    environment_lock: {
+    environment_lock: environment || {
       location: "ActiveForge campaign studio",
       background: "Dark charcoal seamless sports studio background",
       floor: "Matte dark performance floor",
