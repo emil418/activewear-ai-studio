@@ -281,7 +281,7 @@ const Create = () => {
 
     for (let i = 0; i < angleNames.length; i++) {
       const angle = angleNames[i];
-      setLoadingMsg(3 + i); // "Generating front/side/back view..."
+      setLoadingMsg(3 + i); // "Generating front/side-left/side-right/back view..."
 
       const angleResp = await supabase.functions.invoke("generate-motion", {
         body: {
