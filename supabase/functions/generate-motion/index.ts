@@ -658,7 +658,7 @@ PHOTOREALISM REQUIREMENTS:
 - Skin must show natural pores, subtle sheen from exertion, realistic muscle definition under skin
 - Garment must show real fabric behavior: thread-level texture, natural drape, visible seam construction
 - Natural micro-details: slight fabric wrinkles at joints, compression shadows, stretch highlights
-- ${angle !== "front" ? `The ${angle} of the garment must be COMPLETELY PLAIN — no prints, text, or graphics` : "Faithfully reproduce existing prints/motifs from reference"}
+- ${angle !== "front" ? `The ${angle.replace("-", " ")} view of the garment must be COMPLETELY PLAIN — no prints, text, or graphics` : "Faithfully reproduce existing prints/motifs from reference"}
 - Dark studio background with 3-point professional lighting setup
 - This must be INDISTINGUISHABLE from a real photoshoot
 ${logoInstructions}`;
