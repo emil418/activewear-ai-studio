@@ -146,6 +146,9 @@ const Create = () => {
   const [runwayVideoUrl, setRunwayVideoUrl] = useState<string | null>(null);
   const runwayVideoRef = useRef<HTMLVideoElement>(null);
 
+  // Environment selection
+  const [selectedEnvironment, setSelectedEnvironment] = useState<Environment>(PREDEFINED_ENVIRONMENTS[0]);
+
   const { toast } = useToast();
   const { session: _session, user, authReady } = useAuth();
   const { influencerMode } = useInfluencerMode();
