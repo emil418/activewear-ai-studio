@@ -1203,6 +1203,30 @@ const Create = () => {
           </motion.div>
         )}
 
+        {/* STEP 3 — Environment */}
+        {step === 3 && (
+          <motion.div key="environment" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
+            <div>
+              <h2 className="font-display text-2xl font-bold tracking-tight mb-1">Choose your environment</h2>
+              <p className="text-sm text-muted-foreground">Select a studio or location — it will be locked across all outputs.</p>
+            </div>
+
+            <EnvironmentSelector selected={selectedEnvironment} onSelect={setSelectedEnvironment} />
+
+            <div className="glass-card p-4 space-y-2">
+              <div className="flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-primary" />
+                <p className="text-sm font-bold">Environment Lock</p>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                The selected environment becomes part of the Master Scene and will remain
+                <span className="text-primary font-semibold"> 100% identical</span> across all images, angles, and video frames.
+                No lighting changes, no background drift, no variation allowed.
+              </p>
+            </div>
+          </motion.div>
+        )}
+
         {/* STEP 4 — Generate */}
         {step === 4 && (
           <motion.div key="generate" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
