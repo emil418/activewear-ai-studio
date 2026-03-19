@@ -1356,13 +1356,13 @@ const Create = () => {
                 ))}
               </Tabs>
             ) : (
-              /* Single size: 3-angle grid */
-              <div className="grid grid-cols-3 gap-4">
+              /* Single size: 4-angle grid */
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 {ANGLES.map(angle => {
                   const imgSrc = getImageUrl(result, angle);
                   return (
                     <div key={angle} className="glass-card aspect-[3/4] rounded-2xl flex flex-col items-center justify-center relative overflow-hidden group cursor-pointer hover:border-primary/10 transition-all duration-500">
-                      <span className="absolute top-3 left-3 text-[10px] font-bold text-muted-foreground/40 uppercase tracking-wider">{angle}</span>
+                      <span className="absolute top-3 left-3 text-[10px] font-bold text-muted-foreground/40 uppercase tracking-wider">{ANGLE_LABELS[angle] || angle}</span>
                       {imgSrc ? (
                         <img src={imgSrc} alt={`${angle} view`} className="w-full h-full object-cover rounded-2xl" />
                       ) : (
