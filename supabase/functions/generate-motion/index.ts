@@ -39,6 +39,8 @@ interface MotionPhase {
   position: string;
   joints: string;
   weight: string;
+  spine: string;
+  balance: string;
 }
 
 interface ExerciseMotionDef {
@@ -48,128 +50,639 @@ interface ExerciseMotionDef {
   sceneRules: string[];
   camera: string;
   fabricCue: string;
+  bodyConstraints: string[];
+  objectPhysics: string[];
+  movementFlow: string;
 }
+
+// ── Motion Realism Preamble ──
+// Injected into every generation prompt to enforce physical plausibility
+const MOTION_REALISM_PREAMBLE = `MOTION REALISM ENGINE — MANDATORY CONSTRAINTS:
+
+BIOMECHANICAL ACCURACY (NON-NEGOTIABLE):
+- Every joint must be at a physically possible angle — no hyperextension beyond anatomical limits
+- The spine must maintain a neutral or naturally loaded curve appropriate to the exercise — NO unnatural bending, twisting, or S-curves that defy physics
+- Limb proportions must remain CONSTANT — arms and legs do not stretch, shrink, or change length
+- Shoulders, hips, knees, and ankles must maintain realistic proportional spacing
+- Muscle engagement must be visible and anatomically correct for the exercise phase shown
+- The athlete's center of gravity must be physically plausible — no floating or impossible balance
+
+BODY INTEGRITY (ZERO TOLERANCE FOR DISTORTION):
+- Head-to-body ratio must remain realistic (approximately 1:7.5 for adults)
+- Hands and feet must be correctly proportioned and naturally positioned
+- Fingers must be anatomically correct — 5 per hand, natural curl and grip
+- No rubber-band limbs, no melting joints, no impossible contortions
+- Weight-bearing limbs must show appropriate muscle tension and ground contact
+- Facial expression must match exertion level — not blank or relaxed during peak effort
+
+NATURAL MOVEMENT QUALITY:
+- The pose must look like a FREEZE-FRAME from a real video, not a mannequin placement
+- There must be visible momentum cues: slight motion blur direction, weight shift, dynamic tension
+- Hair, clothing, and loose elements must respond to the direction of movement
+- The athlete must look like they are IN the movement, not posing statically
+
+GRAVITY AND PHYSICS:
+- All objects and body parts must obey gravity — nothing floats without cause
+- Ground contact must show appropriate pressure: compressed shoes, floor shadow, weight distribution
+- Sweat and exertion signs must be proportional to intensity level`;
 
 const EXERCISE_DEFS: Record<string, ExerciseMotionDef> = {
   "squats": {
-    start: { position: "Standing upright, feet shoulder-width, arms at sides", joints: "Knees straight 180°, hips neutral", weight: "Centered on both feet" },
-    mid: { position: "Bending knees and hips, lowering body, torso slightly forward", joints: "Knees 120°, hips 110°", weight: "Shifting to heels" },
-    peak: { position: "Deep squat, thighs parallel, upright torso, arms forward for balance", joints: "Knees 75°, hips 70°", weight: "Deep into heels" },
+    start: {
+      position: "Standing upright, feet shoulder-width, arms at sides",
+      joints: "Knees straight 180°, hips neutral",
+      weight: "Centered on both feet",
+      spine: "Neutral lordotic curve, head stacked over pelvis",
+      balance: "Even bilateral weight distribution, stable base",
+    },
+    mid: {
+      position: "Bending knees and hips, lowering body, torso slightly forward",
+      joints: "Knees 120°, hips 110°, ankles dorsiflexed 15°",
+      weight: "Shifting to heels, knees tracking over toes",
+      spine: "Slight forward lean maintaining neutral curve, chest up",
+      balance: "Weight shifts posteriorly, core braced for stability",
+    },
+    peak: {
+      position: "Deep squat, thighs parallel, upright torso, arms forward for balance",
+      joints: "Knees 75°, hips 70°, ankles dorsiflexed 25°",
+      weight: "Deep into heels, tripod foot contact maintained",
+      spine: "Neutral spine maintained under load, thoracic extension",
+      balance: "Counterbalanced by arm position and torso angle",
+    },
     sceneRules: ["Both feet flat on ground", "No equipment", "Full body visible head to toe", "Body never leaves ground"],
     camera: "WIDE full-body shot, head to toe with generous space around athlete, slight low angle, stable tripod",
-    fabricCue: "Leggings stretch at quads and glutes, compression at knee crease — show how fabric performs under load",
+    fabricCue: "Leggings stretch at quads and glutes, compression at knee crease — fabric shows visible tension lines radiating from knee joint",
+    bodyConstraints: [
+      "Knees MUST track over toes — never cave inward (valgus collapse)",
+      "Heels MUST remain flat on ground throughout entire movement",
+      "Torso angle mirrors shin angle (parallel lines when viewed from side)",
+      "Hip crease MUST drop below knee line at peak depth",
+      "Arms counterbalance forward — never behind the body",
+    ],
+    objectPhysics: [],
+    movementFlow: "Controlled descent over 2 seconds, brief pause at depth, powerful drive upward through heels",
   },
   "push-ups": {
-    start: { position: "High plank, arms extended, body straight line from head to heels", joints: "Elbows straight, wrists under shoulders", weight: "Distributed between hands and toes" },
-    mid: { position: "Lowering chest toward ground, elbows bending outward, core tight", joints: "Elbows 90°, shoulders engaged", weight: "Shifting forward slightly" },
-    peak: { position: "Chest near floor, body rigid and straight, elbows bent", joints: "Elbows 45-60°, shoulders loaded", weight: "On hands and toes" },
+    start: {
+      position: "High plank, arms extended, body straight line from head to heels",
+      joints: "Elbows straight, wrists under shoulders",
+      weight: "Distributed between hands and toes",
+      spine: "Perfectly straight from crown to heels — no sag or pike",
+      balance: "Hands shoulder-width, fingers spread for stability",
+    },
+    mid: {
+      position: "Lowering chest toward ground, elbows bending outward, core tight",
+      joints: "Elbows 90°, shoulders engaged",
+      weight: "Shifting forward slightly",
+      spine: "Rigid plank maintained — glutes and core fully engaged",
+      balance: "Body moves as one unit, no hip drop or pike",
+    },
+    peak: {
+      position: "Chest near floor, body rigid and straight, elbows bent",
+      joints: "Elbows 45-60° from torso, shoulders loaded",
+      weight: "On hands and toes, chest 2-3 inches from floor",
+      spine: "Absolute plank integrity — hips level with shoulders and ankles",
+      balance: "Maximal anterior chain tension, scapulae retracted",
+    },
     sceneRules: ["Body on floor level", "No bench or elevated surface", "Full body visible from head to toes in profile", "Body forms straight line at all times"],
     camera: "WIDE full-body shot from low side angle showing entire body from head to toes, stable tripod, never crop any body part",
-    fabricCue: "Shirt stretches across upper back and shoulders, compresses at chest — garment behavior clearly visible",
+    fabricCue: "Shirt stretches across upper back and shoulders showing lat spread, compresses at chest showing pec engagement — visible tension across scapular region",
+    bodyConstraints: [
+      "Body forms ONE STRAIGHT LINE from head through hips to heels — no sagging hips, no piked hips",
+      "Elbows tuck at 45° from torso — not flared out at 90°",
+      "Head in neutral position — looking slightly ahead of hands, not dropped or craned up",
+      "Glutes and quads visibly engaged to maintain plank",
+      "Wrists directly under shoulders in start position",
+    ],
+    objectPhysics: [],
+    movementFlow: "Controlled 2-second lowering, brief chest-near-floor hold, explosive press to lockout",
   },
   "deadlifts": {
-    start: { position: "Standing behind barbell on floor, hinging at hips to grip bar, flat back, shoulders over bar", joints: "Hips hinged 80°, knees slightly bent 130°, spine neutral", weight: "Mid-foot, loaded into hamstrings" },
-    mid: { position: "Pulling barbell off ground, bar close to shins, back angle constant, driving through legs", joints: "Hips and knees extending together, bar past knees", weight: "Shifting from quads to posterior chain" },
-    peak: { position: "Full standing lockout, hips fully extended, barbell at hip level, glutes squeezed, chest tall, then controlled lower back to floor", joints: "Knees 180°, hips 180°, fully extended", weight: "Centered, stable at top" },
+    start: {
+      position: "Standing behind barbell on floor, hinging at hips to grip bar, flat back, shoulders over bar",
+      joints: "Hips hinged 80°, knees slightly bent 130°, spine neutral",
+      weight: "Mid-foot, loaded into hamstrings and glutes",
+      spine: "FLAT back — neutral lumbar curve, thoracic extension, NO rounding at any point",
+      balance: "Weight centered over mid-foot, shoulders slightly in front of bar",
+    },
+    mid: {
+      position: "Pulling barbell off ground, bar close to shins, back angle constant, driving through legs",
+      joints: "Hips and knees extending together, bar past knees",
+      weight: "Shifting from quads to posterior chain",
+      spine: "Back angle unchanged from start — spine angle maintained until bar passes knees",
+      balance: "Bar travels in straight vertical line close to body, center of pressure at mid-foot",
+    },
+    peak: {
+      position: "Full standing lockout, hips fully extended, barbell at hip level, glutes squeezed, chest tall",
+      joints: "Knees 180°, hips 180°, fully extended",
+      weight: "Centered, stable at top, bar resting against thighs",
+      spine: "Fully erect, shoulders retracted and depressed, proud chest",
+      balance: "Standing tall, weight evenly distributed, barbell balanced at arm's length",
+    },
     sceneRules: ["Barbell MUST be visible on the ground and in hands", "Barbell NEVER cut off at edges", "WIDE full-body shot head to toe", "Feet stay planted", "Bar travels close to body"],
     camera: "WIDE full-body shot from 30° side angle, head to toe with space around athlete, barbell fully visible, stable tripod",
-    fabricCue: "Fabric stretches at hamstrings and lower back during pull, shirt tightens across upper back at lockout — garment stretch clearly visible",
+    fabricCue: "Fabric stretches at hamstrings and lower back during pull, shirt tightens across upper back at lockout — compression visible at glute-hamstring junction",
+    bodyConstraints: [
+      "FLAT BACK is NON-NEGOTIABLE — spine must maintain neutral curve throughout entire lift",
+      "Bar MUST travel in a straight vertical line, staying within 1 inch of the body",
+      "Shoulders start slightly in front of bar, end directly over it at lockout",
+      "Hips and knees extend SIMULTANEOUSLY — not hips first (stripper deadlift)",
+      "At lockout: full hip extension, shoulders back, glutes squeezed — NOT leaning back",
+      "Feet flat, shoulder-width, toes slightly pointed out 15-30°",
+    ],
+    objectPhysics: [
+      "Barbell MUST appear heavy — plates cause slight flex in bar under load",
+      "Barbell grip shows white knuckles and forearm tension",
+      "Plates on each end are symmetric and identical",
+      "Bar height off ground is consistent with standard 45lb plate diameter",
+    ],
+    movementFlow: "Powerful pull from floor with leg drive, smooth transition past knees, hip snap to lockout, controlled descent maintaining bar contact with legs",
   },
   "lunges": {
-    start: { position: "Standing upright, feet hip-width apart", joints: "Knees straight, hips neutral", weight: "Centered" },
-    mid: { position: "One leg forward, both knees bending, lowering body", joints: "Front knee 110°, back knee 120°", weight: "Split between both feet" },
-    peak: { position: "Deep lunge, front thigh parallel, back knee near ground without touching", joints: "Front knee 90°, back knee 90°", weight: "60% front foot, 40% back foot" },
+    start: {
+      position: "Standing upright, feet hip-width apart",
+      joints: "Knees straight, hips neutral",
+      weight: "Centered",
+      spine: "Tall and neutral, shoulders over hips",
+      balance: "Stable bilateral stance",
+    },
+    mid: {
+      position: "One leg forward, both knees bending, lowering body",
+      joints: "Front knee 110°, back knee 120°",
+      weight: "Split between both feet",
+      spine: "Vertical torso — no forward lean, no lateral tilt",
+      balance: "60/40 weight split favoring front leg",
+    },
+    peak: {
+      position: "Deep lunge, front thigh parallel, back knee near ground without touching",
+      joints: "Front knee 90°, back knee 90°",
+      weight: "60% front foot, 40% back foot",
+      spine: "Perfectly vertical — crown of head directly over pelvis",
+      balance: "Hip-width stance maintained for lateral stability, core braced",
+    },
     sceneRules: ["No equipment", "Full body visible head to toe", "Feet on ground", "Upright torso"],
     camera: "WIDE full-body shot, head to toe with space for full stride length, stable tripod",
-    fabricCue: "Dramatic stretch at front quad and back hip flexor, compression at bent knee — garment performance clearly visible",
+    fabricCue: "Dramatic stretch at front quad and back hip flexor, compression at bent knee — fabric tension lines visible across hip joint",
+    bodyConstraints: [
+      "Front knee MUST track directly over front ankle — never past toes, never caving inward",
+      "Back knee descends straight down, nearly touching floor",
+      "Torso remains VERTICAL — no forward lean or lateral tilt",
+      "Hips remain square (facing forward), not rotating",
+      "Front shin approximately vertical from side view",
+    ],
+    objectPhysics: [],
+    movementFlow: "Controlled step forward, smooth descent to 90/90, powerful drive back to standing through front heel",
   },
   "pull-ups": {
-    start: { position: "Athlete hanging from a horizontal pull-up bar above, arms fully extended overhead, hands gripping bar slightly wider than shoulder width, body vertical, feet slightly behind body", joints: "Shoulders fully extended, elbows straight 180°", weight: "Hanging from hands, body suspended" },
-    mid: { position: "Athlete pulling body upward, elbows bending naturally, chest approaching the bar, body remaining vertical", joints: "Elbows 110°, shoulders adducting", weight: "Pulling upward through grip" },
-    peak: { position: "Chin above the bar, elbows fully bent, shoulders engaged and depressed, body controlled and stable", joints: "Elbows 45°, shoulders fully contracted", weight: "Suspended at top of pull" },
+    start: {
+      position: "Athlete hanging from a horizontal pull-up bar above, arms fully extended overhead, hands gripping bar slightly wider than shoulder width, body vertical, feet slightly behind body",
+      joints: "Shoulders fully extended, elbows straight 180°",
+      weight: "Hanging from hands, body suspended",
+      spine: "Slight hollow body position — lats engaged, shoulders packed down away from ears",
+      balance: "Dead hang with controlled body — no swinging, no kipping",
+    },
+    mid: {
+      position: "Athlete pulling body upward, elbows bending naturally, chest approaching the bar, body remaining vertical",
+      joints: "Elbows 110°, shoulders adducting and depressing",
+      weight: "Pulling upward through grip",
+      spine: "Slight thoracic extension as chest drives toward bar",
+      balance: "Controlled vertical pull — no swinging momentum, no knee drive",
+    },
+    peak: {
+      position: "Chin above the bar, elbows fully bent, shoulders engaged and depressed, body controlled and stable",
+      joints: "Elbows 45°, shoulders fully contracted, scapulae squeezed",
+      weight: "Suspended at top of pull",
+      spine: "Proud chest, slight back arch, chin clearing bar",
+      balance: "Peak contraction hold — body still, no momentum",
+    },
     sceneRules: ["Pull-up bar MUST be above the athlete", "Athlete MUST hang below the bar", "Bar must NEVER appear behind the neck", "Body must NEVER stand on the floor during the movement", "Full body ALWAYS visible from bar to hanging feet"],
     camera: "WIDE full-body vertical shot showing bar at top and feet at bottom with generous space, stable camera, never crop bar or feet",
-    fabricCue: "Back of shirt stretches dramatically showing lat engagement, sleeves compress around biceps — garment stretch clearly visible",
+    fabricCue: "Back of shirt stretches dramatically showing lat engagement and V-taper, sleeves compress around biceps showing peak contraction — visible tension across entire posterior chain of garment",
+    bodyConstraints: [
+      "Arms pull VERTICALLY — elbows drive down and back, not forward",
+      "Body remains vertical — no horizontal swinging or kipping",
+      "Shoulders depress FIRST (pull down from ears), then elbows bend",
+      "At top: chin above bar, chest close to bar, lats fully contracted",
+      "Grip is overhand (pronated), slightly wider than shoulders",
+      "Legs remain relatively straight or slightly crossed — no knee drive for momentum",
+    ],
+    objectPhysics: [
+      "Pull-up bar is FIXED, horizontal, and rigid — does not bend or flex",
+      "Bar is positioned high enough for full arm extension without feet touching ground",
+      "Hands show white-knuckle grip tension, forearms visibly engaged",
+    ],
+    movementFlow: "Dead hang start, shoulder depression initiation, smooth pull through mid-range, controlled chin-over-bar peak, slow eccentric lowering to full hang",
   },
   "bench press": {
-    start: { position: "Athlete lying flat on a weight bench, feet flat on floor, hands gripping barbell above chest at full arm extension, shoulder blades pinched together, slight arch in lower back", joints: "Elbows locked out, wrists stacked directly over elbows", weight: "Bar supported at full extension above chest" },
-    mid: { position: "Lowering barbell with control toward lower chest, elbows at 45° angle from torso, bar descending slowly, athlete lying on bench", joints: "Elbows 90°, shoulders externally rotated, deep pec stretch", weight: "Bar descending under control to chest" },
-    peak: { position: "Explosive press upward, driving barbell off chest, arms extending fully to lockout, athlete still lying flat on bench", joints: "Full elbow extension, chest contracted, bar stable overhead", weight: "Pressing through palms, driving weight upward" },
+    start: {
+      position: "Athlete lying flat on a weight bench, feet flat on floor, hands gripping barbell above chest at full arm extension, shoulder blades pinched together, slight arch in lower back",
+      joints: "Elbows locked out, wrists stacked directly over elbows",
+      weight: "Bar supported at full extension above chest",
+      spine: "Natural arch in lower back, upper back firmly pressed into bench, shoulder blades retracted and depressed",
+      balance: "Five-point contact: head, upper back, glutes on bench; both feet flat on floor",
+    },
+    mid: {
+      position: "Lowering barbell with control toward lower chest, elbows at 45° angle from torso, bar descending slowly, athlete lying on bench",
+      joints: "Elbows 90°, shoulders externally rotated, deep pec stretch",
+      weight: "Bar descending under control to chest",
+      spine: "Arch maintained, shoulder blades remain pinched, stable base",
+      balance: "Feet driving into floor for leg drive, glutes on bench",
+    },
+    peak: {
+      position: "Explosive press upward, driving barbell off chest, arms extending fully to lockout, athlete still lying flat on bench",
+      joints: "Full elbow extension, chest contracted, bar stable overhead",
+      weight: "Pressing through palms, driving weight upward",
+      spine: "Maintained arch, bar path curves slightly back toward face at lockout",
+      balance: "Leg drive through feet, stable five-point contact maintained throughout",
+    },
     sceneRules: ["Weight bench MUST be visible underneath athlete", "Barbell MUST be visible in hands and NEVER cut off", "Athlete MUST be lying on back on bench", "NEVER standing", "NEVER in plank or push-up position", "Feet flat on floor beside bench", "ENTIRE body visible from head to feet including full barbell length"],
     camera: "WIDE full-body shot from slight side angle showing ENTIRE athlete lying on bench from head to feet, barbell fully visible end to end, never crop any part of body or equipment",
-    fabricCue: "Shirt stretches across chest during press, fabric tightens at shoulders under load — garment compression clearly visible",
+    fabricCue: "Shirt stretches across chest during press showing pec engagement, fabric tightens at shoulders under load — compression visible at anterior deltoids",
+    bodyConstraints: [
+      "Athlete is LYING HORIZONTALLY on bench — NEVER standing, sitting, or in push-up position",
+      "Five-point contact maintained: head, upper back, glutes on bench; both feet on floor",
+      "Shoulder blades pinched together and pressed into bench — creates natural thoracic arch",
+      "Elbows at 45° from torso — not flared at 90° (shoulder injury position)",
+      "Bar touches lower chest (nipple line), NOT upper chest or neck",
+      "At lockout: bar is over shoulder joint, not over face or belly",
+      "Wrists straight and stacked over elbows — no wrist flexion",
+    ],
+    objectPhysics: [
+      "Barbell shows slight flex under load — not rigid like a broomstick",
+      "Weight plates are symmetric on both ends, identical sizes",
+      "Bench is flat, stable, and at correct height (feet flat on floor, thighs roughly parallel)",
+      "Barbell grip shows chalk marks or knurling contact, firm grip tension",
+    ],
+    movementFlow: "Controlled unrack, slow 2-second descent to chest, brief touch-and-go at chest, explosive drive to lockout with slight J-curve bar path",
   },
   "sprint": {
-    start: { position: "Standing tall, ready position, slight forward lean", joints: "Neutral standing", weight: "Balls of feet" },
-    mid: { position: "Sprinting in place, one knee driving high, opposite arm pumping", joints: "Drive knee 90°, opposite elbow 90°", weight: "Alternating single-leg" },
-    peak: { position: "Maximum knee drive, explosive arm pump, powerful stride", joints: "Knee at maximum height, full arm extension", weight: "Single-leg power drive" },
+    start: {
+      position: "Standing tall, ready position, slight forward lean",
+      joints: "Neutral standing",
+      weight: "Balls of feet",
+      spine: "Slight forward lean from ankles, straight line from ear to ankle",
+      balance: "Athletic ready position, weight forward",
+    },
+    mid: {
+      position: "Sprinting, one knee driving high, opposite arm pumping forward",
+      joints: "Drive knee 90° hip flexion, opposite elbow 90° driving forward",
+      weight: "Single-leg stance phase, powerful ground contact",
+      spine: "Slight forward lean maintained, torso stable and not rotating",
+      balance: "Contralateral arm-leg coordination, core stabilizing rotation",
+    },
+    peak: {
+      position: "Maximum knee drive, explosive arm pump, powerful stride",
+      joints: "Knee at maximum height (thigh parallel or above), full arm extension behind",
+      weight: "Explosive single-leg power drive through ball of foot",
+      spine: "Forward lean 15-20° from vertical, rigid torso",
+      balance: "Dynamic single-leg balance at peak drive, ground reaction force visible",
+    },
     sceneRules: ["Running in place", "No treadmill", "No equipment", "Full body visible head to toe"],
     camera: "WIDE full-body shot, head to toe with space for arm swing, stable tripod",
-    fabricCue: "Intense fabric ripple and bounce with each explosive stride — garment motion clearly visible",
+    fabricCue: "Intense fabric ripple and bounce with each explosive stride, shorts flutter with leg drive — garment shows dynamic movement response",
+    bodyConstraints: [
+      "Arm-leg coordination is CONTRALATERAL: right knee up = left arm forward",
+      "Arms pump forward-back along the body — NOT across the midline",
+      "Hands relaxed (not clenched fists), elbows at 90°",
+      "Dorsiflexed ankle on drive leg (toe pulled up toward shin)",
+      "Support foot contacts ground under center of mass, not ahead",
+    ],
+    objectPhysics: [],
+    movementFlow: "Explosive, rhythmic alternation with visible power generation from hip drive and arm coordination",
   },
   "burpees": {
-    start: { position: "Standing upright, arms at sides", joints: "Neutral standing", weight: "Centered" },
-    mid: { position: "In plank position, body straight, arms extended, about to perform push-up", joints: "Shoulders over wrists, body rigid", weight: "Hands and toes" },
-    peak: { position: "Explosive jump upward, arms reaching overhead, body fully extended in air", joints: "Full extension, arms overhead", weight: "Airborne" },
+    start: {
+      position: "Standing upright, arms at sides",
+      joints: "Neutral standing",
+      weight: "Centered",
+      spine: "Tall and neutral",
+      balance: "Stable bilateral stance",
+    },
+    mid: {
+      position: "In plank position, body straight, arms extended, about to perform push-up",
+      joints: "Shoulders over wrists, body rigid, elbows locked",
+      weight: "Hands and toes",
+      spine: "Perfect plank — straight line from head to heels",
+      balance: "Stable four-point contact, core braced",
+    },
+    peak: {
+      position: "Explosive jump upward, arms reaching overhead, body fully extended in air",
+      joints: "Full triple extension (ankles, knees, hips), arms overhead",
+      weight: "Airborne at peak height",
+      spine: "Fully extended vertical, slight back extension at peak",
+      balance: "Airborne, body aligned vertically, prepared for soft landing",
+    },
     sceneRules: ["No equipment", "Full body visible with generous headroom for jump", "Clear floor space"],
     camera: "WIDE full-body shot from slight side angle, head to toe with extra headroom for jump, stable tripod",
-    fabricCue: "Maximum fabric dynamics, stretch at back in plank, compression at chest in push-up, stretch during jump — garment behavior visible throughout",
+    fabricCue: "Maximum fabric dynamics: stretch at back in plank, compression at chest in push-up phase, stretch and flutter during explosive jump — garment behavior changes with each phase",
+    bodyConstraints: [
+      "Plank phase: body is ONE STRAIGHT LINE — no hip sag or pike",
+      "Jump phase: full triple extension before feet leave ground",
+      "Landing: soft knees, absorbing impact, not stiff-legged",
+      "Transitions are fluid: squat-thrust to plank is one smooth motion",
+    ],
+    objectPhysics: [],
+    movementFlow: "Standing → squat down hands to floor → thrust back to plank → push-up → thrust forward to squat → explosive vertical jump → soft landing",
   },
   "high knees": {
-    start: { position: "Standing tall, arms ready", joints: "Neutral", weight: "Centered" },
-    mid: { position: "One knee driving up toward chest, opposite arm pumping", joints: "Drive knee 90° hip flexion", weight: "Single-leg stance" },
-    peak: { position: "Knee at chest height, rapid alternating rhythm", joints: "Maximum hip flexion, knee tucked", weight: "Quick alternating" },
+    start: {
+      position: "Standing tall, arms ready at 90° elbow bend",
+      joints: "Neutral standing, elbows 90°",
+      weight: "Balls of feet",
+      spine: "Tall and vertical, slight forward lean",
+      balance: "Athletic ready stance",
+    },
+    mid: {
+      position: "One knee driving up toward chest, opposite arm pumping forward",
+      joints: "Drive knee 90° hip flexion, opposite arm forward",
+      weight: "Single-leg stance, bouncing rhythm",
+      spine: "Vertical torso, no forward fold",
+      balance: "Rapid alternating single-leg balance",
+    },
+    peak: {
+      position: "Knee at chest height, rapid alternating rhythm, arms pumping",
+      joints: "Maximum hip flexion 90°+, knee tucked tight",
+      weight: "Quick alternating ground contact on balls of feet",
+      spine: "Upright — torso does NOT fold forward to meet the knee",
+      balance: "Fast rhythmic alternation with controlled upper body",
+    },
     sceneRules: ["No equipment", "Standing in place", "Full body visible head to toe"],
     camera: "WIDE full-body shot, head to toe with space around athlete, stable tripod",
-    fabricCue: "Leggings stretch at hip with each knee drive, shirt bounces — garment motion clearly visible",
+    fabricCue: "Leggings stretch at hip with each knee drive, shirt bounces with rhythm — garment shows rapid dynamic response",
+    bodyConstraints: [
+      "Torso stays UPRIGHT — the knee comes up to the chest, the chest does NOT come down to the knee",
+      "Arm-leg coordination is contralateral: right knee = left arm forward",
+      "Ground contact is on balls of feet only, heels never touch",
+      "Movement is VERTICAL, not forward-leaning",
+    ],
+    objectPhysics: [],
+    movementFlow: "Fast rhythmic alternating knee drives with arm pumps, staying tall and bouncy on balls of feet",
   },
   "box jumps": {
-    start: { position: "Athletic quarter squat facing a plyometric box, arms drawn back, coiling to explode", joints: "Knees 130°, hips 120°, ankles loaded", weight: "Balls of feet, loading posterior chain" },
-    mid: { position: "Explosive triple extension, body launching upward, knees tucking to clear box", joints: "Full extension then rapid knee tuck", weight: "Airborne, traveling upward" },
-    peak: { position: "Landing softly on top of the box in athletic squat, absorbing impact, then standing tall on box", joints: "Knees 100°, absorbing impact, then full stand", weight: "Soft landing through mid-foot on box surface" },
+    start: {
+      position: "Athletic quarter squat facing a plyometric box, arms drawn back, coiling to explode",
+      joints: "Knees 130°, hips 120°, ankles loaded",
+      weight: "Balls of feet, loading posterior chain",
+      spine: "Slight forward lean, neutral spine, eyes on box top",
+      balance: "Weight loaded in legs, countermovement arm swing back",
+    },
+    mid: {
+      position: "Explosive triple extension, body launching upward, knees tucking to clear box",
+      joints: "Full extension then rapid knee tuck, arms driving overhead",
+      weight: "Airborne, traveling upward",
+      spine: "Extending through jump, then flexing for knee tuck",
+      balance: "Airborne trajectory aimed at box center",
+    },
+    peak: {
+      position: "Landing softly on top of the box in athletic squat, absorbing impact, then standing tall on box",
+      joints: "Knees 100° on landing, absorbing impact, then full stand",
+      weight: "Soft landing through mid-foot on box surface",
+      spine: "Absorbing impact with slight forward lean, then standing tall",
+      balance: "Stable landing on box surface, both feet planted",
+    },
     sceneRules: ["Plyometric box or platform MUST be visible", "Athlete jumps ONTO the box", "WIDE full-body shot head to toe with headroom", "Box fully visible"],
     camera: "WIDE full-body shot from slight side angle, head to toe including box, generous headroom, stable tripod",
-    fabricCue: "Strong fabric stretch during loading crouch, visible compression at knees on soft landing — garment performance clearly visible",
+    fabricCue: "Strong fabric stretch during loading crouch, visible compression at knees on soft landing — garment reacts to explosive force then deceleration",
+    bodyConstraints: [
+      "Takeoff uses FULL triple extension: ankles, knees, and hips all fully extend before feet leave ground",
+      "Landing is SOFT: knees bend to absorb, not stiff-legged",
+      "Arms drive upward to assist jump, then stabilize on landing",
+      "Feet land SIMULTANEOUSLY on box — not one foot at a time",
+      "Box height is realistic — approximately knee to hip height",
+    ],
+    objectPhysics: [
+      "Plyometric box is SOLID, stable, and does not move on landing",
+      "Box surface is flat and at consistent height",
+      "Box shows realistic material: rubber-topped wood or foam",
+    ],
+    movementFlow: "Countermovement arm swing → explosive triple extension → tuck knees to clear box → soft bilateral landing on box → stand tall",
   },
   "squat jumps": {
-    start: { position: "Standing, then dropping into full squat", joints: "Knees 75°, deep squat", weight: "Deep in heels" },
-    mid: { position: "Exploding upward from squat, body extending", joints: "Rapidly extending all joints", weight: "Driving through feet" },
-    peak: { position: "Fully airborne, body extended, arms reaching up", joints: "Full extension in air", weight: "Airborne" },
+    start: {
+      position: "Standing, then dropping into full squat",
+      joints: "Knees 75°, deep squat, ankles dorsiflexed",
+      weight: "Deep in heels, loaded for explosion",
+      spine: "Neutral, slight forward lean at bottom of squat",
+      balance: "Loaded bilateral stance, arms back for countermovement",
+    },
+    mid: {
+      position: "Exploding upward from squat, body extending rapidly",
+      joints: "Rapidly extending all joints: ankles, knees, hips simultaneously",
+      weight: "Driving through feet, about to leave ground",
+      spine: "Extending from forward lean to vertical as body launches",
+      balance: "Transitioning from bilateral ground contact to airborne",
+    },
+    peak: {
+      position: "Fully airborne, body extended, arms reaching up",
+      joints: "Full triple extension in air, ankles plantar-flexed (toes pointed down)",
+      weight: "Airborne at peak height",
+      spine: "Fully extended vertical, slight back extension",
+      balance: "Airborne, aligned vertically, arms overhead for height",
+    },
     sceneRules: ["No equipment", "Full body visible head to toe with headroom for jump", "Feet leave ground"],
     camera: "WIDE full-body shot, head to toe with generous headroom, stable tripod",
-    fabricCue: "Maximum legging stretch at squat bottom, fabric stretches along legs during jump — garment behavior clearly visible",
+    fabricCue: "Maximum legging stretch at squat bottom, fabric stretches along legs during jump — garment shows loading and explosive release",
+    bodyConstraints: [
+      "Full squat depth before jump — thighs parallel or below",
+      "Triple extension drives the jump: ankles, knees, hips ALL extend",
+      "Arms swing from behind to overhead to assist jump height",
+      "Toes point down at peak height (plantar flexion)",
+      "Landing is soft with knees bending to absorb — never stiff-legged",
+    ],
+    objectPhysics: [],
+    movementFlow: "Deep squat loading → explosive arm swing and triple extension → maximum height airborne → soft landing absorbing into next squat",
   },
   "kettlebell swings": {
-    start: { position: "Wide stance, hinged at hips, kettlebell held with both hands between legs, back flat", joints: "Hips deeply hinged, knees slightly bent, spine neutral", weight: "Posterior loaded, weight in heels" },
-    mid: { position: "Explosive hip drive forward, snapping hips, swinging kettlebell upward with momentum from hips", joints: "Hips extending rapidly, knees straightening", weight: "Driving through heels, weight transferring forward" },
-    peak: { position: "Standing tall, kettlebell at chest or eye height, hips fully locked out, then controlled swing back down", joints: "Full hip extension, arms relaxed at shoulder height, glutes squeezed", weight: "Centered and tall, kettlebell floating at peak" },
+    start: {
+      position: "Wide stance, hinged at hips, kettlebell held with both hands between legs, back flat",
+      joints: "Hips deeply hinged 80°, knees slightly bent 20°, spine neutral",
+      weight: "Posterior loaded, weight in heels, hamstrings on stretch",
+      spine: "FLAT back — neutral lumbar, thoracic extension, gaze 6 feet ahead on floor",
+      balance: "Weight back in hips, kettlebell behind knee line in backswing",
+    },
+    mid: {
+      position: "Explosive hip drive forward, snapping hips, swinging kettlebell upward with momentum from hips",
+      joints: "Hips extending rapidly, knees straightening, arms passive",
+      weight: "Driving through heels, weight transferring forward with hip snap",
+      spine: "Rapidly extending from hinged to vertical with hip power",
+      balance: "Hip drive creates momentum — arms are passive, not pulling",
+    },
+    peak: {
+      position: "Standing tall, kettlebell at chest or eye height, hips fully locked out",
+      joints: "Full hip extension, arms relaxed at shoulder height, glutes squeezed",
+      weight: "Centered and tall, kettlebell floating at peak of arc",
+      spine: "Fully erect, glutes locked, slight posterior pelvic tilt",
+      balance: "Standing tall with kettlebell at weightless peak before descent",
+    },
     sceneRules: ["Kettlebell MUST be visible in hands and NEVER cut off", "WIDE full-body shot head to toe", "Hip-driven explosive movement", "Smooth pendulum arc"],
     camera: "WIDE full-body shot from slight side angle, head to toe showing kettlebell arc, never crop equipment, stable tripod",
-    fabricCue: "Dramatic fabric movement with each swing cycle, shirt rides during deep hinge — garment motion clearly visible",
+    fabricCue: "Dramatic fabric movement with each swing cycle: shirt rides up during deep hinge, pulls down at lockout — garment responds to explosive hip extension",
+    bodyConstraints: [
+      "This is a HIP HINGE — not a squat. Hips go BACK, minimal knee bend",
+      "Arms are PASSIVE PENDULUMS — the hips power the swing, not the shoulders",
+      "At the top: glutes SQUEEZED, body forms straight vertical line",
+      "Kettlebell floats at peak — there is a brief weightless moment",
+      "Flat back ALWAYS — never rounded lumbar at any point",
+      "Eyes look forward (not up or down) — gaze follows kettlebell naturally",
+    ],
+    objectPhysics: [
+      "Kettlebell follows smooth PENDULUM ARC — not jerky or linear",
+      "Kettlebell handle orientation changes naturally through the swing arc",
+      "Kettlebell shows realistic weight: arms show tension, grip is firm",
+      "The bell portion hangs below the handle at all times",
+    ],
+    movementFlow: "Backswing hinge → explosive hip snap → kettlebell floats to chest height → controlled fall back between legs → repeat",
   },
   "jump rope": {
-    start: { position: "Standing tall, holding jump rope handles, elbows close to body at 90°, wrists ready to rotate", joints: "Elbows 90° close to ribs, wrists active, slight knee bend", weight: "Balls of feet, light and bouncy" },
-    mid: { position: "Rope rotating overhead and under feet, small bounces on balls of feet, wrists driving rotation", joints: "Ankles extending with each hop, knees softly bending, wrists spinning rope", weight: "Light bounces, barely leaving ground" },
-    peak: { position: "Fast rhythmic jumping, rope visibly rotating around body, feet clearing rope each revolution", joints: "Rapid ankle-driven bounces, minimal knee bend, fast wrist rotation", weight: "Light, rhythmic, athletic cadence" },
+    start: {
+      position: "Standing tall, holding jump rope handles, elbows close to body at 90°, wrists ready to rotate",
+      joints: "Elbows 90° close to ribs, wrists active, slight knee bend",
+      weight: "Balls of feet, light and bouncy",
+      spine: "Tall, vertical, head neutral, looking forward",
+      balance: "Light on feet, ready to bounce, minimal ground contact time",
+    },
+    mid: {
+      position: "Rope rotating overhead and under feet, small bounces on balls of feet, wrists driving rotation",
+      joints: "Ankles extending with each hop, knees softly bending, wrists spinning rope",
+      weight: "Light bounces, barely leaving ground, 1-2 inches of air",
+      spine: "Vertical and stable — torso does not bounce or lean",
+      balance: "Feet together, bouncing in rhythm, arms still and close to body",
+    },
+    peak: {
+      position: "Fast rhythmic jumping, rope visibly rotating around body, feet clearing rope each revolution",
+      joints: "Rapid ankle-driven bounces, minimal knee bend, fast wrist rotation",
+      weight: "Light, rhythmic, athletic cadence on balls of feet",
+      spine: "Perfectly still upper body — only wrists and ankles move significantly",
+      balance: "Relaxed rhythm, minimal energy expenditure per jump, efficient movement",
+    },
     sceneRules: ["Jump rope MUST be visible rotating around the athlete", "WIDE full-body shot head to toe with space for rope arc", "Rhythmic athletic movement"],
     camera: "WIDE full-body shot, head to toe with space for rope arc, stable tripod",
-    fabricCue: "Shirt bounces with each hop, calves visible working with each jump — garment behavior clearly visible",
+    fabricCue: "Shirt bounces with each hop, calves visible working — garment shows light repetitive bouncing motion",
+    bodyConstraints: [
+      "Arms stay CLOSE to body — elbows at ribs, only wrists rotate",
+      "Jumps are SMALL (1-2 inches) — not exaggerated high jumps",
+      "Landing is on BALLS OF FEET only — heels never touch ground",
+      "Upper body is STILL — all visible movement is wrists and feet",
+      "Body stays vertical — no leaning forward or backward",
+    ],
+    objectPhysics: [
+      "Jump rope forms smooth circular arc around the body",
+      "Rope shows natural curve from gravity — not rigid straight lines",
+      "Handles are held at hip height, rope passes overhead and under feet",
+      "Rope speed is realistic: visible but slightly blurred in motion",
+    ],
+    movementFlow: "Light rhythmic bouncing on balls of feet with wrist-driven rope rotation, steady cadence like a metronome",
   },
   "running": {
-    start: { position: "Standing in running position, slight forward lean", joints: "Neutral", weight: "Balls of feet" },
-    mid: { position: "Jogging in place, alternating knee drives, opposite arm swing", joints: "Knee 90° hip flexion, elbow 90°", weight: "Alternating single-leg" },
-    peak: { position: "Full running stride, high knee drive, powerful arm pump", joints: "Maximum knee lift, full arm swing", weight: "Dynamic single-leg" },
+    start: {
+      position: "Standing in running position, slight forward lean",
+      joints: "Neutral standing, arms at 90° ready",
+      weight: "Balls of feet, forward lean from ankles",
+      spine: "Slight forward lean, straight line from ear through hip to ankle",
+      balance: "Ready athletic stance",
+    },
+    mid: {
+      position: "Jogging, alternating knee drives, opposite arm swing",
+      joints: "Knee 90° hip flexion, elbow 90° in arm swing",
+      weight: "Alternating single-leg ground contact on mid-foot",
+      spine: "Stable, minimal rotation, slight forward lean maintained",
+      balance: "Contralateral arm-leg coordination for rotational stability",
+    },
+    peak: {
+      position: "Full running stride, high knee drive, powerful arm pump",
+      joints: "Maximum knee lift, full arm swing forward-back",
+      weight: "Dynamic single-leg stance, mid-foot strike",
+      spine: "Stable and forward-leaning, core preventing excessive rotation",
+      balance: "Dynamic single-leg balance with arm counterbalance",
+    },
     sceneRules: ["Running in place", "No treadmill", "No equipment", "Full body visible head to toe"],
     camera: "WIDE full-body shot, head to toe with space for arm swing, stable tripod",
-    fabricCue: "Shirt bounces with each stride, leggings flex at knees and hips — garment motion clearly visible",
+    fabricCue: "Shirt bounces with each stride, leggings flex at knees and hips — garment shows rhythmic running dynamics",
+    bodyConstraints: [
+      "Contralateral coordination: right leg forward = left arm forward",
+      "Arms swing FORWARD-BACK, not across the body midline",
+      "Foot strikes under center of mass, not out in front (no overstriding)",
+      "Relaxed hands — no clenched fists",
+      "Head stable and level — not bobbing excessively",
+    ],
+    objectPhysics: [],
+    movementFlow: "Rhythmic alternating stride with efficient arm pump, foot contact under center of mass, forward lean from ankles",
   },
   "jumping": {
-    start: { position: "Quarter squat, arms drawn back", joints: "Knees 130°, hips 120°", weight: "Balls of feet" },
-    mid: { position: "Exploding upward, arms driving overhead", joints: "Full extension through ankles, knees, hips", weight: "Leaving ground" },
-    peak: { position: "Fully airborne, body extended, arms overhead", joints: "Full body extension", weight: "Airborne" },
-    sceneRules: ["No equipment", "Full body visible head to toe with headroom", "Clean jump"],
+    start: {
+      position: "Quarter squat, arms drawn back for countermovement",
+      joints: "Knees 130°, hips 120°, ankles loaded",
+      weight: "Balls of feet, loading for explosion",
+      spine: "Slight forward lean, loading position",
+      balance: "Bilateral loaded stance, arms back",
+    },
+    mid: {
+      position: "Exploding upward, arms driving overhead powerfully",
+      joints: "Full triple extension: ankles, knees, hips extending simultaneously",
+      weight: "Leaving ground, driving upward",
+      spine: "Extending to fully vertical during launch",
+      balance: "Bilateral launch, symmetric force production",
+    },
+    peak: {
+      position: "Fully airborne, body extended, arms overhead at maximum height",
+      joints: "Full body extension, toes pointed down",
+      weight: "Airborne at peak",
+      spine: "Fully extended, slight back extension at peak",
+      balance: "Airborne, vertically aligned, arms reaching maximum height",
+    },
+    sceneRules: ["No equipment", "Full body visible head to toe with headroom", "Clean vertical jump"],
     camera: "WIDE full-body shot, head to toe with generous headroom, stable tripod",
-    fabricCue: "Fabric compresses at crouch, stretches during jump, ripples on landing — garment behavior clearly visible",
+    fabricCue: "Fabric compresses at squat loading, stretches during explosive jump, ripples on landing — garment shows full force-response cycle",
+    bodyConstraints: [
+      "Countermovement arm swing is essential for maximum jump height",
+      "Triple extension (ankles, knees, hips) must be COMPLETE before feet leave ground",
+      "Toes point down at peak (plantar flexion)",
+      "Landing absorbs impact through knees — NEVER stiff-legged",
+      "Jump is VERTICAL — minimal forward or backward drift",
+    ],
+    objectPhysics: [],
+    movementFlow: "Countermovement squat with arm swing → explosive triple extension → vertical launch → peak height → soft bilateral landing",
+  },
+  "battle ropes": {
+    start: {
+      position: "Athletic half-squat stance, gripping one rope end in each hand, arms extended toward anchor point",
+      joints: "Knees 120°, hips 110°, elbows slightly bent, shoulders engaged",
+      weight: "Athletic base, weight in heels, squat stance",
+      spine: "Neutral with slight forward lean, core braced",
+      balance: "Wide stable base, lower body anchored",
+    },
+    mid: {
+      position: "Alternating arm waves, creating undulating waves in the ropes, lower body stable",
+      joints: "Shoulders alternating flexion/extension, elbows slightly bent, knees stable",
+      weight: "Anchored in legs, upper body generating force",
+      spine: "Stable core, minimal rotation, slight forward lean maintained",
+      balance: "Lower body provides stable platform for upper body power",
+    },
+    peak: {
+      position: "Maximum wave amplitude, ropes showing dramatic undulation, powerful arm drives",
+      joints: "Full shoulder range of motion, rapid alternation, core fully engaged",
+      weight: "Explosive arm drives while maintaining squat base",
+      spine: "Rigid core transfers force from legs through arms to ropes",
+      balance: "Athletic base absorbs reactive forces from rope waves",
+    },
+    sceneRules: ["Battle ropes MUST be visible extending from hands to anchor point", "WIDE shot showing full rope length", "Rope anchor visible", "Athletic squat stance"],
+    camera: "WIDE full-body shot from front or slight angle, showing full rope length, stable tripod",
+    fabricCue: "Shirt shows rapid dynamic movement at shoulders and arms, lower body garment stable — contrast between upper and lower body fabric behavior",
+    bodyConstraints: [
+      "Lower body is ANCHORED in athletic squat — does not bounce or stand up",
+      "Arms alternate in rhythm — creating wave pattern in ropes",
+      "Core is BRACED to prevent torso rotation",
+      "Grip is firm but not death-grip — forearms show engagement",
+      "Waves originate from SHOULDER MOVEMENT, not just arm flapping",
+    ],
+    objectPhysics: [
+      "Ropes show realistic WAVE PATTERN — smooth sinusoidal undulation",
+      "Waves travel FROM hands TOWARD the anchor point",
+      "Rope thickness and weight appear consistent along length",
+      "Anchor point is fixed and stable — ropes are attached securely",
+      "Rope sag is realistic — showing the weight of the ropes between waves",
+    ],
+    movementFlow: "Stable squat base → alternating powerful arm drives → rhythmic wave propagation through ropes → continuous athletic cadence",
   },
 };
 
@@ -179,10 +692,16 @@ function buildPoseInstructions(movement: string, angle: string): string {
   const def = EXERCISE_DEFS[key];
 
   if (!def) {
-    return `The athlete performs ${movement} with smooth, natural, biomechanically correct form. Full body must be visible head to toe. No equipment.`;
+    return `${MOTION_REALISM_PREAMBLE}
+
+The athlete performs ${movement} with smooth, natural, biomechanically correct form. Full body must be visible head to toe. No equipment. The pose must look like a freeze-frame from real training footage.`;
   }
 
   const sceneStr = def.sceneRules.join(". ");
+  const constraintStr = def.bodyConstraints.join("\n• ");
+  const objectStr = def.objectPhysics.length > 0
+    ? `\nOBJECT PHYSICS (MANDATORY):\n• ${def.objectPhysics.join("\n• ")}`
+    : "";
 
   // Angle-specific pose reinforcement for exercises where body orientation is critical
   let angleReinforcement = "";
@@ -202,19 +721,31 @@ function buildPoseInstructions(movement: string, angle: string): string {
     angleReinforcement = `\nANGLE-SPECIFIC (${angleLabel} VIEW): Athlete is in HORIZONTAL plank/push-up position on the FLOOR. Body is PARALLEL to the ground, NOT standing, NOT sitting. Camera shows ${angleLabel.toLowerCase()} of the athlete on the floor.`;
   }
 
-  return `BIOMECHANICAL MOVEMENT DEFINITION for ${movement}:
-START POSITION: ${def.start.position}. Joints: ${def.start.joints}. Weight: ${def.start.weight}.
-MID MOVEMENT: ${def.mid.position}. Joints: ${def.mid.joints}. Weight: ${def.mid.weight}.
-PEAK POSITION: ${def.peak.position}. Joints: ${def.peak.joints}. Weight: ${def.peak.weight}.
+  return `${MOTION_REALISM_PREAMBLE}
 
-The athlete should be shown at the MID or PEAK phase of this movement — the most dynamic and visually impactful moment.
+BIOMECHANICAL MOVEMENT DEFINITION for ${movement}:
+
+START POSITION: ${def.start.position}. Joints: ${def.start.joints}. Weight: ${def.start.weight}. Spine: ${def.start.spine}. Balance: ${def.start.balance}.
+
+MID MOVEMENT: ${def.mid.position}. Joints: ${def.mid.joints}. Weight: ${def.mid.weight}. Spine: ${def.mid.spine}. Balance: ${def.mid.balance}.
+
+PEAK POSITION: ${def.peak.position}. Joints: ${def.peak.joints}. Weight: ${def.peak.weight}. Spine: ${def.peak.spine}. Balance: ${def.peak.balance}.
+
+The athlete should be shown at the MID or PEAK phase — the most dynamic and visually impactful moment.
 FULL RANGE OF MOTION: The movement must show COMPLETE range — all the way down AND all the way back up. Never show partial reps.
+
+BODY CONSTRAINTS (STRICT — VIOLATIONS INVALIDATE THE IMAGE):
+• ${constraintStr}
+${objectStr}
+
+MOVEMENT FLOW: ${def.movementFlow}
 ${angleReinforcement}
+
 SCENE RULES (STRICT): ${sceneStr}.
 CAMERA: ${def.camera}.
-FABRIC BEHAVIOR: ${def.fabricCue}.
+GARMENT BEHAVIOR: ${def.fabricCue}.
 
-The pose must follow these biomechanical rules EXACTLY. Do NOT guess or improvise the body position.`;
+The pose must follow these biomechanical rules EXACTLY. It must look like a FREEZE-FRAME from professional training footage of a real athlete — not a mannequin, not an AI render, not a static pose. The body must show dynamic tension, momentum cues, and natural weight distribution.`;
 }
 
 // ── Helper: remove background from an image using AI ──

@@ -348,13 +348,17 @@ export function describeMasterSceneCompact(scene: MasterScenePayload) {
 export function buildConsistencyValidationPrompt(scene: MasterScenePayload, options: { angle: string; movement: string; hasReferenceImage: boolean }) {
   return `Validate this generated ActiveForge output against the locked master scene. ${options.hasReferenceImage ? "The FIRST image is the anchor reference from the same scene. The SECOND image is the candidate to validate." : "The only image is the candidate to validate."}
 
-Check ONLY these failure cases:
+Check ALL of these failure cases:
 1. BACKGROUND / ENVIRONMENT DRIFT: background, floor, lighting, shadow direction, or overall studio setup changes.
-2. OBJECT DRIFT: equipment, shoes, ropes, bars, boxes, benches, props, or their color/size/material/position change.
-3. GARMENT TYPE DRIFT (CRITICAL): The garment MUST be a "${scene.garment_lock.garment_category}". ${scene.garment_lock.garment_descriptor ? `It must match: ${scene.garment_lock.garment_descriptor}.` : ""} If shorts become pants, or a t-shirt becomes a tank top, or the garment type/length/cut changes in ANY way — this is an IMMEDIATE FAIL. The garment type, texture, seam lines, logo placement, silhouette, color, and structure must NOT change beyond natural deformation from movement.
+2. OBJECT DRIFT: equipment, shoes, ropes, bars, boxes, benches, props, or their color/size/material/position change. Objects must not appear or disappear randomly.
+3. GARMENT TYPE DRIFT (CRITICAL): The garment MUST be a "${scene.garment_lock.garment_category}". ${scene.garment_lock.garment_descriptor ? `It must match: ${scene.garment_lock.garment_descriptor}.` : ""} If shorts become pants, or a t-shirt becomes a tank top, or the garment type/length/cut changes in ANY way — this is an IMMEDIATE FAIL.
 4. IDENTITY DRIFT: face, hair, skin tone, body proportions, or athlete identity change.
 5. ANGLE / MOMENT FAILURE: for ${options.angle}, the view does not look like a camera rotation around the same locked scene and same moment for movement "${options.movement}".
 6. CROPPING / ANATOMY FAILURE: the full body or required object is cropped, or there are obvious anatomy errors.
+7. BIOMECHANICAL FAILURE (CRITICAL): Check for physically impossible poses — hyperextended joints beyond anatomical limits, spine bending unnaturally, limb proportions distorting, impossible balance/weight distribution, or poses that defy gravity. The movement "${options.movement}" must look biomechanically correct for a trained athlete.
+8. BODY DISTORTION: Arms or legs that look unnaturally stretched, shrunk, or rubber-like. Hands with wrong number of fingers. Head-to-body ratio that looks inhuman. Any body part that appears melted, warped, or AI-artifact-like.
+9. OBJECT PHYSICS FAILURE: Equipment (barbells, kettlebells, ropes, boxes) must move correctly with the athlete, show realistic weight, and follow physics. A barbell must look heavy, a rope must show gravity sag, a box must be stable.
+10. GARMENT BEHAVIOR FAILURE: Clothing must react naturally to the movement — stretching at tension points, compressing at fold points. Garment must NOT flicker, change shape randomly, or behave as if weightless.
 
 MASTER SCENE:
 ${describeMasterScene(scene)}
@@ -362,5 +366,5 @@ ${describeMasterScene(scene)}
 Return strict JSON only:
 {"valid": true/false, "issues": ["issue1", "issue2"]}
 
-Mark invalid if ANY of these drift categories appear. GARMENT TYPE changes are the HIGHEST priority failure.`;
+Mark invalid if ANY of these failure categories appear. GARMENT TYPE changes and BIOMECHANICAL FAILURES are the HIGHEST priority failures.`;
 }
