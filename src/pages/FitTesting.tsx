@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Ruler, User, Package, Zap, Download, ArrowRight, ArrowLeft,
-  Check, Activity, Loader2, FileText, BarChart3, AlertTriangle,
-  Maximize2, Move, Layers, Target
+  Ruler, User, Package, Zap, ArrowRight, ArrowLeft,
+  Check, Loader2, FileText, BarChart3, AlertTriangle,
+  Move, Layers, Target
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
