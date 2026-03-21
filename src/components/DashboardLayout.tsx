@@ -3,7 +3,7 @@ import { Link, useLocation, Outlet, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Home, Zap, Image, CreditCard, Settings,
-  ChevronLeft, ChevronRight, LogOut, Menu, X, Activity, Users, FileText
+  ChevronLeft, ChevronRight, LogOut, Menu, X, Activity, Users, FileText, Ruler
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
