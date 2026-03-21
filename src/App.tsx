@@ -20,6 +20,7 @@ import Billing from "./pages/Billing";
 import BrandSettings from "./pages/BrandSettings";
 import AthleteLibrary from "./pages/AthleteLibrary";
 import Templates from "./pages/Templates";
+import FitTesting from "./pages/FitTesting";
 
 const queryClient = new QueryClient();
 
