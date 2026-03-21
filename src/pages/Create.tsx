@@ -345,6 +345,7 @@ const Create = () => {
       const garmentBase64 = garmentFile ? await fileToBase64(garmentFile) : null;
       const logoBase64 = logoFile ? await fileToBase64(logoFile) : null;
       const envLock = environmentToLock(selectedEnvironment);
+      const envObjects = environmentToObjectPolicy(selectedEnvironment);
       const masterScene = buildMasterScene({
         garmentName: garmentFile?.name || "Activewear",
         size: selectedSize,
@@ -354,6 +355,7 @@ const Create = () => {
         athleteIdentity: selectedAthlete || undefined,
         logoPosition,
         environment: envLock,
+        environmentObjects: envObjects,
       });
       const typedData = await generateForSize(selectedSize, garmentBase64, logoBase64, masterScene);
 
