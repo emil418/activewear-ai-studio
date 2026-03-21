@@ -13,6 +13,7 @@ const navItems = [
   { icon: Image, label: "Library", path: "/dashboard/library" },
   { icon: Users, label: "Athletes", path: "/dashboard/athletes" },
   { icon: FileText, label: "Templates", path: "/dashboard/templates" },
+  { icon: Ruler, label: "Fit Testing", path: "/dashboard/fit-testing" },
   { divider: true },
   { icon: CreditCard, label: "Billing", path: "/dashboard/billing" },
   { icon: Settings, label: "Settings", path: "/dashboard/settings" },
