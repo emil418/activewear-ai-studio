@@ -187,9 +187,18 @@ export function buildMasterScene({
   athleteIdentity,
   logoPosition,
   environment,
+  environmentObjects,
 }: BuildMasterSceneOptions): MasterScenePayload {
-  const objectRules = getObjectRules(movement);
+  const movementRules = getObjectRules(movement);
   const sceneSeed = createSceneSeed();
+
+  // Merge movement-level objects with environment-level policies
+  const envAllowed = environmentObjects?.allowedObjects || [];
+  const envForbidden = environmentObjects?.forbiddenObjects || [];
+  const objectRules = {
+    required: movementRules.required,
+    forbidden: unique([...movementRules.forbidden, ...envForbidden]),
+  };
 
   return {
     scene_id: createSceneId(),
