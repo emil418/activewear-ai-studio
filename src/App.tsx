@@ -20,6 +20,7 @@ import Billing from "./pages/Billing";
 import BrandSettings from "./pages/BrandSettings";
 import AthleteLibrary from "./pages/AthleteLibrary";
 import Templates from "./pages/Templates";
+import FitTesting from "./pages/FitTesting";
 
 const queryClient = new QueryClient();
 
@@ -43,6 +44,7 @@ const App = () => (
                 <Route path="library" element={<Library />} />
                 <Route path="athletes" element={<AthleteLibrary />} />
                 <Route path="templates" element={<Templates />} />
+                <Route path="fit-testing" element={<FitTesting />} />
                 <Route path="billing" element={<Billing />} />
                 <Route path="settings" element={<BrandSettings />} />
               </Route>
