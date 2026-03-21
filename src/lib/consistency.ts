@@ -94,6 +94,10 @@ interface BuildMasterSceneOptions {
     shadows: string;
     framing: string;
   } | null;
+  environmentObjects?: {
+    allowedObjects: string[];
+    forbiddenObjects: string[];
+  } | null;
 }
 
 const BODYWEIGHT_ONLY_MOVEMENTS = new Set([
