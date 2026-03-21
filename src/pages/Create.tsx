@@ -403,6 +403,7 @@ const Create = () => {
         athleteIdentity: selectedAthlete || undefined,
         logoPosition,
         environment: environmentToLock(selectedEnvironment),
+        environmentObjects: environmentToObjectPolicy(selectedEnvironment),
       });
 
       for (const size of remainingSizes) {
