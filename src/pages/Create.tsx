@@ -15,7 +15,7 @@ import { useInfluencerMode } from "@/hooks/useInfluencerMode";
 import { supabase } from "@/integrations/supabase/client";
 import LogoPlacer, { type LogoPosition } from "@/components/LogoPlacer";
 import { buildMasterScene, type MasterScenePayload } from "@/lib/consistency";
-import { PREDEFINED_ENVIRONMENTS, type Environment, environmentToLock } from "@/lib/environments";
+import { PREDEFINED_ENVIRONMENTS, type Environment, environmentToLock, environmentToObjectPolicy } from "@/lib/environments";
 import EnvironmentSelector from "@/components/EnvironmentSelector";
 import JSZip from "jszip";
 import { jsPDF } from "jspdf";
@@ -345,6 +345,7 @@ const Create = () => {
       const garmentBase64 = garmentFile ? await fileToBase64(garmentFile) : null;
       const logoBase64 = logoFile ? await fileToBase64(logoFile) : null;
       const envLock = environmentToLock(selectedEnvironment);
+      const envObjects = environmentToObjectPolicy(selectedEnvironment);
       const masterScene = buildMasterScene({
         garmentName: garmentFile?.name || "Activewear",
         size: selectedSize,
@@ -354,6 +355,7 @@ const Create = () => {
         athleteIdentity: selectedAthlete || undefined,
         logoPosition,
         environment: envLock,
+        environmentObjects: envObjects,
       });
       const typedData = await generateForSize(selectedSize, garmentBase64, logoBase64, masterScene);
 
@@ -401,6 +403,7 @@ const Create = () => {
         athleteIdentity: selectedAthlete || undefined,
         logoPosition,
         environment: environmentToLock(selectedEnvironment),
+        environmentObjects: environmentToObjectPolicy(selectedEnvironment),
       });
 
       for (const size of remainingSizes) {
@@ -853,6 +856,7 @@ const Create = () => {
                   athleteIdentity: selectedAthlete || undefined,
                   logoPosition,
                   environment: environmentToLock(selectedEnvironment),
+                  environmentObjects: environmentToObjectPolicy(selectedEnvironment),
                 }),
               },
             }).then(response => {
