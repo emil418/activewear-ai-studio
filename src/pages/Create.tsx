@@ -856,6 +856,7 @@ const Create = () => {
                   athleteIdentity: selectedAthlete || undefined,
                   logoPosition,
                   environment: environmentToLock(selectedEnvironment),
+                  environmentObjects: environmentToObjectPolicy(selectedEnvironment),
                 }),
               },
             }).then(response => {
