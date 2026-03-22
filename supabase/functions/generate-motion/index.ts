@@ -1175,8 +1175,11 @@ You MUST render this EXACT same person in every image.`
             ? `${athleteIdentity.gender} athlete "${athleteIdentity.name}" (${athleteIdentity.body_type}, ${athleteIdentity.height_cm}cm, ${athleteIdentity.weight_kg}kg, ${athleteIdentity.skin_tone} skin, ${athleteIdentity.face_structure} face, ${athleteIdentity.hair_style} hair)`
             : `${gender} athlete (${bodyType}, size ${size})`;
 
-          // Get angle-specific pose instructions
+          // Get angle-specific pose instructions + motion intelligence
           const anglePoseInstructions = buildPoseInstructions(movement, angle);
+          const motionBlock = motionIntelligencePrompt
+            ? `\n${motionIntelligencePrompt}\n${trainedAthleteMode ? "TRAINED ATHLETE MODE ACTIVE: Perfect form, controlled tempo, elite technique." : ""}`
+            : "";
 
           const cameraPositionPrompt = CAMERA_POSITIONS[angle] || CAMERA_POSITIONS["front"];
           const angleDisplayName = angle.replace("-", " ").toUpperCase();
