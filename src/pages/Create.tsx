@@ -1243,6 +1243,31 @@ const Create = () => {
                 </div>
               </div>
             )}
+
+            {/* Trained Athlete Mode */}
+            {!showSimplifiedUI && (
+              <div className="glass-card p-5 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
+                      <Shield className="w-4 h-4 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold">Trained Athlete Mode</p>
+                      <p className="text-xs text-muted-foreground">
+                        {trainedAthleteMode ? "Perfect form, controlled tempo, elite technique" : "Natural variation, relaxed form"}
+                      </p>
+                    </div>
+                  </div>
+                  <Switch checked={trainedAthleteMode} onCheckedChange={setTrainedAthleteMode} />
+                </div>
+                <div className={`text-[10px] px-3 py-1.5 rounded-lg ${trainedAthleteMode ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
+                  {trainedAthleteMode
+                    ? "✓ Strict biomechanics · 2s eccentric / 1.5s concentric · Textbook precision"
+                    : "○ Natural rhythm · Variable tempo · Authentic imperfection"}
+                </div>
+              </div>
+            )}
           </motion.div>
         )}
 
