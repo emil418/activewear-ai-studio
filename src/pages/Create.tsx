@@ -20,6 +20,13 @@ import { PREDEFINED_ENVIRONMENTS, type Environment, environmentToLock, environme
 import EnvironmentSelector from "@/components/EnvironmentSelector";
 import JSZip from "jszip";
 import { jsPDF } from "jspdf";
+import {
+  type TrainedAthleteConfig,
+  type MovementQualityScore,
+  TRAINED_ATHLETE_DEFAULTS,
+  CASUAL_ATHLETE_DEFAULTS,
+  buildMotionIntelligencePrompt,
+} from "@/lib/motionIntelligence";
 
 /* ─── Step config ─── */
 const STEPS = [
