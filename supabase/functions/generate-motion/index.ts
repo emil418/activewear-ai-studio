@@ -893,6 +893,8 @@ serve(async (req) => {
     const body = await req.json();
     const { garmentName, garmentBase64, gender, size, bodyType, movement, intensity, logoBase64, logoPosition, athleteIdentity } = body;
     const mode = body.mode || "full"; // "analyze" | "generate_angle" | "full" (legacy)
+    const motionIntelligencePrompt = body.motionIntelligencePrompt || "";
+    const trainedAthleteMode = body.trainedAthleteMode !== false; // default true
 
     let masterScene = normalizeMasterScene(body.masterScene, {
       garmentName: garmentName || "Activewear",
@@ -1173,14 +1175,17 @@ You MUST render this EXACT same person in every image.`
             ? `${athleteIdentity.gender} athlete "${athleteIdentity.name}" (${athleteIdentity.body_type}, ${athleteIdentity.height_cm}cm, ${athleteIdentity.weight_kg}kg, ${athleteIdentity.skin_tone} skin, ${athleteIdentity.face_structure} face, ${athleteIdentity.hair_style} hair)`
             : `${gender} athlete (${bodyType}, size ${size})`;
 
-          // Get angle-specific pose instructions
+          // Get angle-specific pose instructions + motion intelligence
           const anglePoseInstructions = buildPoseInstructions(movement, angle);
+          const motionBlock = motionIntelligencePrompt
+            ? `\n${motionIntelligencePrompt}\n${trainedAthleteMode ? "TRAINED ATHLETE MODE ACTIVE: Perfect form, controlled tempo, elite technique." : ""}`
+            : "";
 
           const cameraPositionPrompt = CAMERA_POSITIONS[angle] || CAMERA_POSITIONS["front"];
           const angleDisplayName = angle.replace("-", " ").toUpperCase();
 
           const mainPrompt = useSimplePrompt
-            ? `${cameraPositionPrompt} Professional EXTREMELY WIDE full-body studio photo from head to toe: ${athleteLabel} wearing this exact uploaded garment (${garmentCategory}), performing ${movement} at ${intensity}% intensity, ${angleDisplayName} camera angle. ${garmentTypeEnforcement} ZOOM OUT VERY FAR — the athlete must occupy only 45-55% of the frame height with massive empty space above head (20%+) and below feet (15%+). Camera is 5 meters away. The ENTIRE person from top of head to bottom of feet MUST be clearly visible and SMALL in the frame. 9:16 vertical format (1080×1920). All equipment fully visible. Dark background. ${anglePoseInstructions} ${MOTIF_RULES}${logoInstructions}. STRICT: ${angleDisplayName} PERSPECTIVE ONLY — camera does NOT move to front. GLOBAL MASTER SCENE LOCK: ${describeMasterSceneCompact(masterScene)}`
+            ? `${cameraPositionPrompt} Professional EXTREMELY WIDE full-body studio photo from head to toe: ${athleteLabel} wearing this exact uploaded garment (${garmentCategory}), performing ${movement} at ${intensity}% intensity, ${angleDisplayName} camera angle. ${garmentTypeEnforcement} ZOOM OUT VERY FAR — the athlete must occupy only 45-55% of the frame height with massive empty space above head (20%+) and below feet (15%+). Camera is 5 meters away. The ENTIRE person from top of head to bottom of feet MUST be clearly visible and SMALL in the frame. 9:16 vertical format (1080×1920). All equipment fully visible. Dark background. ${anglePoseInstructions} ${motionBlock} ${MOTIF_RULES}${logoInstructions}. STRICT: ${angleDisplayName} PERSPECTIVE ONLY — camera does NOT move to front. GLOBAL MASTER SCENE LOCK: ${describeMasterSceneCompact(masterScene)}`
             : `PHOTOREALISTIC SPORTSWEAR CAMPAIGN — ${angleDisplayName} VIEW
 
 ${cameraPositionPrompt}
@@ -1197,6 +1202,7 @@ ${FRAMING}
 ${athleteDesc}
 
 ${anglePoseInstructions}
+${motionBlock}
 
 SUBJECT: ${athleteLabel}, size ${size}, wearing EXACTLY this uploaded ${garmentCategory} performing ${movement} at ${intensity}% intensity.
 
