@@ -1202,6 +1202,7 @@ ${FRAMING}
 ${athleteDesc}
 
 ${anglePoseInstructions}
+${motionBlock}
 
 SUBJECT: ${athleteLabel}, size ${size}, wearing EXACTLY this uploaded ${garmentCategory} performing ${movement} at ${intensity}% intensity.
 
