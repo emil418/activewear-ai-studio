@@ -1458,6 +1458,47 @@ const Create = () => {
               </Button>
             )}
 
+            {/* Motion Quality Score */}
+            {qualityScore && (
+              <div className="glass-card p-5 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Shield className="w-4 h-4 text-primary" />
+                    <p className="text-sm font-bold">Movement Quality Score</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-xs px-2.5 py-1 rounded-full font-bold ${
+                      qualityScore.status === "excellent" ? "bg-primary/20 text-primary" :
+                      qualityScore.status === "good" ? "bg-primary/15 text-primary" :
+                      qualityScore.status === "acceptable" ? "bg-accent/20 text-accent-foreground" :
+                      "bg-destructive/20 text-destructive"
+                    }`}>{qualityScore.label}</span>
+                    <span className="text-2xl font-display font-bold glow-text">{qualityScore.overall}%</span>
+                  </div>
+                </div>
+                <div className="grid grid-cols-5 gap-2">
+                  {[
+                    { label: "Biomechanics", value: qualityScore.biomechanics },
+                    { label: "Smoothness", value: qualityScore.smoothness },
+                    { label: "Realism", value: qualityScore.realism },
+                    { label: "Object Physics", value: qualityScore.objectInteraction },
+                    { label: "Garment", value: qualityScore.garmentBehavior },
+                  ].map(s => (
+                    <div key={s.label} className="text-center">
+                      <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden mb-1">
+                        <div className="h-full bg-primary rounded-full" style={{ width: `${s.value}%` }} />
+                      </div>
+                      <p className="text-[10px] text-muted-foreground">{s.label}</p>
+                      <p className="text-xs font-bold">{s.value}%</p>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-[10px] text-muted-foreground">
+                  {trainedAthleteMode ? "🏋️ Trained Athlete Mode — strict biomechanical enforcement active" : "○ Natural mode — relaxed form variation"}
+                </p>
+              </div>
+            )}
+
             {/* Physics results */}
             {activeResult?.physics && (
               <>
