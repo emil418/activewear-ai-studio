@@ -264,6 +264,8 @@ const Create = () => {
       anchor_image_url: undefined,
     };
 
+    const motionIntelligencePrompt = buildMotionIntelligencePrompt(selectedMovement, intensity[0], trainedAthleteConfig);
+
     const commonBody = {
       garmentName: garmentFile?.name || "Activewear",
       garmentBase64,
@@ -276,6 +278,8 @@ const Create = () => {
       logoPosition: logoPosition || undefined,
       athleteIdentity,
       masterScene,
+      trainedAthleteMode: trainedAthleteConfig.enabled,
+      motionIntelligencePrompt,
     };
 
     // Phase 1: Analyze (bg removal + garment analysis + physics) — fast ~30s
