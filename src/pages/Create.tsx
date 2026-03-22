@@ -164,6 +164,11 @@ const Create = () => {
   // Environment selection
   const [selectedEnvironment, setSelectedEnvironment] = useState<Environment>(PREDEFINED_ENVIRONMENTS[0]);
 
+  // Motion Intelligence Engine
+  const [trainedAthleteMode, setTrainedAthleteMode] = useState(true);
+  const [qualityScore, setQualityScore] = useState<MovementQualityScore | null>(null);
+  const trainedAthleteConfig: TrainedAthleteConfig = trainedAthleteMode ? TRAINED_ATHLETE_DEFAULTS : CASUAL_ATHLETE_DEFAULTS;
+
   const { toast } = useToast();
   const { session: _session, user, authReady } = useAuth();
   const { influencerMode } = useInfluencerMode();
