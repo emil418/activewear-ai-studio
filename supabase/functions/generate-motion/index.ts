@@ -893,6 +893,8 @@ serve(async (req) => {
     const body = await req.json();
     const { garmentName, garmentBase64, gender, size, bodyType, movement, intensity, logoBase64, logoPosition, athleteIdentity } = body;
     const mode = body.mode || "full"; // "analyze" | "generate_angle" | "full" (legacy)
+    const motionIntelligencePrompt = body.motionIntelligencePrompt || "";
+    const trainedAthleteMode = body.trainedAthleteMode !== false; // default true
 
     let masterScene = normalizeMasterScene(body.masterScene, {
       garmentName: garmentName || "Activewear",
