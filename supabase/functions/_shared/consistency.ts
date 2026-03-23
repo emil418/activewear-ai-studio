@@ -368,12 +368,14 @@ Check ALL of these failure cases:
 2. OBJECT DRIFT: equipment, shoes, ropes, bars, boxes, benches, props, or their color/size/material/position change. Objects must not appear or disappear randomly.
 3. GARMENT TYPE DRIFT (CRITICAL): The garment MUST be a "${scene.garment_lock.garment_category}". ${scene.garment_lock.garment_descriptor ? `It must match: ${scene.garment_lock.garment_descriptor}.` : ""} If shorts become pants, or a t-shirt becomes a tank top, or the garment type/length/cut changes in ANY way — this is an IMMEDIATE FAIL.
 4. IDENTITY DRIFT: face, hair, skin tone, body proportions, or athlete identity change.
-5. ANGLE / MOMENT FAILURE: for ${options.angle}, the view does not look like a camera rotation around the same locked scene and same moment for movement "${options.movement}".
-6. CROPPING / ANATOMY FAILURE: the full body or required object is cropped, or there are obvious anatomy errors.
-7. BIOMECHANICAL FAILURE (CRITICAL): Check for physically impossible poses — hyperextended joints beyond anatomical limits, spine bending unnaturally, limb proportions distorting, impossible balance/weight distribution, or poses that defy gravity. The movement "${options.movement}" must look biomechanically correct for a trained athlete.
-8. BODY DISTORTION: Arms or legs that look unnaturally stretched, shrunk, or rubber-like. Hands with wrong number of fingers. Head-to-body ratio that looks inhuman. Any body part that appears melted, warped, or AI-artifact-like.
-9. OBJECT PHYSICS FAILURE: Equipment (barbells, kettlebells, ropes, boxes) must move correctly with the athlete, show realistic weight, and follow physics. A barbell must look heavy, a rope must show gravity sag, a box must be stable.
-10. GARMENT BEHAVIOR FAILURE: Clothing must react naturally to the movement — stretching at tension points, compressing at fold points. Garment must NOT flicker, change shape randomly, or behave as if weightless.
+5. HAIR COLOR DRIFT (CRITICAL): Hair color is HARD LOCKED${scene.athlete_lock.hair_color ? ` to "${scene.athlete_lock.hair_color}"` : ""}. Hair color MUST NOT shift between outputs. No highlights appearing/disappearing. No color changes from lighting. If hair color differs from the reference — IMMEDIATE FAIL.
+6. ANGLE / MOMENT FAILURE: for ${options.angle}, the view does not look like a camera rotation around the same locked scene and same moment for movement "${options.movement}".
+7. MOTION PHASE MISMATCH: All angles must show THE EXACT SAME MOMENT in the movement timeline (phase: ${scene.motion_lock.motion_phase}). If the athlete is in a different movement phase than the reference (e.g. different leg position, different arm swing) — FAIL.
+8. CROPPING / ANATOMY FAILURE: the full body or required object is cropped, or there are obvious anatomy errors.
+9. BIOMECHANICAL FAILURE (CRITICAL): Check for physically impossible poses — hyperextended joints beyond anatomical limits, spine bending unnaturally, limb proportions distorting, impossible balance/weight distribution, or poses that defy gravity. The movement "${options.movement}" must look biomechanically correct for a trained athlete.
+10. BODY DISTORTION: Arms or legs that look unnaturally stretched, shrunk, or rubber-like. Hands with wrong number of fingers. Head-to-body ratio that looks inhuman. Any body part that appears melted, warped, or AI-artifact-like.
+11. OBJECT PHYSICS FAILURE: Equipment (barbells, kettlebells, ropes, boxes) must move correctly with the athlete, show realistic weight, and follow physics. A barbell must look heavy, a rope must show gravity sag, a box must be stable.
+12. GARMENT BEHAVIOR FAILURE: Clothing must react naturally to the movement — stretching at tension points, compressing at fold points. Garment must NOT flicker, change shape randomly, or behave as if weightless.
 
 MASTER SCENE:
 ${describeMasterScene(scene)}
