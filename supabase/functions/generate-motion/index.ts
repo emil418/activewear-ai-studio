@@ -1095,8 +1095,8 @@ ABSOLUTE RULES:
     // In "generate_angle" mode, only generate the requested angle
     const requestedAngle = body.angle; // e.g. "front", "side-left", "side-right", "back"
     const angles = mode === "generate_angle" && requestedAngle ? [requestedAngle] : ["front", "side-left", "side-right", "back"];
-    console.log(`Step 3: Generating ${angles.join(", ")} images (mode: ${mode})...`);
-    const MAX_RETRIES = 3;
+    console.log(`Step 3: Generating ${angles.join(", ")} images (mode: ${mode}, maxRealism: ${maxRealismMode})...`);
+    const MAX_RETRIES = maxRealismMode ? 4 : 3;
 
     // Get biomechanical pose instructions for this movement
     const poseInstructions = buildPoseInstructions(movement, "front");
