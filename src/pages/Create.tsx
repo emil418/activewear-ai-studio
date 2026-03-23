@@ -1472,9 +1472,17 @@ const Create = () => {
             {generating ? (
               <div className="glass-card p-10 flex flex-col items-center justify-center text-center min-h-[200px]">
                 <div className="w-10 h-10 border-2 border-primary border-t-transparent rounded-full animate-spin mb-6" />
-                <p className="font-display text-lg font-bold mb-2 tracking-tight">Generating realistic motion...</p>
+                <p className="font-display text-lg font-bold mb-2 tracking-tight">
+                  {pipelineState?.stage === "planning" ? "Planning scene..." :
+                   pipelineState?.stage === "generating" ? "Generating realistic motion..." :
+                   pipelineState?.stage === "validating" ? "Validating quality..." :
+                   pipelineState?.stage === "enhancing" ? "Enhancing details..." :
+                   "Processing..."}
+                </p>
                 <p className="text-sm text-muted-foreground animate-energy-pulse">{loadingMessages[loadingMsg]}</p>
-                <p className="text-xs text-muted-foreground/50 mt-4">This usually takes 30-60 seconds</p>
+                <p className="text-xs text-muted-foreground/50 mt-4">
+                  {maxRealismMode ? "Max Realism — this may take 60-90 seconds" : "This usually takes 30-60 seconds"}
+                </p>
               </div>
             ) : generationError ? (
               <div className="glass-card p-6 border-destructive/20 space-y-3">
