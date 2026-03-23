@@ -27,6 +27,13 @@ import {
   CASUAL_ATHLETE_DEFAULTS,
   buildMotionIntelligencePrompt,
 } from "@/lib/motionIntelligence";
+import {
+  type MaxRealismConfig,
+  type PipelineState,
+  MAX_REALISM_ON,
+  MAX_REALISM_OFF,
+  PIPELINE_MESSAGES,
+} from "@/lib/qualityEngine";
 
 /* ─── Step config ─── */
 const STEPS = [
