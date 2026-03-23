@@ -196,6 +196,7 @@ export function buildServerMasterSceneFallback({
       skin_tone: typeof athleteIdentity?.skin_tone === "string" ? athleteIdentity.skin_tone : undefined,
       face_structure: typeof athleteIdentity?.face_structure === "string" ? athleteIdentity.face_structure : undefined,
       hair_style: typeof athleteIdentity?.hair_style === "string" ? athleteIdentity.hair_style : undefined,
+      hair_color: typeof athleteIdentity?.hair_color === "string" ? athleteIdentity.hair_color : undefined,
       identity_seed: typeof athleteIdentity?.identity_seed === "string" ? athleteIdentity.identity_seed : null,
     },
     garment_lock: {
