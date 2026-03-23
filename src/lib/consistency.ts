@@ -11,6 +11,7 @@ interface AthleteIdentityInput {
   skin_tone?: string;
   face_structure?: string;
   hair_style?: string;
+  hair_color?: string;
   identity_seed?: string | null;
 }
 
