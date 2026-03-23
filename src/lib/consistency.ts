@@ -11,6 +11,7 @@ interface AthleteIdentityInput {
   skin_tone?: string;
   face_structure?: string;
   hair_style?: string;
+  hair_color?: string;
   identity_seed?: string | null;
 }
 
@@ -31,6 +32,7 @@ export interface MasterScenePayload {
     skin_tone?: string;
     face_structure?: string;
     hair_style?: string;
+    hair_color?: string;
     identity_seed?: string | null;
   };
   garment_lock: {
@@ -56,6 +58,8 @@ export interface MasterScenePayload {
   };
   motion_lock: {
     strategy: "skeletal_transform_only";
+    motion_phase: string;
+    motion_timestamp: string;
     allowed_changes: string[];
     forbidden_changes: string[];
   };
@@ -217,6 +221,7 @@ export function buildMasterScene({
       skin_tone: athleteIdentity?.skin_tone,
       face_structure: athleteIdentity?.face_structure,
       hair_style: athleteIdentity?.hair_style,
+      hair_color: athleteIdentity?.hair_color,
       identity_seed: athleteIdentity?.identity_seed || null,
     },
     garment_lock: {
@@ -250,6 +255,8 @@ export function buildMasterScene({
     },
     motion_lock: {
       strategy: "skeletal_transform_only",
+      motion_phase: "mid-to-peak",
+      motion_timestamp: `t_${sceneSeed % 1000}`,
       allowed_changes: [
         "skeletal pose",
         "natural garment stretch",
@@ -261,6 +268,7 @@ export function buildMasterScene({
         "background drift",
         "lighting changes",
         "identity drift",
+        "hair color shift",
         "object swaps",
         "garment redesign",
       ],
@@ -284,6 +292,9 @@ export function buildMasterScene({
         "garment type change (e.g. shorts becoming pants)",
         "garment structure drift",
         "athlete identity drift",
+        "hair color change between outputs",
+        "motion phase mismatch between angles",
+        "skin tone inconsistency",
       ],
       auto_regenerate: true,
       max_attempts: 3,

@@ -15,6 +15,7 @@ export interface MasterScenePayload {
     skin_tone?: string;
     face_structure?: string;
     hair_style?: string;
+    hair_color?: string;
     identity_seed?: string | null;
   };
   garment_lock: {
@@ -40,6 +41,8 @@ export interface MasterScenePayload {
   };
   motion_lock: {
     strategy: "skeletal_transform_only";
+    motion_phase: string;
+    motion_timestamp: string;
     allowed_changes: string[];
     forbidden_changes: string[];
   };
@@ -193,6 +196,7 @@ export function buildServerMasterSceneFallback({
       skin_tone: typeof athleteIdentity?.skin_tone === "string" ? athleteIdentity.skin_tone : undefined,
       face_structure: typeof athleteIdentity?.face_structure === "string" ? athleteIdentity.face_structure : undefined,
       hair_style: typeof athleteIdentity?.hair_style === "string" ? athleteIdentity.hair_style : undefined,
+      hair_color: typeof athleteIdentity?.hair_color === "string" ? athleteIdentity.hair_color : undefined,
       identity_seed: typeof athleteIdentity?.identity_seed === "string" ? athleteIdentity.identity_seed : null,
     },
     garment_lock: {
@@ -219,6 +223,8 @@ export function buildServerMasterSceneFallback({
     },
     motion_lock: {
       strategy: "skeletal_transform_only",
+      motion_phase: "mid-to-peak",
+      motion_timestamp: `t_${sceneSeed % 1000}`,
       allowed_changes: [
         "skeletal pose",
         "natural garment stretch",
@@ -230,6 +236,7 @@ export function buildServerMasterSceneFallback({
         "background drift",
         "lighting changes",
         "identity drift",
+        "hair color shift",
         "object swaps",
         "garment redesign",
       ],
@@ -253,6 +260,9 @@ export function buildServerMasterSceneFallback({
         "garment type change (e.g. shorts becoming pants)",
         "garment structure drift",
         "athlete identity drift",
+        "hair color change between outputs",
+        "motion phase mismatch between angles",
+        "skin tone inconsistency",
       ],
       auto_regenerate: true,
       max_attempts: 3,
@@ -328,11 +338,13 @@ export function describeMasterScene(scene: MasterScenePayload) {
 SCENE ID: ${scene.scene_id}
 SCENE SEED: ${scene.scene_seed}
 SAME MOMENT LOCK: ${scene.same_moment_id}
-ATHLETE IDENTITY LOCK: ${scene.athlete_lock.gender}, ${scene.athlete_lock.body_type}${scene.athlete_lock.skin_tone ? `, ${scene.athlete_lock.skin_tone} skin` : ""}${scene.athlete_lock.face_structure ? `, ${scene.athlete_lock.face_structure} face` : ""}${scene.athlete_lock.hair_style ? `, ${scene.athlete_lock.hair_style} hair` : ""}${scene.athlete_lock.identity_seed ? `, seed ${scene.athlete_lock.identity_seed}` : ""}
+ATHLETE IDENTITY LOCK: ${scene.athlete_lock.gender}, ${scene.athlete_lock.body_type}${scene.athlete_lock.skin_tone ? `, ${scene.athlete_lock.skin_tone} skin` : ""}${scene.athlete_lock.face_structure ? `, ${scene.athlete_lock.face_structure} face` : ""}${scene.athlete_lock.hair_style ? `, ${scene.athlete_lock.hair_style} hair` : ""}${scene.athlete_lock.hair_color ? ` (STRICT COLOR LOCK: ${scene.athlete_lock.hair_color} — this hair color MUST NOT change under any lighting condition)` : ""}${scene.athlete_lock.identity_seed ? `, seed ${scene.athlete_lock.identity_seed}` : ""}
+IDENTITY HARD LOCK: Face structure, skin tone, body proportions, and hair color are IMMUTABLE. Hair color must remain EXACTLY the same across all angles — no highlights appearing/disappearing, no color shifts from lighting. Apply color stabilization.
 GARMENT LOCK (CRITICAL — GARMENT TYPE MUST NEVER CHANGE): ${scene.garment_lock.garment_category} "${scene.garment_lock.garment_name}", size ${scene.garment_lock.requested_size}, logo at ${scene.garment_lock.logo_placement}. ${scene.garment_lock.garment_descriptor ? `LOCKED DESCRIPTOR: ${scene.garment_lock.garment_descriptor}. ` : ""}${scene.garment_lock.notes.join(" ")}
 ENVIRONMENT LOCK: ${scene.environment_lock.location}. Background: ${scene.environment_lock.background}. Floor: ${scene.environment_lock.floor}. Lighting: ${scene.environment_lock.lighting}. Shadows: ${scene.environment_lock.shadows}. Framing: ${scene.environment_lock.framing}.
 OBJECT LOCK: Required objects -> ${scene.object_lock.required_objects.join(", ") || "none"}. Forbidden objects -> ${scene.object_lock.forbidden_objects.join(", ") || "none"}. ${scene.object_lock.lock_rules.join(" ")}
-MOTION SYSTEM: ${scene.motion_lock.strategy}. Allowed changes -> ${scene.motion_lock.allowed_changes.join(", ")}. Forbidden -> ${scene.motion_lock.forbidden_changes.join(", ")}.
+MOTION SYSTEM: ${scene.motion_lock.strategy}. MOTION PHASE: ${scene.motion_lock.motion_phase} (timestamp: ${scene.motion_lock.motion_timestamp}). ALL multi-angle outputs MUST show this EXACT same phase — same leg position, same arm swing, same body angle. Allowed changes -> ${scene.motion_lock.allowed_changes.join(", ")}. Forbidden -> ${scene.motion_lock.forbidden_changes.join(", ")}.
+TIME SYNCHRONIZATION: All outputs represent THE EXACT SAME MOMENT IN TIME. No variation in movement phase allowed between angles.
 MULTI-ANGLE: ${scene.multi_angle_lock.strategy}. SAME exact moment in time across ${scene.multi_angle_lock.required_angles.join(", ")}.
 VIDEO LOCK: same seed ${scene.video_lock.same_seed}, continuous sequence, temporal consistency enabled, transform only.
 VALIDATION: If any of these drift, the output is INVALID and must be regenerated: ${scene.validation_lock.invalidates_on.join(", ")}.`;
@@ -342,7 +354,10 @@ export function describeMasterSceneCompact(scene: MasterScenePayload) {
   const garmentDesc = scene.garment_lock.garment_descriptor
     ? `GARMENT TYPE LOCK: ${scene.garment_lock.garment_category} — ${scene.garment_lock.garment_descriptor}. This garment type is IMMUTABLE — shorts stay shorts, leggings stay leggings, t-shirts stay t-shirts. NEVER change the garment type, length, or cut.`
     : `GARMENT TYPE LOCK: ${scene.garment_lock.garment_category}. This garment type is IMMUTABLE — NEVER change it.`;
-  return `Scene seed ${scene.scene_seed}. ${garmentDesc} Same locked studio environment: ${scene.environment_lock.background}, ${scene.environment_lock.floor}, ${scene.environment_lock.lighting}. Same athlete identity, same garment structure and logo placement, same object set (${scene.object_lock.required_objects.join(", ") || "none"}). Multi-angle outputs are camera rotations around the same moment, and video is one continuous temporally consistent sequence.`;
+  const hairLock = scene.athlete_lock.hair_color
+    ? ` HAIR COLOR HARD LOCK: ${scene.athlete_lock.hair_color} — must remain identical across all outputs regardless of lighting.`
+    : "";
+  return `Scene seed ${scene.scene_seed}. ${garmentDesc} Same locked studio environment: ${scene.environment_lock.background}, ${scene.environment_lock.floor}, ${scene.environment_lock.lighting}. Same athlete identity, same garment structure and logo placement, same object set (${scene.object_lock.required_objects.join(", ") || "none"}).${hairLock} MOTION PHASE LOCK: ${scene.motion_lock.motion_phase} — all angles show THE EXACT SAME MOMENT. Multi-angle outputs are camera rotations around the same moment, and video is one continuous temporally consistent sequence.`;
 }
 
 export function buildConsistencyValidationPrompt(scene: MasterScenePayload, options: { angle: string; movement: string; hasReferenceImage: boolean }) {
@@ -353,12 +368,14 @@ Check ALL of these failure cases:
 2. OBJECT DRIFT: equipment, shoes, ropes, bars, boxes, benches, props, or their color/size/material/position change. Objects must not appear or disappear randomly.
 3. GARMENT TYPE DRIFT (CRITICAL): The garment MUST be a "${scene.garment_lock.garment_category}". ${scene.garment_lock.garment_descriptor ? `It must match: ${scene.garment_lock.garment_descriptor}.` : ""} If shorts become pants, or a t-shirt becomes a tank top, or the garment type/length/cut changes in ANY way — this is an IMMEDIATE FAIL.
 4. IDENTITY DRIFT: face, hair, skin tone, body proportions, or athlete identity change.
-5. ANGLE / MOMENT FAILURE: for ${options.angle}, the view does not look like a camera rotation around the same locked scene and same moment for movement "${options.movement}".
-6. CROPPING / ANATOMY FAILURE: the full body or required object is cropped, or there are obvious anatomy errors.
-7. BIOMECHANICAL FAILURE (CRITICAL): Check for physically impossible poses — hyperextended joints beyond anatomical limits, spine bending unnaturally, limb proportions distorting, impossible balance/weight distribution, or poses that defy gravity. The movement "${options.movement}" must look biomechanically correct for a trained athlete.
-8. BODY DISTORTION: Arms or legs that look unnaturally stretched, shrunk, or rubber-like. Hands with wrong number of fingers. Head-to-body ratio that looks inhuman. Any body part that appears melted, warped, or AI-artifact-like.
-9. OBJECT PHYSICS FAILURE: Equipment (barbells, kettlebells, ropes, boxes) must move correctly with the athlete, show realistic weight, and follow physics. A barbell must look heavy, a rope must show gravity sag, a box must be stable.
-10. GARMENT BEHAVIOR FAILURE: Clothing must react naturally to the movement — stretching at tension points, compressing at fold points. Garment must NOT flicker, change shape randomly, or behave as if weightless.
+5. HAIR COLOR DRIFT (CRITICAL): Hair color is HARD LOCKED${scene.athlete_lock.hair_color ? ` to "${scene.athlete_lock.hair_color}"` : ""}. Hair color MUST NOT shift between outputs. No highlights appearing/disappearing. No color changes from lighting. If hair color differs from the reference — IMMEDIATE FAIL.
+6. ANGLE / MOMENT FAILURE: for ${options.angle}, the view does not look like a camera rotation around the same locked scene and same moment for movement "${options.movement}".
+7. MOTION PHASE MISMATCH: All angles must show THE EXACT SAME MOMENT in the movement timeline (phase: ${scene.motion_lock.motion_phase}). If the athlete is in a different movement phase than the reference (e.g. different leg position, different arm swing) — FAIL.
+8. CROPPING / ANATOMY FAILURE: the full body or required object is cropped, or there are obvious anatomy errors.
+9. BIOMECHANICAL FAILURE (CRITICAL): Check for physically impossible poses — hyperextended joints beyond anatomical limits, spine bending unnaturally, limb proportions distorting, impossible balance/weight distribution, or poses that defy gravity. The movement "${options.movement}" must look biomechanically correct for a trained athlete.
+10. BODY DISTORTION: Arms or legs that look unnaturally stretched, shrunk, or rubber-like. Hands with wrong number of fingers. Head-to-body ratio that looks inhuman. Any body part that appears melted, warped, or AI-artifact-like.
+11. OBJECT PHYSICS FAILURE: Equipment (barbells, kettlebells, ropes, boxes) must move correctly with the athlete, show realistic weight, and follow physics. A barbell must look heavy, a rope must show gravity sag, a box must be stable.
+12. GARMENT BEHAVIOR FAILURE: Clothing must react naturally to the movement — stretching at tension points, compressing at fold points. Garment must NOT flicker, change shape randomly, or behave as if weightless.
 
 MASTER SCENE:
 ${describeMasterScene(scene)}
@@ -366,5 +383,5 @@ ${describeMasterScene(scene)}
 Return strict JSON only:
 {"valid": true/false, "issues": ["issue1", "issue2"]}
 
-Mark invalid if ANY of these failure categories appear. GARMENT TYPE changes and BIOMECHANICAL FAILURES are the HIGHEST priority failures.`;
+Mark invalid if ANY of these failure categories appear. GARMENT TYPE changes, HAIR COLOR shifts, MOTION PHASE mismatches, and BIOMECHANICAL FAILURES are the HIGHEST priority failures.`;
 }

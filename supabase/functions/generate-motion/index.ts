@@ -1164,15 +1164,16 @@ ZOOM OUT EXTREMELY FAR. Pull the camera VERY FAR back. This is a DISTANT FULL-BO
             : `MOTIF DUPLICATION BAN: Any prints/motifs in the reference are FRONT ONLY. The ${angle.replace("-", " ")} view must be COMPLETELY PLAIN — no prints, text, or graphics.`;
 
           const athleteDesc = athleteIdentity
-            ? `ATHLETE IDENTITY (CONSISTENT across ALL angles):
+            ? `ATHLETE IDENTITY (HARD LOCKED — IDENTICAL across ALL angles):
 - Gender: ${athleteIdentity.gender}, Height: ${athleteIdentity.height_cm}cm, Weight: ${athleteIdentity.weight_kg}kg
 - Body Type: ${athleteIdentity.body_type}, Muscle Density: ${athleteIdentity.muscle_density}/10, Body Fat: ${athleteIdentity.body_fat_pct}%
-- Skin Tone: ${athleteIdentity.skin_tone}, Face: ${athleteIdentity.face_structure}, Hair: ${athleteIdentity.hair_style}
+- Skin Tone: ${athleteIdentity.skin_tone}, Face: ${athleteIdentity.face_structure}, Hair: ${athleteIdentity.hair_style}${athleteIdentity.hair_color ? `, Hair Color: ${athleteIdentity.hair_color} (STRICT LOCK — this color MUST NOT change under any lighting, angle, or condition)` : ""}
+IDENTITY HARD LOCK: This is the EXACT SAME PERSON in every output. Face structure, skin tone, body proportions, and especially HAIR COLOR are IMMUTABLE. No highlights appearing/disappearing. No color drift from lighting. Apply color stabilization.
 You MUST render this EXACT same person in every image.`
             : "";
 
           const athleteLabel = athleteIdentity
-            ? `${athleteIdentity.gender} athlete "${athleteIdentity.name}" (${athleteIdentity.body_type}, ${athleteIdentity.height_cm}cm, ${athleteIdentity.weight_kg}kg, ${athleteIdentity.skin_tone} skin, ${athleteIdentity.face_structure} face, ${athleteIdentity.hair_style} hair)`
+            ? `${athleteIdentity.gender} athlete "${athleteIdentity.name}" (${athleteIdentity.body_type}, ${athleteIdentity.height_cm}cm, ${athleteIdentity.weight_kg}kg, ${athleteIdentity.skin_tone} skin, ${athleteIdentity.face_structure} face, ${athleteIdentity.hair_style}${athleteIdentity.hair_color ? ` ${athleteIdentity.hair_color}` : ""} hair)`
             : `${gender} athlete (${bodyType}, size ${size})`;
 
           // Get angle-specific pose instructions + motion intelligence
