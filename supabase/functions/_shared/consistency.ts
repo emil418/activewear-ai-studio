@@ -383,5 +383,5 @@ ${describeMasterScene(scene)}
 Return strict JSON only:
 {"valid": true/false, "issues": ["issue1", "issue2"]}
 
-Mark invalid if ANY of these failure categories appear. GARMENT TYPE changes and BIOMECHANICAL FAILURES are the HIGHEST priority failures.`;
+Mark invalid if ANY of these failure categories appear. GARMENT TYPE changes, HAIR COLOR shifts, MOTION PHASE mismatches, and BIOMECHANICAL FAILURES are the HIGHEST priority failures.`;
 }
