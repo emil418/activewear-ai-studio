@@ -895,6 +895,9 @@ serve(async (req) => {
     const mode = body.mode || "full"; // "analyze" | "generate_angle" | "full" (legacy)
     const motionIntelligencePrompt = body.motionIntelligencePrompt || "";
     const trainedAthleteMode = body.trainedAthleteMode !== false; // default true
+    const maxRealismMode = body.maxRealismMode === true;
+    const qualityThreshold = body.qualityThreshold || 80;
+    const enhancementPass = body.enhancementPass === true;
 
     let masterScene = normalizeMasterScene(body.masterScene, {
       garmentName: garmentName || "Activewear",
