@@ -176,6 +176,11 @@ const Create = () => {
   const [qualityScore, setQualityScore] = useState<MovementQualityScore | null>(null);
   const trainedAthleteConfig: TrainedAthleteConfig = trainedAthleteMode ? TRAINED_ATHLETE_DEFAULTS : CASUAL_ATHLETE_DEFAULTS;
 
+  // Intelligence & Quality Engine
+  const [maxRealismMode, setMaxRealismMode] = useState(false);
+  const maxRealismConfig: MaxRealismConfig = maxRealismMode ? MAX_REALISM_ON : MAX_REALISM_OFF;
+  const [pipelineState, setPipelineState] = useState<PipelineState | null>(null);
+
   const { toast } = useToast();
   const { session: _session, user, authReady } = useAuth();
   const { influencerMode } = useInfluencerMode();
