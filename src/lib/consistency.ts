@@ -58,6 +58,8 @@ export interface MasterScenePayload {
   };
   motion_lock: {
     strategy: "skeletal_transform_only";
+    motion_phase: string;
+    motion_timestamp: string;
     allowed_changes: string[];
     forbidden_changes: string[];
   };
