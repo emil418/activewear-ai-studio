@@ -63,16 +63,18 @@ const ANGLE_LABELS: Record<string, string> = {
 const bodyTypes = ["Lean Runner", "Athletic", "Muscular", "Plus-Size", "Adaptive"];
 
 const loadingMessages = [
-  "Smart Model Router initializing...",
-  "Analyzing fabric & removing backgrounds...",
-  "Computing fabric physics simulation...",
-  "Generating front view (Gemini 3 Pro)...",
-  "Validating front view quality...",
-  "Generating side left view...",
-  "Generating side right view...",
-  "Generating back view...",
-  "Storing high-res assets...",
-  "Almost there — finalizing render...",
+  "🧠 Planning scene — analyzing requirements...",
+  "📐 Computing optimal motion phase & composition...",
+  "🎨 Scene plan ready — starting generation...",
+  "🖼️ Generating front view (Gemini 3 Pro)...",
+  "✅ Validating front view quality...",
+  "🖼️ Generating side left view...",
+  "🖼️ Generating side right view...",
+  "🖼️ Generating back view...",
+  "🔍 Running quality validation pass...",
+  "✨ Enhancing details & sharpening textures...",
+  "💾 Storing high-res assets...",
+  "🏁 Finalizing render...",
 ];
 
 interface GenerationResult {
