@@ -1185,6 +1185,19 @@ You MUST render this EXACT same person in every image.`
             ? `\n${motionIntelligencePrompt}\n${trainedAthleteMode ? "TRAINED ATHLETE MODE ACTIVE: Perfect form, controlled tempo, elite technique." : ""}`
             : "";
 
+          const maxRealismBlock = maxRealismMode
+            ? `\nMAX REALISM MODE (ACTIVE — HIGHEST QUALITY):
+- Every pixel must be indistinguishable from a real photograph
+- Skin pores, hair strands, fabric threads must be individually visible
+- Lighting must follow inverse-square law with realistic falloff
+- Micro-shadows at every fabric fold, seam, and body crease
+- Subtle sweat sheen proportional to intensity level
+- Natural skin imperfections: slight redness at joints, muscle vascularity
+- Fabric compression marks at elastic edges (waistband, cuffs)
+- Ground contact shows realistic shoe deformation under body weight
+- Quality threshold: ${qualityThreshold}% — below this score triggers automatic regeneration`
+            : "";
+
           const cameraPositionPrompt = CAMERA_POSITIONS[angle] || CAMERA_POSITIONS["front"];
           const angleDisplayName = angle.replace("-", " ").toUpperCase();
 
