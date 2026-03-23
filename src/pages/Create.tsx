@@ -1397,15 +1397,75 @@ const Create = () => {
               </div>
             </div>
 
+            {/* Max Realism Mode Toggle */}
+            {!showSimplifiedUI && (
+              <div className="glass-card p-5 space-y-3 border border-primary/10">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-primary/15 flex items-center justify-center">
+                      <Zap className="w-4 h-4 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold">Max Realism Mode</p>
+                      <p className="text-xs text-muted-foreground">
+                        {maxRealismMode ? "Strictest quality — multi-pass validation + enhancement" : "Standard quality — fast generation"}
+                      </p>
+                    </div>
+                  </div>
+                  <Switch checked={maxRealismMode} onCheckedChange={setMaxRealismMode} />
+                </div>
+                <div className={`text-[10px] px-3 py-1.5 rounded-lg ${maxRealismMode ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
+                  {maxRealismMode
+                    ? "✓ 3-stage pipeline · Quality threshold 90% · Enhancement pass · Stricter validation"
+                    : "○ Standard pipeline · Quality threshold 80% · Faster output"}
+                </div>
+              </div>
+            )}
+
+            {/* 3-Stage Pipeline Info */}
+            {!showSimplifiedUI && (
+              <div className="glass-card p-5 space-y-3">
+                <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Intelligence Pipeline</p>
+                <div className="flex items-center gap-2">
+                  {(["Plan", "Generate", "Validate"] as const).map((stage, i) => (
+                    <div key={stage} className="flex items-center gap-2">
+                      <div className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-semibold ${
+                        pipelineState?.stage === stage.toLowerCase()
+                          ? "bg-primary/15 text-primary"
+                          : pipelineState && ["complete"].includes(pipelineState.stage) ? "bg-primary/5 text-primary/60" : "bg-muted text-muted-foreground"
+                      }`}>
+                        {pipelineState?.stage === "complete" ? <Check className="w-3 h-3" /> : <span className="text-[10px]">{i + 1}</span>}
+                        {stage}
+                      </div>
+                      {i < 2 && <ArrowRight className="w-3 h-3 text-muted-foreground/30" />}
+                    </div>
+                  ))}
+                  {maxRealismMode && (
+                    <>
+                      <ArrowRight className="w-3 h-3 text-muted-foreground/30" />
+                      <div className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-semibold ${
+                        pipelineState?.stage === "enhancing" ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"
+                      }`}>
+                        <span className="text-[10px]">4</span> Enhance
+                      </div>
+                    </>
+                  )}
+                </div>
+                {pipelineState?.stageMessage && generating && (
+                  <p className="text-[10px] text-primary animate-pulse">{pipelineState.stageMessage}</p>
+                )}
+              </div>
+            )}
+
             {!showSimplifiedUI && (
               <div className="glass-card p-6">
                 <p className="text-sm font-semibold mb-3">Smart Model Router will use:</p>
                 <div className="flex flex-wrap gap-2">
-                  {["Garment Analysis (Flash)", "Physics Engine (Flash)", "Image Gen (Pro Image)"].map(f => (
+                  {["Garment Analysis (Flash)", "Physics Engine (Flash)", "Image Gen (Pro Image)", ...(maxRealismMode ? ["Enhancement Pass (Pro)"] : [])].map(f => (
                     <span key={f} className="feature-badge">{f}</span>
                   ))}
                 </div>
-                <p className="text-xs text-muted-foreground mt-3">3 AI models working in sync — auto-selected for each task.</p>
+                <p className="text-xs text-muted-foreground mt-3">{maxRealismMode ? "4" : "3"} AI models working in sync — auto-selected for each task.</p>
               </div>
             )}
 
