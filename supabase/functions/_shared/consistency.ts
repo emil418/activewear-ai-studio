@@ -354,7 +354,10 @@ export function describeMasterSceneCompact(scene: MasterScenePayload) {
   const garmentDesc = scene.garment_lock.garment_descriptor
     ? `GARMENT TYPE LOCK: ${scene.garment_lock.garment_category} — ${scene.garment_lock.garment_descriptor}. This garment type is IMMUTABLE — shorts stay shorts, leggings stay leggings, t-shirts stay t-shirts. NEVER change the garment type, length, or cut.`
     : `GARMENT TYPE LOCK: ${scene.garment_lock.garment_category}. This garment type is IMMUTABLE — NEVER change it.`;
-  return `Scene seed ${scene.scene_seed}. ${garmentDesc} Same locked studio environment: ${scene.environment_lock.background}, ${scene.environment_lock.floor}, ${scene.environment_lock.lighting}. Same athlete identity, same garment structure and logo placement, same object set (${scene.object_lock.required_objects.join(", ") || "none"}). Multi-angle outputs are camera rotations around the same moment, and video is one continuous temporally consistent sequence.`;
+  const hairLock = scene.athlete_lock.hair_color
+    ? ` HAIR COLOR HARD LOCK: ${scene.athlete_lock.hair_color} — must remain identical across all outputs regardless of lighting.`
+    : "";
+  return `Scene seed ${scene.scene_seed}. ${garmentDesc} Same locked studio environment: ${scene.environment_lock.background}, ${scene.environment_lock.floor}, ${scene.environment_lock.lighting}. Same athlete identity, same garment structure and logo placement, same object set (${scene.object_lock.required_objects.join(", ") || "none"}).${hairLock} MOTION PHASE LOCK: ${scene.motion_lock.motion_phase} — all angles show THE EXACT SAME MOMENT. Multi-angle outputs are camera rotations around the same moment, and video is one continuous temporally consistent sequence.`;
 }
 
 export function buildConsistencyValidationPrompt(scene: MasterScenePayload, options: { angle: string; movement: string; hasReferenceImage: boolean }) {
