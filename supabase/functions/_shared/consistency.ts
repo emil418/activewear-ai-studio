@@ -223,6 +223,8 @@ export function buildServerMasterSceneFallback({
     },
     motion_lock: {
       strategy: "skeletal_transform_only",
+      motion_phase: "mid-to-peak",
+      motion_timestamp: `t_${sceneSeed % 1000}`,
       allowed_changes: [
         "skeletal pose",
         "natural garment stretch",
@@ -234,6 +236,7 @@ export function buildServerMasterSceneFallback({
         "background drift",
         "lighting changes",
         "identity drift",
+        "hair color shift",
         "object swaps",
         "garment redesign",
       ],
