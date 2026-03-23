@@ -221,6 +221,7 @@ export function buildMasterScene({
       skin_tone: athleteIdentity?.skin_tone,
       face_structure: athleteIdentity?.face_structure,
       hair_style: athleteIdentity?.hair_style,
+      hair_color: athleteIdentity?.hair_color,
       identity_seed: athleteIdentity?.identity_seed || null,
     },
     garment_lock: {
