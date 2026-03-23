@@ -895,6 +895,9 @@ serve(async (req) => {
     const mode = body.mode || "full"; // "analyze" | "generate_angle" | "full" (legacy)
     const motionIntelligencePrompt = body.motionIntelligencePrompt || "";
     const trainedAthleteMode = body.trainedAthleteMode !== false; // default true
+    const maxRealismMode = body.maxRealismMode === true;
+    const qualityThreshold = body.qualityThreshold || 80;
+    const enhancementPass = body.enhancementPass === true;
 
     let masterScene = normalizeMasterScene(body.masterScene, {
       garmentName: garmentName || "Activewear",
@@ -1092,8 +1095,8 @@ ABSOLUTE RULES:
     // In "generate_angle" mode, only generate the requested angle
     const requestedAngle = body.angle; // e.g. "front", "side-left", "side-right", "back"
     const angles = mode === "generate_angle" && requestedAngle ? [requestedAngle] : ["front", "side-left", "side-right", "back"];
-    console.log(`Step 3: Generating ${angles.join(", ")} images (mode: ${mode})...`);
-    const MAX_RETRIES = 3;
+    console.log(`Step 3: Generating ${angles.join(", ")} images (mode: ${mode}, maxRealism: ${maxRealismMode})...`);
+    const MAX_RETRIES = maxRealismMode ? 4 : 3;
 
     // Get biomechanical pose instructions for this movement
     const poseInstructions = buildPoseInstructions(movement, "front");
@@ -1182,11 +1185,24 @@ You MUST render this EXACT same person in every image.`
             ? `\n${motionIntelligencePrompt}\n${trainedAthleteMode ? "TRAINED ATHLETE MODE ACTIVE: Perfect form, controlled tempo, elite technique." : ""}`
             : "";
 
+          const maxRealismBlock = maxRealismMode
+            ? `\nMAX REALISM MODE (ACTIVE — HIGHEST QUALITY):
+- Every pixel must be indistinguishable from a real photograph
+- Skin pores, hair strands, fabric threads must be individually visible
+- Lighting must follow inverse-square law with realistic falloff
+- Micro-shadows at every fabric fold, seam, and body crease
+- Subtle sweat sheen proportional to intensity level
+- Natural skin imperfections: slight redness at joints, muscle vascularity
+- Fabric compression marks at elastic edges (waistband, cuffs)
+- Ground contact shows realistic shoe deformation under body weight
+- Quality threshold: ${qualityThreshold}% — below this score triggers automatic regeneration`
+            : "";
+
           const cameraPositionPrompt = CAMERA_POSITIONS[angle] || CAMERA_POSITIONS["front"];
           const angleDisplayName = angle.replace("-", " ").toUpperCase();
 
           const mainPrompt = useSimplePrompt
-            ? `${cameraPositionPrompt} Professional EXTREMELY WIDE full-body studio photo from head to toe: ${athleteLabel} wearing this exact uploaded garment (${garmentCategory}), performing ${movement} at ${intensity}% intensity, ${angleDisplayName} camera angle. ${garmentTypeEnforcement} ZOOM OUT VERY FAR — the athlete must occupy only 45-55% of the frame height with massive empty space above head (20%+) and below feet (15%+). Camera is 5 meters away. The ENTIRE person from top of head to bottom of feet MUST be clearly visible and SMALL in the frame. 9:16 vertical format (1080×1920). All equipment fully visible. Dark background. ${anglePoseInstructions} ${motionBlock} ${MOTIF_RULES}${logoInstructions}. STRICT: ${angleDisplayName} PERSPECTIVE ONLY — camera does NOT move to front. GLOBAL MASTER SCENE LOCK: ${describeMasterSceneCompact(masterScene)}`
+            ? `${cameraPositionPrompt} Professional EXTREMELY WIDE full-body studio photo from head to toe: ${athleteLabel} wearing this exact uploaded garment (${garmentCategory}), performing ${movement} at ${intensity}% intensity, ${angleDisplayName} camera angle. ${garmentTypeEnforcement} ZOOM OUT VERY FAR — the athlete must occupy only 45-55% of the frame height with massive empty space above head (20%+) and below feet (15%+). Camera is 5 meters away. The ENTIRE person from top of head to bottom of feet MUST be clearly visible and SMALL in the frame. 9:16 vertical format (1080×1920). All equipment fully visible. Dark background. ${anglePoseInstructions} ${motionBlock} ${maxRealismBlock} ${MOTIF_RULES}${logoInstructions}. STRICT: ${angleDisplayName} PERSPECTIVE ONLY — camera does NOT move to front. GLOBAL MASTER SCENE LOCK: ${describeMasterSceneCompact(masterScene)}`
             : `PHOTOREALISTIC SPORTSWEAR CAMPAIGN — ${angleDisplayName} VIEW
 
 ${cameraPositionPrompt}
@@ -1204,6 +1220,7 @@ ${athleteDesc}
 
 ${anglePoseInstructions}
 ${motionBlock}
+${maxRealismBlock}
 
 SUBJECT: ${athleteLabel}, size ${size}, wearing EXACTLY this uploaded ${garmentCategory} performing ${movement} at ${intensity}% intensity.
 

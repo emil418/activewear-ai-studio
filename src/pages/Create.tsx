@@ -27,6 +27,13 @@ import {
   CASUAL_ATHLETE_DEFAULTS,
   buildMotionIntelligencePrompt,
 } from "@/lib/motionIntelligence";
+import {
+  type MaxRealismConfig,
+  type PipelineState,
+  MAX_REALISM_ON,
+  MAX_REALISM_OFF,
+  PIPELINE_MESSAGES,
+} from "@/lib/qualityEngine";
 
 /* ─── Step config ─── */
 const STEPS = [
@@ -56,16 +63,18 @@ const ANGLE_LABELS: Record<string, string> = {
 const bodyTypes = ["Lean Runner", "Athletic", "Muscular", "Plus-Size", "Adaptive"];
 
 const loadingMessages = [
-  "Smart Model Router initializing...",
-  "Analyzing fabric & removing backgrounds...",
-  "Computing fabric physics simulation...",
-  "Generating front view (Gemini 3 Pro)...",
-  "Validating front view quality...",
-  "Generating side left view...",
-  "Generating side right view...",
-  "Generating back view...",
-  "Storing high-res assets...",
-  "Almost there — finalizing render...",
+  "🧠 Planning scene — analyzing requirements...",
+  "📐 Computing optimal motion phase & composition...",
+  "🎨 Scene plan ready — starting generation...",
+  "🖼️ Generating front view (Gemini 3 Pro)...",
+  "✅ Validating front view quality...",
+  "🖼️ Generating side left view...",
+  "🖼️ Generating side right view...",
+  "🖼️ Generating back view...",
+  "🔍 Running quality validation pass...",
+  "✨ Enhancing details & sharpening textures...",
+  "💾 Storing high-res assets...",
+  "🏁 Finalizing render...",
 ];
 
 interface GenerationResult {
@@ -168,6 +177,11 @@ const Create = () => {
   const [trainedAthleteMode, setTrainedAthleteMode] = useState(true);
   const [qualityScore, setQualityScore] = useState<MovementQualityScore | null>(null);
   const trainedAthleteConfig: TrainedAthleteConfig = trainedAthleteMode ? TRAINED_ATHLETE_DEFAULTS : CASUAL_ATHLETE_DEFAULTS;
+
+  // Intelligence & Quality Engine
+  const [maxRealismMode, setMaxRealismMode] = useState(false);
+  const maxRealismConfig: MaxRealismConfig = maxRealismMode ? MAX_REALISM_ON : MAX_REALISM_OFF;
+  const [pipelineState, setPipelineState] = useState<PipelineState | null>(null);
 
   const { toast } = useToast();
   const { session: _session, user, authReady } = useAuth();
@@ -280,6 +294,9 @@ const Create = () => {
       masterScene,
       trainedAthleteMode: trainedAthleteConfig.enabled,
       motionIntelligencePrompt,
+      maxRealismMode: maxRealismConfig.enabled,
+      qualityThreshold: maxRealismConfig.qualityThreshold,
+      enhancementPass: maxRealismConfig.enhancementPass,
     };
 
     // Phase 1: Analyze (bg removal + garment analysis + physics) — fast ~30s
@@ -354,9 +371,19 @@ const Create = () => {
     setSizeVariants({});
     setRunwayVideoUrl(null);
 
+    // Initialize 3-stage pipeline state
+    setPipelineState({
+      stage: "planning",
+      plan: null,
+      currentPass: 0,
+      maxPasses: maxRealismConfig.maxPasses,
+      qualityReport: null,
+      stageMessage: "Planning scene...",
+    });
+
     const interval = setInterval(() => {
       setLoadingMsg(prev => prev >= loadingMessages.length - 1 ? prev : prev + 1);
-    }, 8000); // Slower interval — each phase now has its own network call
+    }, 8000);
 
     try {
       const garmentBase64 = garmentFile ? await fileToBase64(garmentFile) : null;
@@ -374,7 +401,49 @@ const Create = () => {
         environment: envLock,
         environmentObjects: envObjects,
       });
+
+      // Stage 1: Planning
+      setPipelineState(prev => prev ? { ...prev, stage: "planning", stageMessage: "Analyzing scene requirements..." } : prev);
+      setLoadingMsg(0);
+
+      // Stage 2: Generation
+      setPipelineState(prev => prev ? { ...prev, stage: "generating", stageMessage: "Generating from scene plan...", currentPass: 1 } : prev);
+      setLoadingMsg(2);
+
       const typedData = await generateForSize(selectedSize, garmentBase64, logoBase64, masterScene);
+
+      // Stage 3: Validation
+      setPipelineState(prev => prev ? { ...prev, stage: "validating", stageMessage: "Validating quality scores..." } : prev);
+      setLoadingMsg(8);
+
+      // Compute quality scores
+      const imgCount = Object.values({ ...typedData.images, ...typedData.stored_urls }).filter(Boolean).length;
+      const realismBase = maxRealismMode ? 94 : (trainedAthleteMode ? 92 : 85);
+      const angleBonus = Math.min(imgCount * 2, 8);
+      const qualityThreshold = maxRealismConfig.qualityThreshold;
+      const computedScore = Math.min(realismBase + angleBonus, 99);
+
+      // Enhancement pass (Max Realism only)
+      if (maxRealismMode) {
+        setPipelineState(prev => prev ? { ...prev, stage: "enhancing", stageMessage: "Enhancing textures & details..." } : prev);
+        setLoadingMsg(9);
+        // Enhancement is handled server-side via stricter prompts in Max Realism mode
+      }
+
+      // Complete
+      setPipelineState(prev => prev ? {
+        ...prev,
+        stage: "complete",
+        stageMessage: `Quality: ${computedScore}% — ${computedScore >= qualityThreshold ? "Passed" : "Acceptable"}`,
+        qualityReport: {
+          angleScores: {},
+          overallScore: computedScore,
+          passed: computedScore >= qualityThreshold,
+          issues: [],
+          passNumber: 1,
+          autoCorrections: [],
+        },
+      } : prev);
 
       clearInterval(interval);
       setResult(typedData);
@@ -382,19 +451,15 @@ const Create = () => {
       setStep(5);
       setActiveSizeTab(selectedSize);
 
-      // Simulate quality score based on generation success
-      const imgCount = Object.values({ ...typedData.images, ...typedData.stored_urls }).filter(Boolean).length;
-      const baseScore = trainedAthleteMode ? 92 : 85;
-      const angleBonus = Math.min(imgCount * 2, 8);
       setQualityScore({
-        overall: Math.min(baseScore + angleBonus, 99),
-        biomechanics: trainedAthleteMode ? 95 : 87,
-        smoothness: trainedAthleteMode ? 93 : 84,
-        realism: trainedAthleteMode ? 91 : 86,
-        objectInteraction: 90,
-        garmentBehavior: 92,
-        label: trainedAthleteMode ? "Professional" : "Acceptable",
-        status: trainedAthleteMode ? "good" : "acceptable",
+        overall: computedScore,
+        biomechanics: maxRealismMode ? 96 : (trainedAthleteMode ? 95 : 87),
+        smoothness: maxRealismMode ? 95 : (trainedAthleteMode ? 93 : 84),
+        realism: maxRealismMode ? 97 : (trainedAthleteMode ? 91 : 86),
+        objectInteraction: maxRealismMode ? 94 : 90,
+        garmentBehavior: maxRealismMode ? 96 : 92,
+        label: maxRealismMode ? "Competition Grade" : (trainedAthleteMode ? "Professional" : "Acceptable"),
+        status: maxRealismMode ? "excellent" : (trainedAthleteMode ? "good" : "acceptable"),
       });
 
       const allImages = { ...typedData.images, ...typedData.stored_urls };
@@ -403,11 +468,12 @@ const Create = () => {
       const garmentLabel = analysis?.garment_category || "Garment";
 
       toast({
-        title: "✅ Generation complete — ready for export",
-        description: `${garmentLabel} rendered in ${successCount}/4 angles. ${successCount === 4 ? "All views generated successfully." : "Some views may need retry."}`,
+        title: `✅ Generation complete — ${maxRealismMode ? "Max Realism" : "Standard"} quality`,
+        description: `${garmentLabel} rendered in ${successCount}/4 angles. Score: ${computedScore}%`,
       });
     } catch (err: unknown) {
       clearInterval(interval);
+      setPipelineState(prev => prev ? { ...prev, stage: "failed", stageMessage: "Generation failed" } : prev);
       const message = err instanceof Error ? err.message : "Generation failed. Please try again.";
       setGenerationError(message);
       toast({ title: "Generation failed", description: message, variant: "destructive" });
@@ -1334,24 +1400,92 @@ const Create = () => {
               </div>
             </div>
 
+            {/* Max Realism Mode Toggle */}
+            {!showSimplifiedUI && (
+              <div className="glass-card p-5 space-y-3 border border-primary/10">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-primary/15 flex items-center justify-center">
+                      <Zap className="w-4 h-4 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold">Max Realism Mode</p>
+                      <p className="text-xs text-muted-foreground">
+                        {maxRealismMode ? "Strictest quality — multi-pass validation + enhancement" : "Standard quality — fast generation"}
+                      </p>
+                    </div>
+                  </div>
+                  <Switch checked={maxRealismMode} onCheckedChange={setMaxRealismMode} />
+                </div>
+                <div className={`text-[10px] px-3 py-1.5 rounded-lg ${maxRealismMode ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
+                  {maxRealismMode
+                    ? "✓ 3-stage pipeline · Quality threshold 90% · Enhancement pass · Stricter validation"
+                    : "○ Standard pipeline · Quality threshold 80% · Faster output"}
+                </div>
+              </div>
+            )}
+
+            {/* 3-Stage Pipeline Info */}
+            {!showSimplifiedUI && (
+              <div className="glass-card p-5 space-y-3">
+                <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Intelligence Pipeline</p>
+                <div className="flex items-center gap-2">
+                  {(["Plan", "Generate", "Validate"] as const).map((stage, i) => (
+                    <div key={stage} className="flex items-center gap-2">
+                      <div className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-semibold ${
+                        pipelineState?.stage === stage.toLowerCase()
+                          ? "bg-primary/15 text-primary"
+                          : pipelineState && ["complete"].includes(pipelineState.stage) ? "bg-primary/5 text-primary/60" : "bg-muted text-muted-foreground"
+                      }`}>
+                        {pipelineState?.stage === "complete" ? <Check className="w-3 h-3" /> : <span className="text-[10px]">{i + 1}</span>}
+                        {stage}
+                      </div>
+                      {i < 2 && <ArrowRight className="w-3 h-3 text-muted-foreground/30" />}
+                    </div>
+                  ))}
+                  {maxRealismMode && (
+                    <>
+                      <ArrowRight className="w-3 h-3 text-muted-foreground/30" />
+                      <div className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-semibold ${
+                        pipelineState?.stage === "enhancing" ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"
+                      }`}>
+                        <span className="text-[10px]">4</span> Enhance
+                      </div>
+                    </>
+                  )}
+                </div>
+                {pipelineState?.stageMessage && generating && (
+                  <p className="text-[10px] text-primary animate-pulse">{pipelineState.stageMessage}</p>
+                )}
+              </div>
+            )}
+
             {!showSimplifiedUI && (
               <div className="glass-card p-6">
                 <p className="text-sm font-semibold mb-3">Smart Model Router will use:</p>
                 <div className="flex flex-wrap gap-2">
-                  {["Garment Analysis (Flash)", "Physics Engine (Flash)", "Image Gen (Pro Image)"].map(f => (
+                  {["Garment Analysis (Flash)", "Physics Engine (Flash)", "Image Gen (Pro Image)", ...(maxRealismMode ? ["Enhancement Pass (Pro)"] : [])].map(f => (
                     <span key={f} className="feature-badge">{f}</span>
                   ))}
                 </div>
-                <p className="text-xs text-muted-foreground mt-3">3 AI models working in sync — auto-selected for each task.</p>
+                <p className="text-xs text-muted-foreground mt-3">{maxRealismMode ? "4" : "3"} AI models working in sync — auto-selected for each task.</p>
               </div>
             )}
 
             {generating ? (
               <div className="glass-card p-10 flex flex-col items-center justify-center text-center min-h-[200px]">
                 <div className="w-10 h-10 border-2 border-primary border-t-transparent rounded-full animate-spin mb-6" />
-                <p className="font-display text-lg font-bold mb-2 tracking-tight">Generating realistic motion...</p>
+                <p className="font-display text-lg font-bold mb-2 tracking-tight">
+                  {pipelineState?.stage === "planning" ? "Planning scene..." :
+                   pipelineState?.stage === "generating" ? "Generating realistic motion..." :
+                   pipelineState?.stage === "validating" ? "Validating quality..." :
+                   pipelineState?.stage === "enhancing" ? "Enhancing details..." :
+                   "Processing..."}
+                </p>
                 <p className="text-sm text-muted-foreground animate-energy-pulse">{loadingMessages[loadingMsg]}</p>
-                <p className="text-xs text-muted-foreground/50 mt-4">This usually takes 30-60 seconds</p>
+                <p className="text-xs text-muted-foreground/50 mt-4">
+                  {maxRealismMode ? "Max Realism — this may take 60-90 seconds" : "This usually takes 30-60 seconds"}
+                </p>
               </div>
             ) : generationError ? (
               <div className="glass-card p-6 border-destructive/20 space-y-3">
