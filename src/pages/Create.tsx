@@ -294,6 +294,9 @@ const Create = () => {
       masterScene,
       trainedAthleteMode: trainedAthleteConfig.enabled,
       motionIntelligencePrompt,
+      maxRealismMode: maxRealismConfig.enabled,
+      qualityThreshold: maxRealismConfig.qualityThreshold,
+      enhancementPass: maxRealismConfig.enhancementPass,
     };
 
     // Phase 1: Analyze (bg removal + garment analysis + physics) — fast ~30s
