@@ -263,9 +263,13 @@ export function buildServerMasterSceneFallback({
         "hair color change between outputs",
         "motion phase mismatch between angles",
         "skin tone inconsistency",
+        "halo or glow artifact around athlete",
+        "body part cropped or missing from frame",
+        "scene elements appearing or disappearing",
+        "incorrect exercise form or biomechanics",
       ],
       auto_regenerate: true,
-      max_attempts: 3,
+      max_attempts: 4,
     },
   };
 }
