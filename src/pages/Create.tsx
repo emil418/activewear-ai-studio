@@ -1608,10 +1608,10 @@ const Create = () => {
                       {imgSrc ? (
                         <img src={imgSrc} alt={`${angle} view`} className="w-full h-full object-cover rounded-2xl" />
                       ) : (
-                        <>
-                          <Image className="w-10 h-10 text-muted-foreground/15 group-hover:text-muted-foreground/30 transition-colors duration-500" />
-                          <p className="text-xs text-muted-foreground/30 mt-2">No image generated</p>
-                        </>
+                        <div className="flex flex-col items-center justify-center gap-2">
+                          <Loader2 className="w-6 h-6 text-muted-foreground/30 animate-spin" />
+                          <p className="text-xs text-muted-foreground/30 mt-1">Generating…</p>
+                        </div>
                       )}
                     </div>
                   );
