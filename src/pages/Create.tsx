@@ -308,42 +308,62 @@ const Create = () => {
     const analyzeData = analyzeResp.data;
     masterScene = (analyzeData.master_scene as MasterScenePayload | undefined) || masterScene;
 
-    // Phase 2: Generate each angle separately (~60s each)
+    // Phase 2: Generate each angle with atomic retry system
     const images: Record<string, string | null> = {};
     const storedUrls: Record<string, string> = {};
     const angleNames = ["front", "side-left", "side-right", "back"];
+    const MAX_ANGLE_RETRIES = 5;
 
     for (let i = 0; i < angleNames.length; i++) {
       const angle = angleNames[i];
-      setLoadingMsg(3 + i); // "Generating front/side-left/side-right/back view..."
+      let succeeded = false;
 
-      const angleResp = await supabase.functions.invoke("generate-motion", {
-        body: {
-          ...commonBody,
-          mode: "generate_angle",
-          angle,
-          masterScene,
-          processedGarment: analyzeData.processedGarment,
-          processedLogo: analyzeData.processedLogo,
-          garmentAnalysis: analyzeData.garment_analysis,
-          physicsData: analyzeData.physics,
-        },
-      });
-
-      if (angleResp.data?.success) {
-        images[angle] = angleResp.data.image;
-        if (angleResp.data.stored_url) storedUrls[angle] = angleResp.data.stored_url;
-        if (angleResp.data.master_scene) {
-          masterScene = angleResp.data.master_scene as MasterScenePayload;
-        } else if (angle === "front") {
-          masterScene = {
-            ...masterScene,
-            anchor_image_url: angleResp.data.stored_url || angleResp.data.image || masterScene.anchor_image_url,
-          };
+      for (let attempt = 1; attempt <= MAX_ANGLE_RETRIES; attempt++) {
+        setLoadingMsg(3 + i);
+        if (attempt > 1) {
+          setPipelineState(prev => prev ? {
+            ...prev,
+            stageMessage: `Regenerating ${ANGLE_LABELS[angle] || angle} (attempt ${attempt}/${MAX_ANGLE_RETRIES})...`,
+          } : prev);
         }
-      } else {
-        console.warn(`Angle ${angle} failed:`, angleResp.data?.error);
-        images[angle] = null;
+
+        try {
+          const angleResp = await supabase.functions.invoke("generate-motion", {
+            body: {
+              ...commonBody,
+              mode: "generate_angle",
+              angle,
+              masterScene,
+              processedGarment: analyzeData.processedGarment,
+              processedLogo: analyzeData.processedLogo,
+              garmentAnalysis: analyzeData.garment_analysis,
+              physicsData: analyzeData.physics,
+            },
+          });
+
+          if (angleResp.data?.success) {
+            images[angle] = angleResp.data.image;
+            if (angleResp.data.stored_url) storedUrls[angle] = angleResp.data.stored_url;
+            if (angleResp.data.master_scene) {
+              masterScene = angleResp.data.master_scene as MasterScenePayload;
+            } else if (angle === "front") {
+              masterScene = {
+                ...masterScene,
+                anchor_image_url: angleResp.data.stored_url || angleResp.data.image || masterScene.anchor_image_url,
+              };
+            }
+            succeeded = true;
+            break;
+          }
+          console.warn(`Angle ${angle} attempt ${attempt} failed:`, angleResp.data?.error);
+        } catch (err) {
+          console.warn(`Angle ${angle} attempt ${attempt} threw:`, err);
+        }
+      }
+
+      if (!succeeded) {
+        // All retries exhausted for this angle — throw to trigger full restart
+        throw new Error(`ANGLE_FAILED:${angle}`);
       }
     }
 
