@@ -308,42 +308,62 @@ const Create = () => {
     const analyzeData = analyzeResp.data;
     masterScene = (analyzeData.master_scene as MasterScenePayload | undefined) || masterScene;
 
-    // Phase 2: Generate each angle separately (~60s each)
+    // Phase 2: Generate each angle with atomic retry system
     const images: Record<string, string | null> = {};
     const storedUrls: Record<string, string> = {};
     const angleNames = ["front", "side-left", "side-right", "back"];
+    const MAX_ANGLE_RETRIES = 5;
 
     for (let i = 0; i < angleNames.length; i++) {
       const angle = angleNames[i];
-      setLoadingMsg(3 + i); // "Generating front/side-left/side-right/back view..."
+      let succeeded = false;
 
-      const angleResp = await supabase.functions.invoke("generate-motion", {
-        body: {
-          ...commonBody,
-          mode: "generate_angle",
-          angle,
-          masterScene,
-          processedGarment: analyzeData.processedGarment,
-          processedLogo: analyzeData.processedLogo,
-          garmentAnalysis: analyzeData.garment_analysis,
-          physicsData: analyzeData.physics,
-        },
-      });
-
-      if (angleResp.data?.success) {
-        images[angle] = angleResp.data.image;
-        if (angleResp.data.stored_url) storedUrls[angle] = angleResp.data.stored_url;
-        if (angleResp.data.master_scene) {
-          masterScene = angleResp.data.master_scene as MasterScenePayload;
-        } else if (angle === "front") {
-          masterScene = {
-            ...masterScene,
-            anchor_image_url: angleResp.data.stored_url || angleResp.data.image || masterScene.anchor_image_url,
-          };
+      for (let attempt = 1; attempt <= MAX_ANGLE_RETRIES; attempt++) {
+        setLoadingMsg(3 + i);
+        if (attempt > 1) {
+          setPipelineState(prev => prev ? {
+            ...prev,
+            stageMessage: `Regenerating ${ANGLE_LABELS[angle] || angle} (attempt ${attempt}/${MAX_ANGLE_RETRIES})...`,
+          } : prev);
         }
-      } else {
-        console.warn(`Angle ${angle} failed:`, angleResp.data?.error);
-        images[angle] = null;
+
+        try {
+          const angleResp = await supabase.functions.invoke("generate-motion", {
+            body: {
+              ...commonBody,
+              mode: "generate_angle",
+              angle,
+              masterScene,
+              processedGarment: analyzeData.processedGarment,
+              processedLogo: analyzeData.processedLogo,
+              garmentAnalysis: analyzeData.garment_analysis,
+              physicsData: analyzeData.physics,
+            },
+          });
+
+          if (angleResp.data?.success) {
+            images[angle] = angleResp.data.image;
+            if (angleResp.data.stored_url) storedUrls[angle] = angleResp.data.stored_url;
+            if (angleResp.data.master_scene) {
+              masterScene = angleResp.data.master_scene as MasterScenePayload;
+            } else if (angle === "front") {
+              masterScene = {
+                ...masterScene,
+                anchor_image_url: angleResp.data.stored_url || angleResp.data.image || masterScene.anchor_image_url,
+              };
+            }
+            succeeded = true;
+            break;
+          }
+          console.warn(`Angle ${angle} attempt ${attempt} failed:`, angleResp.data?.error);
+        } catch (err) {
+          console.warn(`Angle ${angle} attempt ${attempt} threw:`, err);
+        }
+      }
+
+      if (!succeeded) {
+        // All retries exhausted for this angle — throw to trigger full restart
+        throw new Error(`ANGLE_FAILED:${angle}`);
       }
     }
 
@@ -385,6 +405,7 @@ const Create = () => {
       setLoadingMsg(prev => prev >= loadingMessages.length - 1 ? prev : prev + 1);
     }, 8000);
 
+    const MAX_FULL_RESTARTS = 2;
     try {
       const garmentBase64 = garmentFile ? await fileToBase64(garmentFile) : null;
       const logoBase64 = logoFile ? await fileToBase64(logoFile) : null;
@@ -402,15 +423,40 @@ const Create = () => {
         environmentObjects: envObjects,
       });
 
-      // Stage 1: Planning
-      setPipelineState(prev => prev ? { ...prev, stage: "planning", stageMessage: "Analyzing scene requirements..." } : prev);
-      setLoadingMsg(0);
+      let typedData: GenerationResult | null = null;
+      for (let restart = 0; restart <= MAX_FULL_RESTARTS; restart++) {
+        if (restart > 0) {
+          setPipelineState(prev => prev ? { ...prev, stage: "generating", stageMessage: `Full restart ${restart}/${MAX_FULL_RESTARTS} — regenerating all angles...` } : prev);
+          setLoadingMsg(0);
+        }
 
-      // Stage 2: Generation
-      setPipelineState(prev => prev ? { ...prev, stage: "generating", stageMessage: "Generating from scene plan...", currentPass: 1 } : prev);
-      setLoadingMsg(2);
+        // Stage 1: Planning
+        setPipelineState(prev => prev ? { ...prev, stage: "planning", stageMessage: "Analyzing scene requirements..." } : prev);
+        setLoadingMsg(0);
 
-      const typedData = await generateForSize(selectedSize, garmentBase64, logoBase64, masterScene);
+        // Stage 2: Generation
+        setPipelineState(prev => prev ? { ...prev, stage: "generating", stageMessage: "Generating from scene plan...", currentPass: restart + 1 } : prev);
+        setLoadingMsg(2);
+
+        try {
+          typedData = await generateForSize(selectedSize, garmentBase64, logoBase64, masterScene);
+          break; // success — exit restart loop
+        } catch (genErr: unknown) {
+          const msg = genErr instanceof Error ? genErr.message : "";
+          if (msg.startsWith("ANGLE_FAILED:") && restart < MAX_FULL_RESTARTS) {
+            console.warn(`Full restart ${restart + 1} due to: ${msg}`);
+            continue;
+          }
+          throw genErr; // exhausted restarts or non-retryable error
+        }
+      }
+      if (!typedData) throw new Error("Generation failed after all retries");
+
+      // Completion validation: verify ALL angles exist
+      const missingAngles = ANGLES.filter(a => !typedData!.images[a] && !typedData!.stored_urls[a]);
+      if (missingAngles.length > 0) {
+        throw new Error(`Incomplete generation: missing ${missingAngles.join(", ")}`);
+      }
 
       // Stage 3: Validation
       setPipelineState(prev => prev ? { ...prev, stage: "validating", stageMessage: "Validating quality scores..." } : prev);
@@ -1539,10 +1585,10 @@ const Create = () => {
                             {imgSrc ? (
                               <img src={imgSrc} alt={`${size} ${angle}`} className="w-full h-full object-cover rounded-2xl" />
                             ) : (
-                              <>
-                                <Image className="w-10 h-10 text-muted-foreground/15" />
-                                <p className="text-xs text-muted-foreground/30 mt-2">No image</p>
-                              </>
+                              <div className="flex flex-col items-center justify-center gap-2">
+                                <Loader2 className="w-6 h-6 text-muted-foreground/30 animate-spin" />
+                                <p className="text-xs text-muted-foreground/30 mt-1">Generating…</p>
+                              </div>
                             )}
                           </div>
                         );
@@ -1562,10 +1608,10 @@ const Create = () => {
                       {imgSrc ? (
                         <img src={imgSrc} alt={`${angle} view`} className="w-full h-full object-cover rounded-2xl" />
                       ) : (
-                        <>
-                          <Image className="w-10 h-10 text-muted-foreground/15 group-hover:text-muted-foreground/30 transition-colors duration-500" />
-                          <p className="text-xs text-muted-foreground/30 mt-2">No image generated</p>
-                        </>
+                        <div className="flex flex-col items-center justify-center gap-2">
+                          <Loader2 className="w-6 h-6 text-muted-foreground/30 animate-spin" />
+                          <p className="text-xs text-muted-foreground/30 mt-1">Generating…</p>
+                        </div>
                       )}
                     </div>
                   );
