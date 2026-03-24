@@ -405,6 +405,7 @@ const Create = () => {
       setLoadingMsg(prev => prev >= loadingMessages.length - 1 ? prev : prev + 1);
     }, 8000);
 
+    const MAX_FULL_RESTARTS = 2;
     try {
       const garmentBase64 = garmentFile ? await fileToBase64(garmentFile) : null;
       const logoBase64 = logoFile ? await fileToBase64(logoFile) : null;
@@ -422,15 +423,40 @@ const Create = () => {
         environmentObjects: envObjects,
       });
 
-      // Stage 1: Planning
-      setPipelineState(prev => prev ? { ...prev, stage: "planning", stageMessage: "Analyzing scene requirements..." } : prev);
-      setLoadingMsg(0);
+      let typedData: GenerationResult | null = null;
+      for (let restart = 0; restart <= MAX_FULL_RESTARTS; restart++) {
+        if (restart > 0) {
+          setPipelineState(prev => prev ? { ...prev, stage: "generating", stageMessage: `Full restart ${restart}/${MAX_FULL_RESTARTS} — regenerating all angles...` } : prev);
+          setLoadingMsg(0);
+        }
 
-      // Stage 2: Generation
-      setPipelineState(prev => prev ? { ...prev, stage: "generating", stageMessage: "Generating from scene plan...", currentPass: 1 } : prev);
-      setLoadingMsg(2);
+        // Stage 1: Planning
+        setPipelineState(prev => prev ? { ...prev, stage: "planning", stageMessage: "Analyzing scene requirements..." } : prev);
+        setLoadingMsg(0);
 
-      const typedData = await generateForSize(selectedSize, garmentBase64, logoBase64, masterScene);
+        // Stage 2: Generation
+        setPipelineState(prev => prev ? { ...prev, stage: "generating", stageMessage: "Generating from scene plan...", currentPass: restart + 1 } : prev);
+        setLoadingMsg(2);
+
+        try {
+          typedData = await generateForSize(selectedSize, garmentBase64, logoBase64, masterScene);
+          break; // success — exit restart loop
+        } catch (genErr: unknown) {
+          const msg = genErr instanceof Error ? genErr.message : "";
+          if (msg.startsWith("ANGLE_FAILED:") && restart < MAX_FULL_RESTARTS) {
+            console.warn(`Full restart ${restart + 1} due to: ${msg}`);
+            continue;
+          }
+          throw genErr; // exhausted restarts or non-retryable error
+        }
+      }
+      if (!typedData) throw new Error("Generation failed after all retries");
+
+      // Completion validation: verify ALL angles exist
+      const missingAngles = ANGLES.filter(a => !typedData!.images[a] && !typedData!.stored_urls[a]);
+      if (missingAngles.length > 0) {
+        throw new Error(`Incomplete generation: missing ${missingAngles.join(", ")}`);
+      }
 
       // Stage 3: Validation
       setPipelineState(prev => prev ? { ...prev, stage: "validating", stageMessage: "Validating quality scores..." } : prev);
