@@ -1243,6 +1243,7 @@ ${athleteDesc}
 ${anglePoseInstructions}
 ${motionBlock}
 ${maxRealismBlock}
+${ANTI_ARTIFACT_BLOCK}
 
 SUBJECT: ${athleteLabel}, size ${size}, wearing EXACTLY this uploaded ${garmentCategory} performing ${movement} at ${intensity}% intensity.
 
