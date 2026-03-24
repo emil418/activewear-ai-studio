@@ -1198,11 +1198,33 @@ You MUST render this EXACT same person in every image.`
 - Quality threshold: ${qualityThreshold}% — below this score triggers automatic regeneration`
             : "";
 
+          const ANTI_ARTIFACT_BLOCK = `ANTI-ARTIFACT RULES (MANDATORY — ZERO TOLERANCE):
+- ABSOLUTELY NO halo, glow, aura, or luminous outline around the athlete's body, hair, or limbs
+- NO bright edges or ghostly outlines that don't match the studio lighting
+- NO background bleeding into the athlete silhouette
+- The athlete must blend NATURALLY into the scene with physically correct edge transitions
+- Hair edges must look natural — no bright fringing, no artificial sharpness, no glow
+- Shadow edges must be soft and physically motivated by the 3-point lighting setup
+- If there is ANY unnatural radiance around ANY body part — this output is INVALID
+
+FULL-BODY ENFORCEMENT (MANDATORY):
+- The ENTIRE athlete from the top of the head to the bottom of the feet MUST be visible
+- NO cropping of any body part — head, hands, feet, elbows, knees must ALL be in frame
+- All equipment (barbells, benches, pull-up bars, boxes, ropes) must be FULLY visible
+- If ANY body part or required equipment is cut off by the frame edge — this output is INVALID
+- The athlete occupies 45-55% of frame height with generous space on ALL sides
+
+NO INDEPENDENT GENERATION:
+- This output MUST be derived from the GLOBAL MASTER STATE below
+- Every visual attribute (identity, garment, environment, lighting, objects, motion phase) comes from ONE single source
+- NO creative reinterpretation of ANY locked attribute is allowed
+- The result must look like ONE of MULTIPLE cameras capturing the EXACT SAME real-world moment`;
+
           const cameraPositionPrompt = CAMERA_POSITIONS[angle] || CAMERA_POSITIONS["front"];
           const angleDisplayName = angle.replace("-", " ").toUpperCase();
 
           const mainPrompt = useSimplePrompt
-            ? `${cameraPositionPrompt} Professional EXTREMELY WIDE full-body studio photo from head to toe: ${athleteLabel} wearing this exact uploaded garment (${garmentCategory}), performing ${movement} at ${intensity}% intensity, ${angleDisplayName} camera angle. ${garmentTypeEnforcement} ZOOM OUT VERY FAR — the athlete must occupy only 45-55% of the frame height with massive empty space above head (20%+) and below feet (15%+). Camera is 5 meters away. The ENTIRE person from top of head to bottom of feet MUST be clearly visible and SMALL in the frame. 9:16 vertical format (1080×1920). All equipment fully visible. Dark background. ${anglePoseInstructions} ${motionBlock} ${maxRealismBlock} ${MOTIF_RULES}${logoInstructions}. STRICT: ${angleDisplayName} PERSPECTIVE ONLY — camera does NOT move to front. GLOBAL MASTER SCENE LOCK: ${describeMasterSceneCompact(masterScene)}`
+            ? `${cameraPositionPrompt} Professional EXTREMELY WIDE full-body studio photo from head to toe: ${athleteLabel} wearing this exact uploaded garment (${garmentCategory}), performing ${movement} at ${intensity}% intensity, ${angleDisplayName} camera angle. ${garmentTypeEnforcement} ${ANTI_ARTIFACT_BLOCK} ZOOM OUT VERY FAR — the athlete must occupy only 45-55% of the frame height with massive empty space above head (20%+) and below feet (15%+). Camera is 5 meters away. The ENTIRE person from top of head to bottom of feet MUST be clearly visible and SMALL in the frame. 9:16 vertical format (1080×1920). All equipment fully visible. Dark background. ${anglePoseInstructions} ${motionBlock} ${maxRealismBlock} ${MOTIF_RULES}${logoInstructions}. STRICT: ${angleDisplayName} PERSPECTIVE ONLY — camera does NOT move to front. GLOBAL MASTER SCENE LOCK: ${describeMasterSceneCompact(masterScene)}`
             : `PHOTOREALISTIC SPORTSWEAR CAMPAIGN — ${angleDisplayName} VIEW
 
 ${cameraPositionPrompt}
@@ -1221,6 +1243,7 @@ ${athleteDesc}
 ${anglePoseInstructions}
 ${motionBlock}
 ${maxRealismBlock}
+${ANTI_ARTIFACT_BLOCK}
 
 SUBJECT: ${athleteLabel}, size ${size}, wearing EXACTLY this uploaded ${garmentCategory} performing ${movement} at ${intensity}% intensity.
 
@@ -1264,15 +1287,13 @@ ${logoInstructions}`;
             const imgUrl = extractImageFromResponse(choice as Record<string, unknown>);
 
             if (imgUrl) {
-              // Validate on first attempt only (to avoid slowing retries)
-              if (attempts === 1) {
-                const referenceImageUrl = masterScene.anchor_image_url;
-                const validation = await validateImage(imgUrl, LOVABLE_API_KEY, angle, movement, masterScene, referenceImageUrl);
-                if (!validation.valid) {
-                  console.warn(`Image validation failed for ${angle}: ${validation.issues.join(", ")} — retrying`);
-                  await new Promise(r => setTimeout(r, 1000));
-                  continue; // retry with next attempt
-                }
+              // Validate on EVERY attempt — never show invalid output
+              const referenceImageUrl = masterScene.anchor_image_url;
+              const validation = await validateImage(imgUrl, LOVABLE_API_KEY, angle, movement, masterScene, referenceImageUrl);
+              if (!validation.valid) {
+                console.warn(`Image validation failed for ${angle} (attempt ${attempts}): ${validation.issues.join(", ")} — retrying`);
+                await new Promise(r => setTimeout(r, 1000));
+                continue; // retry with next attempt
               }
               console.log(`✅ ${angle} view generated & validated (attempt ${attempts})`);
               return imgUrl;

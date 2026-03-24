@@ -263,9 +263,13 @@ export function buildServerMasterSceneFallback({
         "hair color change between outputs",
         "motion phase mismatch between angles",
         "skin tone inconsistency",
+        "halo or glow artifact around athlete",
+        "body part cropped or missing from frame",
+        "scene elements appearing or disappearing",
+        "incorrect exercise form or biomechanics",
       ],
       auto_regenerate: true,
-      max_attempts: 3,
+      max_attempts: 4,
     },
   };
 }
@@ -371,17 +375,20 @@ Check ALL of these failure cases:
 5. HAIR COLOR DRIFT (CRITICAL): Hair color is HARD LOCKED${scene.athlete_lock.hair_color ? ` to "${scene.athlete_lock.hair_color}"` : ""}. Hair color MUST NOT shift between outputs. No highlights appearing/disappearing. No color changes from lighting. If hair color differs from the reference — IMMEDIATE FAIL.
 6. ANGLE / MOMENT FAILURE: for ${options.angle}, the view does not look like a camera rotation around the same locked scene and same moment for movement "${options.movement}".
 7. MOTION PHASE MISMATCH: All angles must show THE EXACT SAME MOMENT in the movement timeline (phase: ${scene.motion_lock.motion_phase}). If the athlete is in a different movement phase than the reference (e.g. different leg position, different arm swing) — FAIL.
-8. CROPPING / ANATOMY FAILURE: the full body or required object is cropped, or there are obvious anatomy errors.
+8. CROPPING / ANATOMY FAILURE: the full body or required object is cropped, or there are obvious anatomy errors. For exercises requiring full-body visibility (pull-ups, running, deadlifts, squats, sprints, lunges, bench press), the ENTIRE athlete from head to toe MUST be visible. If ANY body part is cropped — IMMEDIATE FAIL.
 9. BIOMECHANICAL FAILURE (CRITICAL): Check for physically impossible poses — hyperextended joints beyond anatomical limits, spine bending unnaturally, limb proportions distorting, impossible balance/weight distribution, or poses that defy gravity. The movement "${options.movement}" must look biomechanically correct for a trained athlete.
 10. BODY DISTORTION: Arms or legs that look unnaturally stretched, shrunk, or rubber-like. Hands with wrong number of fingers. Head-to-body ratio that looks inhuman. Any body part that appears melted, warped, or AI-artifact-like.
 11. OBJECT PHYSICS FAILURE: Equipment (barbells, kettlebells, ropes, boxes) must move correctly with the athlete, show realistic weight, and follow physics. A barbell must look heavy, a rope must show gravity sag, a box must be stable.
 12. GARMENT BEHAVIOR FAILURE: Clothing must react naturally to the movement — stretching at tension points, compressing at fold points. Garment must NOT flicker, change shape randomly, or behave as if weightless.
+13. HALO / GLOW ARTIFACT (CRITICAL): Check for ANY unnatural glow, halo, aura, or luminous outline around the athlete's body, hair, or limbs. This includes bright edges that don't match the lighting, ghostly outlines, or any artificial-looking radiance. If ANY halo or glow artifact is detected — IMMEDIATE FAIL.
+14. SCENE ELEMENT DRIFT: Objects, props, or background elements must NOT appear or disappear between angles. The exact same set of objects must be present in every output. No spontaneous additions or removals.
+15. DEFAULT GARMENT CONSISTENCY: If the athlete has no lower-body garment specified, a fixed default (dark athletic shorts for males, dark athletic leggings for females) must be used and remain IDENTICAL across all outputs. No variation allowed.
 
 MASTER SCENE:
 ${describeMasterScene(scene)}
 
 Return strict JSON only:
-{"valid": true/false, "issues": ["issue1", "issue2"]}
+{"valid": true/false, "issues": ["issue1", "issue2"], "severity": "critical" | "major" | "minor"}
 
-Mark invalid if ANY of these failure categories appear. GARMENT TYPE changes, HAIR COLOR shifts, MOTION PHASE mismatches, and BIOMECHANICAL FAILURES are the HIGHEST priority failures.`;
+Mark invalid if ANY of these failure categories appear. GARMENT TYPE changes, HAIR COLOR shifts, HALO/GLOW ARTIFACTS, MOTION PHASE mismatches, CROPPED BODIES, and BIOMECHANICAL FAILURES are the HIGHEST priority failures — these are CRITICAL severity and must ALWAYS trigger rejection.`;
 }
