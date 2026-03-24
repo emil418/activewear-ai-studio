@@ -1264,15 +1264,13 @@ ${logoInstructions}`;
             const imgUrl = extractImageFromResponse(choice as Record<string, unknown>);
 
             if (imgUrl) {
-              // Validate on first attempt only (to avoid slowing retries)
-              if (attempts === 1) {
-                const referenceImageUrl = masterScene.anchor_image_url;
-                const validation = await validateImage(imgUrl, LOVABLE_API_KEY, angle, movement, masterScene, referenceImageUrl);
-                if (!validation.valid) {
-                  console.warn(`Image validation failed for ${angle}: ${validation.issues.join(", ")} — retrying`);
-                  await new Promise(r => setTimeout(r, 1000));
-                  continue; // retry with next attempt
-                }
+              // Validate on EVERY attempt — never show invalid output
+              const referenceImageUrl = masterScene.anchor_image_url;
+              const validation = await validateImage(imgUrl, LOVABLE_API_KEY, angle, movement, masterScene, referenceImageUrl);
+              if (!validation.valid) {
+                console.warn(`Image validation failed for ${angle} (attempt ${attempts}): ${validation.issues.join(", ")} — retrying`);
+                await new Promise(r => setTimeout(r, 1000));
+                continue; // retry with next attempt
               }
               console.log(`✅ ${angle} view generated & validated (attempt ${attempts})`);
               return imgUrl;
