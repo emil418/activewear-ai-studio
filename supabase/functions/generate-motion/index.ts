@@ -1198,6 +1198,28 @@ You MUST render this EXACT same person in every image.`
 - Quality threshold: ${qualityThreshold}% — below this score triggers automatic regeneration`
             : "";
 
+          const ANTI_ARTIFACT_BLOCK = `ANTI-ARTIFACT RULES (MANDATORY — ZERO TOLERANCE):
+- ABSOLUTELY NO halo, glow, aura, or luminous outline around the athlete's body, hair, or limbs
+- NO bright edges or ghostly outlines that don't match the studio lighting
+- NO background bleeding into the athlete silhouette
+- The athlete must blend NATURALLY into the scene with physically correct edge transitions
+- Hair edges must look natural — no bright fringing, no artificial sharpness, no glow
+- Shadow edges must be soft and physically motivated by the 3-point lighting setup
+- If there is ANY unnatural radiance around ANY body part — this output is INVALID
+
+FULL-BODY ENFORCEMENT (MANDATORY):
+- The ENTIRE athlete from the top of the head to the bottom of the feet MUST be visible
+- NO cropping of any body part — head, hands, feet, elbows, knees must ALL be in frame
+- All equipment (barbells, benches, pull-up bars, boxes, ropes) must be FULLY visible
+- If ANY body part or required equipment is cut off by the frame edge — this output is INVALID
+- The athlete occupies 45-55% of frame height with generous space on ALL sides
+
+NO INDEPENDENT GENERATION:
+- This output MUST be derived from the GLOBAL MASTER STATE below
+- Every visual attribute (identity, garment, environment, lighting, objects, motion phase) comes from ONE single source
+- NO creative reinterpretation of ANY locked attribute is allowed
+- The result must look like ONE of MULTIPLE cameras capturing the EXACT SAME real-world moment`;
+
           const cameraPositionPrompt = CAMERA_POSITIONS[angle] || CAMERA_POSITIONS["front"];
           const angleDisplayName = angle.replace("-", " ").toUpperCase();
 
