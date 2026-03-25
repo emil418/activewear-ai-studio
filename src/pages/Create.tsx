@@ -534,6 +534,9 @@ const Create = () => {
     const variants: Record<string, GenerationResult | null> = {};
     variants[selectedSize] = result;
 
+    const MAX_SIZE_RETRIES = 3;
+    const MAX_BATCH_RESTARTS = 2;
+
     try {
       const garmentBase64 = await fileToBase64(garmentFile);
       const logoBase64 = logoFile ? await fileToBase64(logoFile) : null;
@@ -550,27 +553,89 @@ const Create = () => {
         environmentObjects: environmentToObjectPolicy(selectedEnvironment),
       });
 
+      // Generate each remaining size with per-size retries
       for (const size of remainingSizes) {
-        setSizeProgress(`Generating ${size}...`);
-        try {
-          variants[size] = await generateForSize(size, garmentBase64, logoBase64, {
-            ...sharedMasterScene,
-            anchor_image_url: undefined,
-            garment_lock: {
-              ...sharedMasterScene.garment_lock,
-              requested_size: size,
-            },
-          });
-        } catch {
+        let succeeded = false;
+        for (let attempt = 1; attempt <= MAX_SIZE_RETRIES; attempt++) {
+          setSizeProgress(
+            attempt > 1
+              ? `Regenerating ${size} (attempt ${attempt}/${MAX_SIZE_RETRIES})…`
+              : `Generating ${size}…`
+          );
+          try {
+            variants[size] = await generateForSize(size, garmentBase64, logoBase64, {
+              ...sharedMasterScene,
+              anchor_image_url: undefined,
+              garment_lock: {
+                ...sharedMasterScene.garment_lock,
+                requested_size: size,
+              },
+            });
+            succeeded = true;
+            break;
+          } catch (err) {
+            console.warn(`Size ${size} attempt ${attempt} failed:`, err);
+          }
+        }
+        if (!succeeded) {
           variants[size] = null;
         }
       }
 
-      setSizeVariants(variants);
-      toast({
-        title: "✅ All size variants generated",
-        description: `${Object.values(variants).filter(Boolean).length}/${ALL_SIZES.length} sizes completed — all views included.`,
-      });
+      // Atomic completion check — if any size failed, try a full batch restart
+      const failedSizes = remainingSizes.filter(s => !variants[s]);
+      if (failedSizes.length > 0) {
+        for (let restart = 1; restart <= MAX_BATCH_RESTARTS; restart++) {
+          setSizeProgress(`Batch restart ${restart}/${MAX_BATCH_RESTARTS} — regenerating ${failedSizes.length} failed size(s)…`);
+          const stillFailed: string[] = [];
+
+          for (const size of failedSizes) {
+            let succeeded = false;
+            for (let attempt = 1; attempt <= MAX_SIZE_RETRIES; attempt++) {
+              setSizeProgress(`Restart ${restart}: regenerating ${size} (attempt ${attempt})…`);
+              try {
+                variants[size] = await generateForSize(size, garmentBase64, logoBase64, {
+                  ...sharedMasterScene,
+                  anchor_image_url: undefined,
+                  garment_lock: {
+                    ...sharedMasterScene.garment_lock,
+                    requested_size: size,
+                  },
+                });
+                succeeded = true;
+                break;
+              } catch (err) {
+                console.warn(`Restart ${restart}, size ${size} attempt ${attempt} failed:`, err);
+              }
+            }
+            if (!succeeded) stillFailed.push(size);
+          }
+
+          // Clear the failed list for next restart iteration
+          failedSizes.length = 0;
+          failedSizes.push(...stillFailed);
+          if (failedSizes.length === 0) break;
+        }
+      }
+
+      // Update variants progressively
+      setSizeVariants({ ...variants });
+
+      const successCount = Object.values(variants).filter(Boolean).length;
+      const totalCount = ALL_SIZES.length;
+
+      if (successCount === totalCount) {
+        toast({
+          title: "✅ All size variants generated",
+          description: `${successCount}/${totalCount} sizes completed — all views included.`,
+        });
+      } else {
+        toast({
+          title: "⚠️ Size generation partially complete",
+          description: `${successCount}/${totalCount} sizes completed. ${totalCount - successCount} size(s) could not be generated after all retries.`,
+          variant: "destructive",
+        });
+      }
     } catch (err) {
       toast({ title: "Size generation failed", description: String(err), variant: "destructive" });
     } finally {
