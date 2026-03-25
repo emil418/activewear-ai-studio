@@ -583,13 +583,13 @@ const Create = () => {
       }
 
       // Atomic completion check — if any size failed, try a full batch restart
-      const failedSizes = remainingSizes.filter(s => !variants[s]);
-      if (failedSizes.length > 0) {
+      let failedSizeList = remainingSizes.filter(s => !variants[s]);
+      if (failedSizeList.length > 0) {
         for (let restart = 1; restart <= MAX_BATCH_RESTARTS; restart++) {
-          setSizeProgress(`Batch restart ${restart}/${MAX_BATCH_RESTARTS} — regenerating ${failedSizes.length} failed size(s)…`);
-          const stillFailed: string[] = [];
+          setSizeProgress(`Batch restart ${restart}/${MAX_BATCH_RESTARTS} — regenerating ${failedSizeList.length} failed size(s)…`);
+          const stillFailed: typeof remainingSizes = [];
 
-          for (const size of failedSizes) {
+          for (const size of failedSizeList) {
             let succeeded = false;
             for (let attempt = 1; attempt <= MAX_SIZE_RETRIES; attempt++) {
               setSizeProgress(`Restart ${restart}: regenerating ${size} (attempt ${attempt})…`);
@@ -611,10 +611,8 @@ const Create = () => {
             if (!succeeded) stillFailed.push(size);
           }
 
-          // Clear the failed list for next restart iteration
-          failedSizes.length = 0;
-          failedSizes.push(...stillFailed);
-          if (failedSizes.length === 0) break;
+          failedSizeList = stillFailed;
+          if (failedSizeList.length === 0) break;
         }
       }
 
