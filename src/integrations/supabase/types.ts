@@ -268,6 +268,128 @@ export type Database = {
         }
         Relationships: []
       }
+      generation_job_items: {
+        Row: {
+          angle: string
+          attempt_count: number
+          completed_at: string | null
+          created_at: string
+          id: string
+          image_url: string | null
+          inline_image: string | null
+          job_id: string
+          last_error: string | null
+          max_attempts: number
+          size: string
+          started_at: string | null
+          status: string
+          updated_at: string
+          validation_passed: boolean | null
+        }
+        Insert: {
+          angle: string
+          attempt_count?: number
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          inline_image?: string | null
+          job_id: string
+          last_error?: string | null
+          max_attempts?: number
+          size: string
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+          validation_passed?: boolean | null
+        }
+        Update: {
+          angle?: string
+          attempt_count?: number
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          inline_image?: string | null
+          job_id?: string
+          last_error?: string | null
+          max_attempts?: number
+          size?: string
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+          validation_passed?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "generation_job_items_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "generation_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      generation_jobs: {
+        Row: {
+          batch_type: string
+          completed_at: string | null
+          created_at: string
+          current_angle: string | null
+          current_size: string | null
+          id: string
+          last_error: string | null
+          master_scene: Json | null
+          max_restarts: number
+          processing_token: string | null
+          request_payload: Json
+          requested_angles: Json
+          requested_sizes: Json
+          restart_count: number
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          batch_type?: string
+          completed_at?: string | null
+          created_at?: string
+          current_angle?: string | null
+          current_size?: string | null
+          id?: string
+          last_error?: string | null
+          master_scene?: Json | null
+          max_restarts?: number
+          processing_token?: string | null
+          request_payload: Json
+          requested_angles?: Json
+          requested_sizes?: Json
+          restart_count?: number
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          batch_type?: string
+          completed_at?: string | null
+          created_at?: string
+          current_angle?: string | null
+          current_size?: string | null
+          id?: string
+          last_error?: string | null
+          master_scene?: Json | null
+          max_restarts?: number
+          processing_token?: string | null
+          request_payload?: Json
+          requested_angles?: Json
+          requested_sizes?: Json
+          restart_count?: number
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
