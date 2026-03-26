@@ -267,7 +267,7 @@ const Create = () => {
     analyzeData: Record<string, unknown>,
     masterScene: MasterScenePayload,
     maxRetries = 5,
-    timeoutMs = 90_000,
+    timeoutMs = 150_000,
   ): Promise<{ image: string | null; storedUrl: string | null; masterScene: MasterScenePayload }> => {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       if (attempt > 1) {
