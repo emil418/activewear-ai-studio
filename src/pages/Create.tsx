@@ -66,8 +66,8 @@ const loadingMessages = [
   "🧠 Planning scene — analyzing requirements...",
   "📐 Computing optimal motion phase & composition...",
   "🎨 Scene plan ready — starting generation...",
-  "🖼️ Generating front view (Gemini 3 Pro)...",
-  "✅ Validating front view quality...",
+  "🖼️ Generating front preview (fast mode)...",
+  "✅ Front preview ready — loading remaining angles...",
   "🖼️ Generating side left view...",
   "🖼️ Generating side right view...",
   "🖼️ Generating back view...",
@@ -76,6 +76,14 @@ const loadingMessages = [
   "💾 Storing high-res assets...",
   "🏁 Finalizing render...",
 ];
+
+// Scene hash for caching
+function computeSceneHash(opts: { athlete: string; movement: string; env: string; garment: string; gender: string; body: string }): string {
+  return `${opts.athlete}|${opts.movement}|${opts.env}|${opts.garment}|${opts.gender}|${opts.body}`;
+}
+
+// Scene cache
+const sceneCache = new Map<string, { analyzeData: Record<string, unknown>; masterScene: MasterScenePayload }>();
 
 interface GenerationResult {
   garment_analysis: Record<string, unknown>;
