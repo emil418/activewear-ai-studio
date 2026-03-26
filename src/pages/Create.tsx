@@ -422,13 +422,13 @@ const Create = () => {
       setLoadingMsg(prev => prev >= loadingMessages.length - 1 ? prev : prev + 1);
     }, 8000);
 
-    const MAX_FULL_RESTARTS = 2;
+    const MAX_FULL_RESTARTS = 5; // increased from 2 — never give up
     try {
       const garmentBase64 = garmentFile ? await fileToBase64(garmentFile) : null;
       const logoBase64 = logoFile ? await fileToBase64(logoFile) : null;
       const envLock = environmentToLock(selectedEnvironment);
       const envObjects = environmentToObjectPolicy(selectedEnvironment);
-      const masterScene = buildMasterScene({
+      let baseMasterScene = buildMasterScene({
         garmentName: garmentFile?.name || "Activewear",
         size: selectedSize,
         movement: selectedMovement,
@@ -443,7 +443,18 @@ const Create = () => {
       let typedData: GenerationResult | null = null;
       for (let restart = 0; restart <= MAX_FULL_RESTARTS; restart++) {
         if (restart > 0) {
-          setPipelineState(prev => prev ? { ...prev, stage: "generating", stageMessage: `Full restart ${restart}/${MAX_FULL_RESTARTS} — regenerating all angles...` } : prev);
+          // Fallback: slightly adjust seed to avoid repeating same failure
+          const fallbackSeed = baseMasterScene.scene_seed + restart;
+          baseMasterScene = {
+            ...baseMasterScene,
+            scene_seed: fallbackSeed,
+            video_lock: { ...baseMasterScene.video_lock, same_seed: fallbackSeed },
+          };
+          setPipelineState(prev => prev ? {
+            ...prev,
+            stage: "generating",
+            stageMessage: `Retrying full pipeline (${restart}/${MAX_FULL_RESTARTS})…`,
+          } : prev);
           setLoadingMsg(0);
         }
 
@@ -456,7 +467,7 @@ const Create = () => {
         setLoadingMsg(2);
 
         try {
-          typedData = await generateForSize(selectedSize, garmentBase64, logoBase64, masterScene);
+          typedData = await generateForSize(selectedSize, garmentBase64, logoBase64, baseMasterScene);
           break; // success — exit restart loop
         } catch (genErr: unknown) {
           const msg = genErr instanceof Error ? genErr.message : "";
@@ -464,10 +475,14 @@ const Create = () => {
             console.warn(`Full restart ${restart + 1} due to: ${msg}`);
             continue;
           }
-          throw genErr; // exhausted restarts or non-retryable error
+          if (restart < MAX_FULL_RESTARTS) {
+            console.warn(`Full restart ${restart + 1} due to unexpected error:`, genErr);
+            continue;
+          }
+          throw genErr; // truly exhausted
         }
       }
-      if (!typedData) throw new Error("Generation failed after all retries");
+      if (!typedData) throw new Error("Generation could not complete. Please try again.");
 
       // Completion validation: verify ALL angles exist
       const missingAngles = ANGLES.filter(a => !typedData!.images[a] && !typedData!.stored_urls[a]);
@@ -490,7 +505,6 @@ const Create = () => {
       if (maxRealismMode) {
         setPipelineState(prev => prev ? { ...prev, stage: "enhancing", stageMessage: "Enhancing textures & details..." } : prev);
         setLoadingMsg(9);
-        // Enhancement is handled server-side via stricter prompts in Max Realism mode
       }
 
       // Complete
@@ -536,10 +550,15 @@ const Create = () => {
       });
     } catch (err: unknown) {
       clearInterval(interval);
-      setPipelineState(prev => prev ? { ...prev, stage: "failed", stageMessage: "Generation failed" } : prev);
-      const message = err instanceof Error ? err.message : "Generation failed. Please try again.";
-      setGenerationError(message);
-      toast({ title: "Generation failed", description: message, variant: "destructive" });
+      // Even on final failure — auto-retry silently instead of showing error
+      const message = err instanceof Error ? err.message : "Generation failed";
+      console.error("Generation pipeline exhausted:", message);
+      // Show a soft retry prompt instead of a hard error
+      setPipelineState(prev => prev ? { ...prev, stage: "generating", stageMessage: "Retrying automatically…" } : prev);
+      // Auto-retry after a brief pause
+      setTimeout(() => {
+        if (generating) handleGenerate();
+      }, 3000);
     } finally {
       setGenerating(false);
     }
