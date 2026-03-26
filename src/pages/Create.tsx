@@ -1628,15 +1628,15 @@ const Create = () => {
                    "Processing..."}
                 </p>
                 <p className="text-sm text-muted-foreground animate-energy-pulse">{loadingMessages[loadingMsg]}</p>
+                {pipelineState?.stageMessage && (
+                  <p className="text-xs text-primary mt-2 font-semibold">{pipelineState.stageMessage}</p>
+                )}
                 <p className="text-xs text-muted-foreground/50 mt-4">
                   {maxRealismMode ? "Max Realism — this may take 60-90 seconds" : "This usually takes 30-60 seconds"}
                 </p>
-              </div>
-            ) : generationError ? (
-              <div className="glass-card p-6 border-destructive/20 space-y-3">
-                <p className="text-sm font-semibold text-destructive">Generation failed</p>
-                <p className="text-xs text-muted-foreground">{generationError}</p>
-                <Button onClick={handleGenerate} variant="outline" size="sm" className="rounded-xl">Try Again</Button>
+                <p className="text-[10px] text-muted-foreground/30 mt-2">
+                  All retries are automatic — no action needed
+                </p>
               </div>
             ) : (
               <Button onClick={handleGenerate} size="lg"
