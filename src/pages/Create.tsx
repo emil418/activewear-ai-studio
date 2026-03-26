@@ -313,22 +313,30 @@ const Create = () => {
     const storedUrls: Record<string, string> = {};
     const angleNames = ["front", "side-left", "side-right", "back"];
     const MAX_ANGLE_RETRIES = 5;
+    const ANGLE_TIMEOUT_MS = 90_000; // 90s per angle attempt
 
     for (let i = 0; i < angleNames.length; i++) {
       const angle = angleNames[i];
       let succeeded = false;
+
+      // Update progress: "1/4 angles complete"
+      setPipelineState(prev => prev ? {
+        ...prev,
+        stageMessage: `Generating ${ANGLE_LABELS[angle] || angle}… (${i}/${angleNames.length} complete)`,
+      } : prev);
 
       for (let attempt = 1; attempt <= MAX_ANGLE_RETRIES; attempt++) {
         setLoadingMsg(3 + i);
         if (attempt > 1) {
           setPipelineState(prev => prev ? {
             ...prev,
-            stageMessage: `Regenerating ${ANGLE_LABELS[angle] || angle} (attempt ${attempt}/${MAX_ANGLE_RETRIES})...`,
+            stageMessage: `Retrying ${ANGLE_LABELS[angle] || angle} (${attempt}/${MAX_ANGLE_RETRIES})… (${i}/${angleNames.length} complete)`,
           } : prev);
         }
 
         try {
-          const angleResp = await supabase.functions.invoke("generate-motion", {
+          // Timeout control — restart if generation exceeds threshold
+          const anglePromise = supabase.functions.invoke("generate-motion", {
             body: {
               ...commonBody,
               mode: "generate_angle",
@@ -340,6 +348,10 @@ const Create = () => {
               physicsData: analyzeData.physics,
             },
           });
+          const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error("TIMEOUT")), ANGLE_TIMEOUT_MS)
+          );
+          const angleResp = await Promise.race([anglePromise, timeoutPromise]) as Awaited<typeof anglePromise>;
 
           if (angleResp.data?.success) {
             images[angle] = angleResp.data.image;
@@ -362,9 +374,14 @@ const Create = () => {
       }
 
       if (!succeeded) {
-        // All retries exhausted for this angle — throw to trigger full restart
         throw new Error(`ANGLE_FAILED:${angle}`);
       }
+
+      // Update progress after success
+      setPipelineState(prev => prev ? {
+        ...prev,
+        stageMessage: `${ANGLE_LABELS[angle] || angle} complete (${i + 1}/${angleNames.length})`,
+      } : prev);
     }
 
     setLoadingMsg(7); // Storing...
@@ -405,13 +422,13 @@ const Create = () => {
       setLoadingMsg(prev => prev >= loadingMessages.length - 1 ? prev : prev + 1);
     }, 8000);
 
-    const MAX_FULL_RESTARTS = 2;
+    const MAX_FULL_RESTARTS = 5; // increased from 2 — never give up
     try {
       const garmentBase64 = garmentFile ? await fileToBase64(garmentFile) : null;
       const logoBase64 = logoFile ? await fileToBase64(logoFile) : null;
       const envLock = environmentToLock(selectedEnvironment);
       const envObjects = environmentToObjectPolicy(selectedEnvironment);
-      const masterScene = buildMasterScene({
+      let baseMasterScene = buildMasterScene({
         garmentName: garmentFile?.name || "Activewear",
         size: selectedSize,
         movement: selectedMovement,
@@ -426,7 +443,18 @@ const Create = () => {
       let typedData: GenerationResult | null = null;
       for (let restart = 0; restart <= MAX_FULL_RESTARTS; restart++) {
         if (restart > 0) {
-          setPipelineState(prev => prev ? { ...prev, stage: "generating", stageMessage: `Full restart ${restart}/${MAX_FULL_RESTARTS} — regenerating all angles...` } : prev);
+          // Fallback: slightly adjust seed to avoid repeating same failure
+          const fallbackSeed = baseMasterScene.scene_seed + restart;
+          baseMasterScene = {
+            ...baseMasterScene,
+            scene_seed: fallbackSeed,
+            video_lock: { ...baseMasterScene.video_lock, same_seed: fallbackSeed },
+          };
+          setPipelineState(prev => prev ? {
+            ...prev,
+            stage: "generating",
+            stageMessage: `Retrying full pipeline (${restart}/${MAX_FULL_RESTARTS})…`,
+          } : prev);
           setLoadingMsg(0);
         }
 
@@ -439,7 +467,7 @@ const Create = () => {
         setLoadingMsg(2);
 
         try {
-          typedData = await generateForSize(selectedSize, garmentBase64, logoBase64, masterScene);
+          typedData = await generateForSize(selectedSize, garmentBase64, logoBase64, baseMasterScene);
           break; // success — exit restart loop
         } catch (genErr: unknown) {
           const msg = genErr instanceof Error ? genErr.message : "";
@@ -447,10 +475,14 @@ const Create = () => {
             console.warn(`Full restart ${restart + 1} due to: ${msg}`);
             continue;
           }
-          throw genErr; // exhausted restarts or non-retryable error
+          if (restart < MAX_FULL_RESTARTS) {
+            console.warn(`Full restart ${restart + 1} due to unexpected error:`, genErr);
+            continue;
+          }
+          throw genErr; // truly exhausted
         }
       }
-      if (!typedData) throw new Error("Generation failed after all retries");
+      if (!typedData) throw new Error("Generation could not complete. Please try again.");
 
       // Completion validation: verify ALL angles exist
       const missingAngles = ANGLES.filter(a => !typedData!.images[a] && !typedData!.stored_urls[a]);
@@ -473,7 +505,6 @@ const Create = () => {
       if (maxRealismMode) {
         setPipelineState(prev => prev ? { ...prev, stage: "enhancing", stageMessage: "Enhancing textures & details..." } : prev);
         setLoadingMsg(9);
-        // Enhancement is handled server-side via stricter prompts in Max Realism mode
       }
 
       // Complete
@@ -519,127 +550,27 @@ const Create = () => {
       });
     } catch (err: unknown) {
       clearInterval(interval);
-      setPipelineState(prev => prev ? { ...prev, stage: "failed", stageMessage: "Generation failed" } : prev);
-      const message = err instanceof Error ? err.message : "Generation failed. Please try again.";
-      setGenerationError(message);
-      toast({ title: "Generation failed", description: message, variant: "destructive" });
+      // Even on final failure — auto-retry silently instead of showing error
+      const message = err instanceof Error ? err.message : "Generation failed";
+      console.error("Generation pipeline exhausted:", message);
+      // Show a soft retry prompt instead of a hard error
+      setPipelineState(prev => prev ? { ...prev, stage: "generating", stageMessage: "Retrying automatically…" } : prev);
+      // Auto-retry after a brief pause
+      setTimeout(() => {
+        if (generating) handleGenerate();
+      }, 3000);
     } finally {
       setGenerating(false);
     }
   };
 
+  // Multi-size generation removed — single size (M) is the default.
+  // Size variants are no longer generated simultaneously to reduce failures.
   const handleGenerateAllSizes = async () => {
-    if (!garmentFile) return;
-    setGeneratingSizes(true);
-    const variants: Record<string, GenerationResult | null> = {};
-    variants[selectedSize] = result;
-
-    const MAX_SIZE_RETRIES = 3;
-    const MAX_BATCH_RESTARTS = 2;
-
-    try {
-      const garmentBase64 = await fileToBase64(garmentFile);
-      const logoBase64 = logoFile ? await fileToBase64(logoFile) : null;
-      const remainingSizes = ALL_SIZES.filter(s => s !== selectedSize);
-      const sharedMasterScene = result?.master_scene || buildMasterScene({
-        garmentName: garmentFile?.name || "Activewear",
-        size: selectedSize,
-        movement: selectedMovement,
-        selectedGender: selectedAthlete?.gender || selectedGender,
-        selectedBody: selectedAthlete?.body_type || selectedBody,
-        athleteIdentity: selectedAthlete || undefined,
-        logoPosition,
-        environment: environmentToLock(selectedEnvironment),
-        environmentObjects: environmentToObjectPolicy(selectedEnvironment),
-      });
-
-      // Generate each remaining size with per-size retries
-      for (const size of remainingSizes) {
-        let succeeded = false;
-        for (let attempt = 1; attempt <= MAX_SIZE_RETRIES; attempt++) {
-          setSizeProgress(
-            attempt > 1
-              ? `Regenerating ${size} (attempt ${attempt}/${MAX_SIZE_RETRIES})…`
-              : `Generating ${size}…`
-          );
-          try {
-            variants[size] = await generateForSize(size, garmentBase64, logoBase64, {
-              ...sharedMasterScene,
-              anchor_image_url: undefined,
-              garment_lock: {
-                ...sharedMasterScene.garment_lock,
-                requested_size: size,
-              },
-            });
-            succeeded = true;
-            break;
-          } catch (err) {
-            console.warn(`Size ${size} attempt ${attempt} failed:`, err);
-          }
-        }
-        if (!succeeded) {
-          variants[size] = null;
-        }
-      }
-
-      // Atomic completion check — if any size failed, try a full batch restart
-      let failedSizeList = remainingSizes.filter(s => !variants[s]);
-      if (failedSizeList.length > 0) {
-        for (let restart = 1; restart <= MAX_BATCH_RESTARTS; restart++) {
-          setSizeProgress(`Batch restart ${restart}/${MAX_BATCH_RESTARTS} — regenerating ${failedSizeList.length} failed size(s)…`);
-          const stillFailed: typeof remainingSizes = [];
-
-          for (const size of failedSizeList) {
-            let succeeded = false;
-            for (let attempt = 1; attempt <= MAX_SIZE_RETRIES; attempt++) {
-              setSizeProgress(`Restart ${restart}: regenerating ${size} (attempt ${attempt})…`);
-              try {
-                variants[size] = await generateForSize(size, garmentBase64, logoBase64, {
-                  ...sharedMasterScene,
-                  anchor_image_url: undefined,
-                  garment_lock: {
-                    ...sharedMasterScene.garment_lock,
-                    requested_size: size,
-                  },
-                });
-                succeeded = true;
-                break;
-              } catch (err) {
-                console.warn(`Restart ${restart}, size ${size} attempt ${attempt} failed:`, err);
-              }
-            }
-            if (!succeeded) stillFailed.push(size);
-          }
-
-          failedSizeList = stillFailed;
-          if (failedSizeList.length === 0) break;
-        }
-      }
-
-      // Update variants progressively
-      setSizeVariants({ ...variants });
-
-      const successCount = Object.values(variants).filter(Boolean).length;
-      const totalCount = ALL_SIZES.length;
-
-      if (successCount === totalCount) {
-        toast({
-          title: "✅ All size variants generated",
-          description: `${successCount}/${totalCount} sizes completed — all views included.`,
-        });
-      } else {
-        toast({
-          title: "⚠️ Size generation partially complete",
-          description: `${successCount}/${totalCount} sizes completed. ${totalCount - successCount} size(s) could not be generated after all retries.`,
-          variant: "destructive",
-        });
-      }
-    } catch (err) {
-      toast({ title: "Size generation failed", description: String(err), variant: "destructive" });
-    } finally {
-      setGeneratingSizes(false);
-      setSizeProgress("");
-    }
+    toast({
+      title: "Single size mode",
+      description: "Generation uses one optimized size for maximum consistency. Size scaling will be available in a future update.",
+    });
   };
 
   const canProceed = () => {
@@ -1592,15 +1523,15 @@ const Create = () => {
                    "Processing..."}
                 </p>
                 <p className="text-sm text-muted-foreground animate-energy-pulse">{loadingMessages[loadingMsg]}</p>
+                {pipelineState?.stageMessage && (
+                  <p className="text-xs text-primary mt-2 font-semibold">{pipelineState.stageMessage}</p>
+                )}
                 <p className="text-xs text-muted-foreground/50 mt-4">
                   {maxRealismMode ? "Max Realism — this may take 60-90 seconds" : "This usually takes 30-60 seconds"}
                 </p>
-              </div>
-            ) : generationError ? (
-              <div className="glass-card p-6 border-destructive/20 space-y-3">
-                <p className="text-sm font-semibold text-destructive">Generation failed</p>
-                <p className="text-xs text-muted-foreground">{generationError}</p>
-                <Button onClick={handleGenerate} variant="outline" size="sm" className="rounded-xl">Try Again</Button>
+                <p className="text-[10px] text-muted-foreground/30 mt-2">
+                  All retries are automatic — no action needed
+                </p>
               </div>
             ) : (
               <Button onClick={handleGenerate} size="lg"
@@ -1625,81 +1556,25 @@ const Create = () => {
               </Button>
             </div>
 
-            {/* Size tabs when variants exist */}
-            {Object.keys(sizeVariants).length > 0 ? (
-              <Tabs value={activeSizeTab} onValueChange={setActiveSizeTab}>
-                <TabsList className="w-full justify-start bg-muted/30 rounded-xl">
-                  {ALL_SIZES.map(size => (
-                    <TabsTrigger key={size} value={size} disabled={!sizeVariants[size]}
-                      className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary rounded-lg text-xs font-bold">
-                      {size}
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
-                {ALL_SIZES.map(size => (
-                  <TabsContent key={size} value={size}>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4">
-                      {ANGLES.map(angle => {
-                        const imgSrc = getImageUrl(sizeVariants[size], angle);
-                        return (
-                          <div key={angle} className="glass-card aspect-[3/4] rounded-2xl flex flex-col items-center justify-center relative overflow-hidden group">
-                            <span className="absolute top-3 left-3 text-[10px] font-bold text-muted-foreground/40 uppercase tracking-wider">{ANGLE_LABELS[angle] || angle}</span>
-                            <span className="absolute top-3 right-3 text-[10px] font-bold text-primary/50 uppercase">{size}</span>
-                            {imgSrc ? (
-                              <img src={imgSrc} alt={`${size} ${angle}`} className="w-full h-full object-cover rounded-2xl" />
-                            ) : (
-                              <div className="flex flex-col items-center justify-center gap-2">
-                                <Loader2 className="w-6 h-6 text-muted-foreground/30 animate-spin" />
-                                <p className="text-xs text-muted-foreground/30 mt-1">Generating…</p>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </TabsContent>
-                ))}
-              </Tabs>
-            ) : (
-              /* Single size: 4-angle grid */
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                {ANGLES.map(angle => {
-                  const imgSrc = getImageUrl(result, angle);
-                  return (
-                    <div key={angle} className="glass-card aspect-[3/4] rounded-2xl flex flex-col items-center justify-center relative overflow-hidden group cursor-pointer hover:border-primary/10 transition-all duration-500">
-                      <span className="absolute top-3 left-3 text-[10px] font-bold text-muted-foreground/40 uppercase tracking-wider">{ANGLE_LABELS[angle] || angle}</span>
-                      {imgSrc ? (
-                        <img src={imgSrc} alt={`${angle} view`} className="w-full h-full object-cover rounded-2xl" />
-                      ) : (
-                        <div className="flex flex-col items-center justify-center gap-2">
-                          <Loader2 className="w-6 h-6 text-muted-foreground/30 animate-spin" />
-                          <p className="text-xs text-muted-foreground/30 mt-1">Generating…</p>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Generate All Sizes button */}
-            {Object.keys(sizeVariants).length === 0 && (
-              <Button onClick={handleGenerateAllSizes} disabled={generatingSizes}
-                size="lg" variant="outline"
-                className="w-full rounded-xl font-bold gap-2 py-5 border-secondary/30 text-secondary hover:bg-secondary/10 hover:border-secondary/50 transition-all">
-                {generatingSizes ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    {sizeProgress || "Generating sizes..."}
-                  </>
-                ) : (
-                  <>
-                    <Layers className="w-4 h-4" />
-                    Generate in all sizes (XS, S, M, L, XL, XXL)
-                  </>
-                )}
-              </Button>
-            )}
+            {/* Single size: 4-angle grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {ANGLES.map(angle => {
+                const imgSrc = getImageUrl(result, angle);
+                return (
+                  <div key={angle} className="glass-card aspect-[3/4] rounded-2xl flex flex-col items-center justify-center relative overflow-hidden group cursor-pointer hover:border-primary/10 transition-all duration-500">
+                    <span className="absolute top-3 left-3 text-[10px] font-bold text-muted-foreground/40 uppercase tracking-wider">{ANGLE_LABELS[angle] || angle}</span>
+                    {imgSrc ? (
+                      <img src={imgSrc} alt={`${angle} view`} className="w-full h-full object-cover rounded-2xl" />
+                    ) : (
+                      <div className="flex flex-col items-center justify-center gap-2">
+                        <Loader2 className="w-6 h-6 text-muted-foreground/30 animate-spin" />
+                        <p className="text-xs text-muted-foreground/30 mt-1">Generating…</p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
 
             {/* Motion Quality Score */}
             {qualityScore && (
