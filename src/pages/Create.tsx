@@ -158,6 +158,10 @@ const Create = () => {
   const [result, setResult] = useState<GenerationResult | null>(null);
   const [generationError, setGenerationError] = useState<string | null>(null);
 
+  // Progressive angle loading state
+  const [angleProgress, setAngleProgress] = useState<Record<string, "pending" | "generating" | "done" | "retrying">>({});
+  const [backgroundGenerating, setBackgroundGenerating] = useState(false);
+
   // Athlete selection
   const [athletes, setAthletes] = useState<AthleteProfile[]>([]);
   const [selectedAthlete, setSelectedAthlete] = useState<AthleteProfile | null>(null);
