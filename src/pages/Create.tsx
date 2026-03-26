@@ -313,22 +313,30 @@ const Create = () => {
     const storedUrls: Record<string, string> = {};
     const angleNames = ["front", "side-left", "side-right", "back"];
     const MAX_ANGLE_RETRIES = 5;
+    const ANGLE_TIMEOUT_MS = 90_000; // 90s per angle attempt
 
     for (let i = 0; i < angleNames.length; i++) {
       const angle = angleNames[i];
       let succeeded = false;
+
+      // Update progress: "1/4 angles complete"
+      setPipelineState(prev => prev ? {
+        ...prev,
+        stageMessage: `Generating ${ANGLE_LABELS[angle] || angle}… (${i}/${angleNames.length} complete)`,
+      } : prev);
 
       for (let attempt = 1; attempt <= MAX_ANGLE_RETRIES; attempt++) {
         setLoadingMsg(3 + i);
         if (attempt > 1) {
           setPipelineState(prev => prev ? {
             ...prev,
-            stageMessage: `Regenerating ${ANGLE_LABELS[angle] || angle} (attempt ${attempt}/${MAX_ANGLE_RETRIES})...`,
+            stageMessage: `Retrying ${ANGLE_LABELS[angle] || angle} (${attempt}/${MAX_ANGLE_RETRIES})… (${i}/${angleNames.length} complete)`,
           } : prev);
         }
 
         try {
-          const angleResp = await supabase.functions.invoke("generate-motion", {
+          // Timeout control — restart if generation exceeds threshold
+          const anglePromise = supabase.functions.invoke("generate-motion", {
             body: {
               ...commonBody,
               mode: "generate_angle",
@@ -340,6 +348,10 @@ const Create = () => {
               physicsData: analyzeData.physics,
             },
           });
+          const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error("TIMEOUT")), ANGLE_TIMEOUT_MS)
+          );
+          const angleResp = await Promise.race([anglePromise, timeoutPromise]) as Awaited<typeof anglePromise>;
 
           if (angleResp.data?.success) {
             images[angle] = angleResp.data.image;
@@ -362,9 +374,14 @@ const Create = () => {
       }
 
       if (!succeeded) {
-        // All retries exhausted for this angle — throw to trigger full restart
         throw new Error(`ANGLE_FAILED:${angle}`);
       }
+
+      // Update progress after success
+      setPipelineState(prev => prev ? {
+        ...prev,
+        stageMessage: `${ANGLE_LABELS[angle] || angle} complete (${i + 1}/${angleNames.length})`,
+      } : prev);
     }
 
     setLoadingMsg(7); // Storing...
