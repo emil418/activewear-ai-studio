@@ -1578,30 +1578,86 @@ const Create = () => {
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="font-display text-2xl font-bold tracking-tight mb-1">Your results</h2>
-                <p className="text-sm text-muted-foreground">AI-generated multi-angle preview with performance physics.</p>
+                <p className="text-sm text-muted-foreground">
+                  {backgroundGenerating ? "Front preview ready — loading remaining angles..." : "AI-generated multi-angle preview with performance physics."}
+                </p>
               </div>
-              <Button onClick={() => { setStep(0); setGenerated(false); setGarmentFile(null); setGarmentPreview(null); setSelectedMovement(""); setResult(null); setSizeVariants({}); setLogoFile(null); setLogoPreview(null); setLogoPosition(null); }}
+              <Button onClick={() => { setStep(0); setGenerated(false); setGarmentFile(null); setGarmentPreview(null); setSelectedMovement(""); setResult(null); setSizeVariants({}); setLogoFile(null); setLogoPreview(null); setLogoPosition(null); setAngleProgress({}); }}
                 variant="outline" size="sm" className="rounded-xl border-border">
                 New Generation
               </Button>
             </div>
 
+            {/* Progressive angle status bar */}
+            {backgroundGenerating && (
+              <div className="glass-card p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 text-primary animate-spin" />
+                  <p className="text-xs font-bold text-primary">Loading remaining angles...</p>
+                </div>
+                <div className="flex gap-2">
+                  {ANGLES.map(angle => {
+                    const status = angleProgress[angle] || "pending";
+                    return (
+                      <div key={angle} className={`flex-1 text-center text-[10px] px-2 py-1.5 rounded-lg font-semibold ${
+                        status === "done" ? "bg-primary/15 text-primary" :
+                        status === "generating" || status === "retrying" ? "bg-accent/15 text-accent-foreground animate-pulse" :
+                        "bg-muted text-muted-foreground"
+                      }`}>
+                        {status === "done" ? "✓" : status === "generating" ? "⏳" : status === "retrying" ? "🔄" : "○"} {ANGLE_LABELS[angle]}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* Single size: 4-angle grid */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               {ANGLES.map(angle => {
                 const imgSrc = getImageUrl(result, angle);
+                const status = angleProgress[angle] || "pending";
                 return (
-                  <div key={angle} className="glass-card aspect-[3/4] rounded-2xl flex flex-col items-center justify-center relative overflow-hidden group cursor-pointer hover:border-primary/10 transition-all duration-500">
-                    <span className="absolute top-3 left-3 text-[10px] font-bold text-muted-foreground/40 uppercase tracking-wider">{ANGLE_LABELS[angle] || angle}</span>
+                  <motion.div
+                    key={angle}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.3 }}
+                    className="glass-card aspect-[3/4] rounded-2xl flex flex-col items-center justify-center relative overflow-hidden group cursor-pointer hover:border-primary/10 transition-all duration-500"
+                  >
+                    <span className="absolute top-3 left-3 text-[10px] font-bold text-muted-foreground/40 uppercase tracking-wider z-10">{ANGLE_LABELS[angle] || angle}</span>
                     {imgSrc ? (
-                      <img src={imgSrc} alt={`${angle} view`} className="w-full h-full object-cover rounded-2xl" />
+                      <motion.img
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.5 }}
+                        src={imgSrc}
+                        alt={`${angle} view`}
+                        className="w-full h-full object-cover rounded-2xl"
+                      />
                     ) : (
                       <div className="flex flex-col items-center justify-center gap-2">
-                        <Loader2 className="w-6 h-6 text-muted-foreground/30 animate-spin" />
-                        <p className="text-xs text-muted-foreground/30 mt-1">Generating…</p>
+                        {status === "done" ? null : (
+                          <>
+                            <Loader2 className="w-6 h-6 text-primary/40 animate-spin" />
+                            <p className="text-xs text-muted-foreground/40 mt-1">
+                              {status === "retrying" ? "Retrying…" : status === "generating" ? "Generating…" : "Queued…"}
+                            </p>
+                          </>
+                        )}
                       </div>
                     )}
-                  </div>
+                    {/* Done checkmark overlay */}
+                    {imgSrc && status === "done" && (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="absolute top-3 right-3 w-5 h-5 rounded-full bg-primary/20 backdrop-blur flex items-center justify-center"
+                      >
+                        <Check className="w-3 h-3 text-primary" />
+                      </motion.div>
+                    )}
+                  </motion.div>
                 );
               })}
             </div>
