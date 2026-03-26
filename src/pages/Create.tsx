@@ -1556,81 +1556,25 @@ const Create = () => {
               </Button>
             </div>
 
-            {/* Size tabs when variants exist */}
-            {Object.keys(sizeVariants).length > 0 ? (
-              <Tabs value={activeSizeTab} onValueChange={setActiveSizeTab}>
-                <TabsList className="w-full justify-start bg-muted/30 rounded-xl">
-                  {ALL_SIZES.map(size => (
-                    <TabsTrigger key={size} value={size} disabled={!sizeVariants[size]}
-                      className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary rounded-lg text-xs font-bold">
-                      {size}
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
-                {ALL_SIZES.map(size => (
-                  <TabsContent key={size} value={size}>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4">
-                      {ANGLES.map(angle => {
-                        const imgSrc = getImageUrl(sizeVariants[size], angle);
-                        return (
-                          <div key={angle} className="glass-card aspect-[3/4] rounded-2xl flex flex-col items-center justify-center relative overflow-hidden group">
-                            <span className="absolute top-3 left-3 text-[10px] font-bold text-muted-foreground/40 uppercase tracking-wider">{ANGLE_LABELS[angle] || angle}</span>
-                            <span className="absolute top-3 right-3 text-[10px] font-bold text-primary/50 uppercase">{size}</span>
-                            {imgSrc ? (
-                              <img src={imgSrc} alt={`${size} ${angle}`} className="w-full h-full object-cover rounded-2xl" />
-                            ) : (
-                              <div className="flex flex-col items-center justify-center gap-2">
-                                <Loader2 className="w-6 h-6 text-muted-foreground/30 animate-spin" />
-                                <p className="text-xs text-muted-foreground/30 mt-1">Generating…</p>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </TabsContent>
-                ))}
-              </Tabs>
-            ) : (
-              /* Single size: 4-angle grid */
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                {ANGLES.map(angle => {
-                  const imgSrc = getImageUrl(result, angle);
-                  return (
-                    <div key={angle} className="glass-card aspect-[3/4] rounded-2xl flex flex-col items-center justify-center relative overflow-hidden group cursor-pointer hover:border-primary/10 transition-all duration-500">
-                      <span className="absolute top-3 left-3 text-[10px] font-bold text-muted-foreground/40 uppercase tracking-wider">{ANGLE_LABELS[angle] || angle}</span>
-                      {imgSrc ? (
-                        <img src={imgSrc} alt={`${angle} view`} className="w-full h-full object-cover rounded-2xl" />
-                      ) : (
-                        <div className="flex flex-col items-center justify-center gap-2">
-                          <Loader2 className="w-6 h-6 text-muted-foreground/30 animate-spin" />
-                          <p className="text-xs text-muted-foreground/30 mt-1">Generating…</p>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Generate All Sizes button */}
-            {Object.keys(sizeVariants).length === 0 && (
-              <Button onClick={handleGenerateAllSizes} disabled={generatingSizes}
-                size="lg" variant="outline"
-                className="w-full rounded-xl font-bold gap-2 py-5 border-secondary/30 text-secondary hover:bg-secondary/10 hover:border-secondary/50 transition-all">
-                {generatingSizes ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    {sizeProgress || "Generating sizes..."}
-                  </>
-                ) : (
-                  <>
-                    <Layers className="w-4 h-4" />
-                    Generate in all sizes (XS, S, M, L, XL, XXL)
-                  </>
-                )}
-              </Button>
-            )}
+            {/* Single size: 4-angle grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {ANGLES.map(angle => {
+                const imgSrc = getImageUrl(result, angle);
+                return (
+                  <div key={angle} className="glass-card aspect-[3/4] rounded-2xl flex flex-col items-center justify-center relative overflow-hidden group cursor-pointer hover:border-primary/10 transition-all duration-500">
+                    <span className="absolute top-3 left-3 text-[10px] font-bold text-muted-foreground/40 uppercase tracking-wider">{ANGLE_LABELS[angle] || angle}</span>
+                    {imgSrc ? (
+                      <img src={imgSrc} alt={`${angle} view`} className="w-full h-full object-cover rounded-2xl" />
+                    ) : (
+                      <div className="flex flex-col items-center justify-center gap-2">
+                        <Loader2 className="w-6 h-6 text-muted-foreground/30 animate-spin" />
+                        <p className="text-xs text-muted-foreground/30 mt-1">Generating…</p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
 
             {/* Motion Quality Score */}
             {qualityScore && (
