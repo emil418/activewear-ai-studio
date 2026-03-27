@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { ArrowRight, Upload, Sparkles, Check, Play, Activity, Target } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import ShowcaseCards from "@/components/ShowcaseCards";
+import heroAthlete from "@/assets/hero-athlete.jfif";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
@@ -209,7 +209,28 @@ const Index = () => (
   <div className="min-h-screen bg-background">
     <Navbar />
     <Hero />
-    <ShowcaseCards />
+    <section className="px-6 py-16 md:py-24">
+      <div className="max-w-5xl mx-auto">
+        <motion.div
+          initial={{ opacity: 0, y: 40 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          className="relative rounded-2xl overflow-hidden border border-white/[0.06] shadow-2xl"
+        >
+          <img
+            src={heroAthlete}
+            alt="AI-generated sportswear visualization — athlete in motion"
+            className="w-full h-auto object-cover"
+            loading="lazy"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-background/60 via-transparent to-transparent" />
+          <p className="absolute bottom-4 left-1/2 -translate-x-1/2 text-xs text-muted-foreground/70 tracking-widest uppercase font-bold">
+            AI-Generated Sportswear Visualization
+          </p>
+        </motion.div>
+      </div>
+    </section>
     <ValueBar />
     <HowItWorks />
     <Pricing />
