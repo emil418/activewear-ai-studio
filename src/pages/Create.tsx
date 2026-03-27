@@ -266,8 +266,8 @@ const Create = () => {
     commonBody: Record<string, unknown>,
     analyzeData: Record<string, unknown>,
     masterScene: MasterScenePayload,
-    maxRetries = 5,
-    timeoutMs = 150_000,
+    maxRetries = 2,
+    timeoutMs = 45_000,
   ): Promise<{ image: string | null; storedUrl: string | null; masterScene: MasterScenePayload }> => {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       if (attempt > 1) {
@@ -339,9 +339,9 @@ const Create = () => {
 
     const interval = setInterval(() => {
       setLoadingMsg(prev => prev >= loadingMessages.length - 1 ? prev : prev + 1);
-    }, 8000);
+    }, 3000);
 
-    const MAX_FULL_RESTARTS = 5;
+    const MAX_FULL_RESTARTS = 1;
     try {
       const garmentBase64 = garmentFile ? await fileToBase64(garmentFile) : null;
       const logoBase64 = logoFile ? await fileToBase64(logoFile) : null;
@@ -586,12 +586,13 @@ const Create = () => {
       clearInterval(interval);
       const message = err instanceof Error ? err.message : "Generation failed";
       console.error("Generation pipeline error:", message);
-      setPipelineState(prev => prev ? { ...prev, stage: "generating", stageMessage: "Retrying automatically…" } : prev);
-      setTimeout(() => {
-        if (generating) handleGenerate();
-      }, 3000);
-    } finally {
       setGenerating(false);
+      setPipelineState(prev => prev ? { ...prev, stage: "failed", stageMessage: "Generation encountered an issue. Please try again." } : prev);
+      toast({
+        title: "Generation issue",
+        description: "Please try again. The system will retry faster this time.",
+        variant: "destructive",
+      });
     }
   };
 
