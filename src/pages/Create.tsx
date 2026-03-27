@@ -586,12 +586,13 @@ const Create = () => {
       clearInterval(interval);
       const message = err instanceof Error ? err.message : "Generation failed";
       console.error("Generation pipeline error:", message);
-      setPipelineState(prev => prev ? { ...prev, stage: "generating", stageMessage: "Retrying automatically…" } : prev);
-      setTimeout(() => {
-        if (generating) handleGenerate();
-      }, 3000);
-    } finally {
       setGenerating(false);
+      setPipelineState(prev => prev ? { ...prev, stage: "failed", stageMessage: "Generation encountered an issue. Please try again." } : prev);
+      toast({
+        title: "Generation issue",
+        description: "Please try again. The system will retry faster this time.",
+        variant: "destructive",
+      });
     }
   };
 
