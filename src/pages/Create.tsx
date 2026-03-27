@@ -341,7 +341,7 @@ const Create = () => {
       setLoadingMsg(prev => prev >= loadingMessages.length - 1 ? prev : prev + 1);
     }, 8000);
 
-    const MAX_FULL_RESTARTS = 5;
+    const MAX_FULL_RESTARTS = 1;
     try {
       const garmentBase64 = garmentFile ? await fileToBase64(garmentFile) : null;
       const logoBase64 = logoFile ? await fileToBase64(logoFile) : null;
