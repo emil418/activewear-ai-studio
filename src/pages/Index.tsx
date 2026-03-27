@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { ArrowRight, Upload, Sparkles, Check, Play, Activity, Target } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import heroAthlete from "@/assets/hero-athlete.jfif";
+import ShowcaseCards from "@/components/ShowcaseCards";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
