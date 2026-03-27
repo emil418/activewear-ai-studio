@@ -266,8 +266,8 @@ const Create = () => {
     commonBody: Record<string, unknown>,
     analyzeData: Record<string, unknown>,
     masterScene: MasterScenePayload,
-    maxRetries = 5,
-    timeoutMs = 150_000,
+    maxRetries = 2,
+    timeoutMs = 45_000,
   ): Promise<{ image: string | null; storedUrl: string | null; masterScene: MasterScenePayload }> => {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       if (attempt > 1) {
