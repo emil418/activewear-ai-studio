@@ -339,7 +339,7 @@ const Create = () => {
 
     const interval = setInterval(() => {
       setLoadingMsg(prev => prev >= loadingMessages.length - 1 ? prev : prev + 1);
-    }, 8000);
+    }, 3000);
 
     const MAX_FULL_RESTARTS = 1;
     try {
