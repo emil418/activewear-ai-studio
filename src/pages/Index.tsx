@@ -42,7 +42,7 @@ const Hero = () => (
     <div className="absolute top-1/3 left-1/4 w-[600px] h-[600px] bg-primary/[0.03] rounded-full blur-[200px]" />
     <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-secondary/[0.02] rounded-full blur-[180px]" />
 
-    <div className="relative z-10 max-w-4xl mx-auto text-center">
+    <div className="relative z-10 max-w-4xl mx-auto text-center font-serif">
       <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={0}
         className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-primary/15 bg-primary/[0.04] mb-10">
         <div className="w-1.5 h-1.5 rounded-full bg-primary animate-energy-pulse" />
@@ -50,7 +50,7 @@ const Hero = () => (
       </motion.div>
 
       <motion.h1 variants={fadeUp} custom={1} initial="hidden" animate="visible"
-        className="font-display text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black leading-[1.05] mb-7 tracking-tight">
+        className="font-display text-4xl sm:text-5xl md:text-6xl font-black leading-[1.05] mb-7 tracking-tight lg:text-4xl">
         See your gear{" "}
         <span className="gradient-text">in motion</span>{" "}
         before production
