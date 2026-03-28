@@ -111,9 +111,9 @@ const steps = [
 const HowItWorks = () => (
   <section id="how-it-works" className="px-6 py-24 md:px-12">
     <div className="max-w-5xl mx-auto">
-      <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} className="text-center mb-16">
+      <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} className="text-center mb-16 font-serif">
         <p className="text-xs text-primary/80 font-bold tracking-widest uppercase mb-4">How It Works</p>
-        <h2 className="font-display text-3xl md:text-4xl font-black mb-4 tracking-tight">
+        <h2 className="text-3xl md:text-4xl font-black mb-4 tracking-tight font-serif">
           Three steps to <span className="gradient-text">performance content</span>
         </h2>
         <p className="text-muted-foreground text-base max-w-md mx-auto">From garment upload to campaign-ready assets in minutes.</p>
