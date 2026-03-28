@@ -439,7 +439,7 @@ const Create = () => {
       const images: Record<string, string | null> = {};
       const storedUrls: Record<string, string> = {};
 
-      // Generate front view first — priority #1
+      // Generate front view first — FAST MODE for instant preview
       for (let restart = 0; restart <= MAX_FULL_RESTARTS; restart++) {
         if (restart > 0) {
           const fallbackSeed = baseMasterScene.scene_seed + restart;
@@ -450,7 +450,10 @@ const Create = () => {
           };
         }
         try {
-          const frontResult = await generateSingleAngle("front", commonBody, analyzeData, currentMasterScene);
+          const frontResult = await generateSingleAngle("front", commonBody, analyzeData, currentMasterScene, {
+            fast: true, // Use flash model + skip validation for instant preview
+            timeoutMs: 30_000,
+          });
           images.front = frontResult.image;
           if (frontResult.storedUrl) storedUrls.front = frontResult.storedUrl;
           currentMasterScene = frontResult.masterScene;
