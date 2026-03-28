@@ -56,7 +56,7 @@ const ShowcaseSection = () => {
                 <button
                   key={angle.id}
                   onClick={() => setActiveAngle(angle.id)}
-                  className={`relative px-5 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 border ${
+                  className={`relative px-5 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 border font-serif ${
                     activeAngle === angle.id
                       ? "bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/20"
                       : "bg-muted/40 text-muted-foreground border-border hover:border-primary/30 hover:bg-muted/60"
