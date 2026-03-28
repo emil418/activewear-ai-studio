@@ -69,7 +69,7 @@ const ShowcaseSection = () => {
           </div>
 
           <Link to="/signup">
-            <Button size="lg" className="text-sm px-8 py-6 font-bold gap-2 rounded-xl glow-border mt-4">
+            <Button size="lg" className="text-sm px-8 py-6 font-bold gap-2 rounded-xl glow-border mt-4 font-serif">
               Prova gratis <ArrowRight className="w-4 h-4" />
             </Button>
           </Link>
