@@ -120,7 +120,7 @@ const ShowcaseSection = () => {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.97 }}
               transition={{ duration: 0.35, ease: "easeOut" }}
-              className="relative w-full max-w-md aspect-[3/4] rounded-3xl overflow-hidden border border-border/50 bg-muted/20"
+              className="relative w-full max-w-md aspect-[3/4] rounded-3xl overflow-hidden bg-background"
               style={{
                 transform: `perspective(1000px) rotateY(${ANGLES.find((a) => a.id === activeAngle)?.rotation})`,
               }}
