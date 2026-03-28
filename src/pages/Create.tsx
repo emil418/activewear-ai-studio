@@ -266,9 +266,9 @@ const Create = () => {
     commonBody: Record<string, unknown>,
     analyzeData: Record<string, unknown>,
     masterScene: MasterScenePayload,
-    maxRetries = 2,
-    timeoutMs = 45_000,
+    options: { maxRetries?: number; timeoutMs?: number; fast?: boolean } = {},
   ): Promise<{ image: string | null; storedUrl: string | null; masterScene: MasterScenePayload }> => {
+    const { maxRetries = 2, timeoutMs = 45_000, fast = false } = options;
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       if (attempt > 1) {
         setAngleProgress(prev => ({ ...prev, [angle]: "retrying" }));
@@ -283,6 +283,7 @@ const Create = () => {
             ...commonBody,
             mode: "generate_angle",
             angle,
+            fast, // Use fast flash model + skip validation
             masterScene,
             processedGarment: analyzeData.processedGarment,
             processedLogo: analyzeData.processedLogo,
