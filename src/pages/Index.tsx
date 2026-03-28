@@ -85,7 +85,7 @@ const Hero = () => (
 );
 
 const ValueBar = () => (
-  <section className="border-y border-white/[0.04] bg-white/[0.01]">
+  <section className="border-y border-white/[0.04] bg-white/[0.01] font-serif">
     <div className="max-w-5xl mx-auto px-6 py-14 grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
       {[
         { value: "85%", label: "Lower content costs" },
