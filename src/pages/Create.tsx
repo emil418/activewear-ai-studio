@@ -266,9 +266,9 @@ const Create = () => {
     commonBody: Record<string, unknown>,
     analyzeData: Record<string, unknown>,
     masterScene: MasterScenePayload,
-    maxRetries = 2,
-    timeoutMs = 45_000,
+    options: { maxRetries?: number; timeoutMs?: number; fast?: boolean } = {},
   ): Promise<{ image: string | null; storedUrl: string | null; masterScene: MasterScenePayload }> => {
+    const { maxRetries = 2, timeoutMs = 45_000, fast = false } = options;
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       if (attempt > 1) {
         setAngleProgress(prev => ({ ...prev, [angle]: "retrying" }));
@@ -283,6 +283,7 @@ const Create = () => {
             ...commonBody,
             mode: "generate_angle",
             angle,
+            fast, // Use fast flash model + skip validation
             masterScene,
             processedGarment: analyzeData.processedGarment,
             processedLogo: analyzeData.processedLogo,
@@ -438,7 +439,7 @@ const Create = () => {
       const images: Record<string, string | null> = {};
       const storedUrls: Record<string, string> = {};
 
-      // Generate front view first — priority #1
+      // Generate front view first — FAST MODE for instant preview
       for (let restart = 0; restart <= MAX_FULL_RESTARTS; restart++) {
         if (restart > 0) {
           const fallbackSeed = baseMasterScene.scene_seed + restart;
@@ -449,7 +450,10 @@ const Create = () => {
           };
         }
         try {
-          const frontResult = await generateSingleAngle("front", commonBody, analyzeData, currentMasterScene);
+          const frontResult = await generateSingleAngle("front", commonBody, analyzeData, currentMasterScene, {
+            fast: true, // Use flash model + skip validation for instant preview
+            timeoutMs: 30_000,
+          });
           images.front = frontResult.image;
           if (frontResult.storedUrl) storedUrls.front = frontResult.storedUrl;
           currentMasterScene = frontResult.masterScene;
@@ -473,7 +477,8 @@ const Create = () => {
         master_scene: currentMasterScene,
         model_router: {
           ...(analyzeData.model_router as Record<string, string> || {}),
-          image_generation: "google/gemini-3-pro-image-preview",
+          preview_fast: "google/gemini-3.1-flash-image-preview",
+          quality_generation: "google/gemini-3-pro-image-preview",
           image_validation: "google/gemini-3-flash-preview",
           video: "runway/gen4-turbo",
         },
@@ -509,44 +514,55 @@ const Create = () => {
 
       const remainingAngles = ["side-left", "side-right", "back"] as const;
 
-      for (const angle of remainingAngles) {
-        setAngleProgress(prev => ({ ...prev, [angle]: "generating" }));
+      // Set all remaining angles to generating
+      setAngleProgress(prev => {
+        const updated = { ...prev };
+        for (const a of remainingAngles) updated[a] = "generating";
+        return updated;
+      });
 
-        let succeeded = false;
-        for (let restart = 0; restart <= MAX_FULL_RESTARTS; restart++) {
-          let retryScene = currentMasterScene;
-          if (restart > 0) {
-            const fallbackSeed = baseMasterScene.scene_seed + restart + 10;
-            retryScene = {
-              ...currentMasterScene,
-              scene_seed: fallbackSeed,
-              video_lock: { ...currentMasterScene.video_lock, same_seed: fallbackSeed },
-            };
+      // Generate remaining angles IN PARALLEL (quality mode with validation)
+      const parallelResults = await Promise.allSettled(
+        remainingAngles.map(async (angle) => {
+          for (let restart = 0; restart <= MAX_FULL_RESTARTS; restart++) {
+            let retryScene = currentMasterScene;
+            if (restart > 0) {
+              const fallbackSeed = baseMasterScene.scene_seed + restart + 10;
+              retryScene = {
+                ...currentMasterScene,
+                scene_seed: fallbackSeed,
+                video_lock: { ...currentMasterScene.video_lock, same_seed: fallbackSeed },
+              };
+            }
+            try {
+              const angleResult = await generateSingleAngle(angle, commonBody, analyzeData, retryScene, {
+                fast: false, // Quality mode with validation for consistency
+                timeoutMs: 60_000,
+              });
+              return { angle, result: angleResult };
+            } catch {
+              if (restart >= MAX_FULL_RESTARTS) return { angle, result: null };
+            }
           }
-          try {
-            const angleResult = await generateSingleAngle(angle, commonBody, analyzeData, retryScene);
-            images[angle] = angleResult.image;
-            if (angleResult.storedUrl) storedUrls[angle] = angleResult.storedUrl;
-            setAngleProgress(prev => ({ ...prev, [angle]: "done" }));
+          return { angle, result: null };
+        })
+      );
 
-            // Progressively update result so UI shows each angle as it completes
-            setResult(prev => prev ? {
-              ...prev,
-              images: { ...prev.images, [angle]: angleResult.image },
-              stored_urls: { ...prev.stored_urls, ...(angleResult.storedUrl ? { [angle]: angleResult.storedUrl } : {}) },
-            } : prev);
-
-            succeeded = true;
-            break;
-          } catch {
-            if (restart >= MAX_FULL_RESTARTS) break;
-            continue;
-          }
-        }
-
-        if (!succeeded) {
-          // Silently mark as pending — will show loader in UI, not an error
-          console.warn(`Angle ${angle} failed after all retries — will show as generating`);
+      // Process parallel results and update UI
+      for (const settled of parallelResults) {
+        if (settled.status === "fulfilled" && settled.value?.result) {
+          const { angle, result: angleResult } = settled.value;
+          images[angle] = angleResult.image;
+          if (angleResult.storedUrl) storedUrls[angle] = angleResult.storedUrl;
+          setAngleProgress(prev => ({ ...prev, [angle]: "done" }));
+          setResult(prev => prev ? {
+            ...prev,
+            images: { ...prev.images, [angle]: angleResult.image },
+            stored_urls: { ...prev.stored_urls, ...(angleResult.storedUrl ? { [angle]: angleResult.storedUrl } : {}) },
+          } : prev);
+        } else {
+          const angle = settled.status === "fulfilled" ? settled.value?.angle : "unknown";
+          console.warn(`Angle ${angle} failed after all retries`);
         }
       }
 
