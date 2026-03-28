@@ -37,7 +37,7 @@ const ShowcaseSection = () => {
           </div>
 
           <div className="space-y-4">
-            <h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-black leading-[1.1] tracking-tight">
+            <h2 className="font-display text-3xl sm:text-4xl font-black leading-[1.1] tracking-tight md:text-4xl">
               Se plagget från{" "}
               <span className="gradient-text">alla vinklar</span>
             </h2>
