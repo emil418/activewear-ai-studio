@@ -36,15 +36,13 @@ const ShowcaseSection = () => {
             </span>
           </div>
 
-          <div className="space-y-4">
-            <h2 className="font-display text-3xl sm:text-4xl font-black leading-[1.1] tracking-tight md:text-4xl">
+          <div className="space-y-4 font-serif">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-black leading-[1.1] tracking-tight font-serif">
               Se plagget från{" "}
               <span className="gradient-text">alla vinklar</span>
             </h2>
             <p className="text-base md:text-lg text-muted-foreground leading-relaxed max-w-md">
-              Visualisera hur ditt plagg ser ut på en riktig atlet i rörelse — 
-              från front, sida och bak. AI-driven kroppsmappning med realistisk 
-              fysik och stretch.
+              Visualisera hur ditt plagg ser ut på en riktig atlet i rörelse.
             </p>
           </div>
 

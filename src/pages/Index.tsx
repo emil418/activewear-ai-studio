@@ -122,13 +122,13 @@ const HowItWorks = () => (
         {steps.map((s, i) => (
           <motion.div key={s.title} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }} transition={{ delay: i * 0.1, duration: 0.6 }}
-            className="glass-card-hover p-8 text-center group relative">
+            className="glass-card-hover p-8 text-center group relative font-serif">
             <div className="absolute top-5 left-5 font-display text-[80px] font-black text-white/[0.02] leading-none select-none">{i + 1}</div>
             <div className="relative z-10">
-              <div className="w-14 h-14 rounded-2xl bg-primary/[0.06] flex items-center justify-center mx-auto mb-6 group-hover:bg-primary/10 transition-all duration-500">
+              <div className="w-14 h-14 rounded-2xl bg-primary/[0.06] mx-auto mb-6 group-hover:bg-primary/10 transition-all duration-500 flex items-center justify-center">
                 <s.icon className="w-6 h-6 text-primary/80" />
               </div>
-              <h3 className="font-display text-lg font-bold mb-3 tracking-tight">{s.title}</h3>
+              <h3 className="text-lg font-bold mb-3 tracking-tight font-serif">{s.title}</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">{s.desc}</p>
             </div>
           </motion.div>
