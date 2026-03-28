@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { ArrowRight, Upload, Sparkles, Check, Play, Activity, Target } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import ShowcaseSection from "@/components/landing/ShowcaseSection";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
