@@ -128,7 +128,7 @@ const ShowcaseSection = () => {
               <img
                 src={heroAthlete}
                 alt="Atlet i träningskläder — AI-genererad multi-angle vy"
-                className="w-full h-full object-cover object-top"
+className="w-full h-full object-contain object-center"
               />
               {/* Subtle overlay for non-front angles to hint at perspective shift */}
               {activeAngle !== "front" && (
