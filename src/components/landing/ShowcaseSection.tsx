@@ -36,15 +36,13 @@ const ShowcaseSection = () => {
             </span>
           </div>
 
-          <div className="space-y-4">
-            <h2 className="font-display text-3xl sm:text-4xl font-black leading-[1.1] tracking-tight md:text-4xl">
+          <div className="space-y-4 font-serif">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-black leading-[1.1] tracking-tight font-serif">
               Se plagget från{" "}
               <span className="gradient-text">alla vinklar</span>
             </h2>
             <p className="text-base md:text-lg text-muted-foreground leading-relaxed max-w-md">
-              Visualisera hur ditt plagg ser ut på en riktig atlet i rörelse — 
-              från front, sida och bak. AI-driven kroppsmappning med realistisk 
-              fysik och stretch.
+              Visualisera hur ditt plagg ser ut på en riktig atlet i rörelse.
             </p>
           </div>
 
@@ -58,7 +56,7 @@ const ShowcaseSection = () => {
                 <button
                   key={angle.id}
                   onClick={() => setActiveAngle(angle.id)}
-                  className={`relative px-5 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 border ${
+                  className={`relative px-5 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 border font-serif ${
                     activeAngle === angle.id
                       ? "bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/20"
                       : "bg-muted/40 text-muted-foreground border-border hover:border-primary/30 hover:bg-muted/60"
@@ -71,7 +69,7 @@ const ShowcaseSection = () => {
           </div>
 
           <Link to="/signup">
-            <Button size="lg" className="text-sm px-8 py-6 font-bold gap-2 rounded-xl glow-border mt-4">
+            <Button size="lg" className="text-sm px-8 py-6 font-bold gap-2 rounded-xl glow-border mt-4 font-serif">
               Prova gratis <ArrowRight className="w-4 h-4" />
             </Button>
           </Link>

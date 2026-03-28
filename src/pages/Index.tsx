@@ -42,15 +42,15 @@ const Hero = () => (
     <div className="absolute top-1/3 left-1/4 w-[600px] h-[600px] bg-primary/[0.03] rounded-full blur-[200px]" />
     <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-secondary/[0.02] rounded-full blur-[180px]" />
 
-    <div className="relative z-10 max-w-4xl mx-auto text-center font-serif">
+    <div className="relative z-10 max-w-4xl mx-auto text-center font-serif text-lg">
       <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={0}
-        className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-primary/15 bg-primary/[0.04] mb-10">
+        className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-primary/15 bg-primary/[0.04] mb-10 font-serif">
         <div className="w-1.5 h-1.5 rounded-full bg-primary animate-energy-pulse" />
         <span className="text-xs text-primary/90 font-bold tracking-widest uppercase">AI Motion Testing</span>
       </motion.div>
 
       <motion.h1 variants={fadeUp} custom={1} initial="hidden" animate="visible"
-        className="font-display text-4xl sm:text-5xl md:text-6xl font-black leading-[1.05] mb-7 tracking-tight lg:text-4xl">
+        className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black leading-[1.05] mb-7 tracking-tight font-serif">
         See your gear{" "}
         <span className="gradient-text">in motion</span>{" "}
         before production
@@ -111,9 +111,9 @@ const steps = [
 const HowItWorks = () => (
   <section id="how-it-works" className="px-6 py-24 md:px-12">
     <div className="max-w-5xl mx-auto">
-      <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} className="text-center mb-16">
+      <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} className="text-center mb-16 font-serif">
         <p className="text-xs text-primary/80 font-bold tracking-widest uppercase mb-4">How It Works</p>
-        <h2 className="font-display text-3xl md:text-4xl font-black mb-4 tracking-tight">
+        <h2 className="text-3xl md:text-4xl font-black mb-4 tracking-tight font-serif">
           Three steps to <span className="gradient-text">performance content</span>
         </h2>
         <p className="text-muted-foreground text-base max-w-md mx-auto">From garment upload to campaign-ready assets in minutes.</p>
@@ -122,13 +122,13 @@ const HowItWorks = () => (
         {steps.map((s, i) => (
           <motion.div key={s.title} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }} transition={{ delay: i * 0.1, duration: 0.6 }}
-            className="glass-card-hover p-8 text-center group relative">
+            className="glass-card-hover p-8 text-center group relative font-serif">
             <div className="absolute top-5 left-5 font-display text-[80px] font-black text-white/[0.02] leading-none select-none">{i + 1}</div>
             <div className="relative z-10">
-              <div className="w-14 h-14 rounded-2xl bg-primary/[0.06] flex items-center justify-center mx-auto mb-6 group-hover:bg-primary/10 transition-all duration-500">
+              <div className="w-14 h-14 rounded-2xl bg-primary/[0.06] mx-auto mb-6 group-hover:bg-primary/10 transition-all duration-500 flex items-center justify-center">
                 <s.icon className="w-6 h-6 text-primary/80" />
               </div>
-              <h3 className="font-display text-lg font-bold mb-3 tracking-tight">{s.title}</h3>
+              <h3 className="text-lg font-bold mb-3 tracking-tight font-serif">{s.title}</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">{s.desc}</p>
             </div>
           </motion.div>
