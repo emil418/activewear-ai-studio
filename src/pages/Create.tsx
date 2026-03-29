@@ -261,14 +261,15 @@ const Create = () => {
     });
 
   // Generate a single angle with timeout and retries + fast-mode fallback
+  // anchorImageUrl: the front view URL passed to non-front angles for scene-lock consistency
   const generateSingleAngle = async (
     angle: string,
     commonBody: Record<string, unknown>,
     analyzeData: Record<string, unknown>,
     masterScene: MasterScenePayload,
-    options: { maxRetries?: number; timeoutMs?: number; fast?: boolean } = {},
+    options: { maxRetries?: number; timeoutMs?: number; fast?: boolean; anchorImageUrl?: string } = {},
   ): Promise<{ image: string | null; storedUrl: string | null; masterScene: MasterScenePayload }> => {
-    const { maxRetries = 2, timeoutMs = 50_000, fast = false } = options;
+    const { maxRetries = 2, timeoutMs = 50_000, fast = false, anchorImageUrl } = options;
 
     // Try quality mode first, then fallback to fast mode
     const modes: Array<{ fast: boolean; label: string }> = fast
@@ -294,6 +295,8 @@ const Create = () => {
               angle,
               fast: modeConfig.fast,
               masterScene,
+              anchorImageUrl: anchorImageUrl || masterScene.anchor_image_url,
+              sceneBlueprint: analyzeData.sceneBlueprint,
               processedGarment: analyzeData.processedGarment,
               processedLogo: analyzeData.processedLogo,
               garmentAnalysis: analyzeData.garment_analysis,
