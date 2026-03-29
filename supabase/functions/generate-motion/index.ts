@@ -577,7 +577,6 @@ serve(async (req) => {
     }
 
     // ── Step 3: Generate images ──
-    const requestedAngle = body.angle;
     const angles = mode === "generate_angle" && requestedAngle ? [requestedAngle] : ["front", "side-left", "side-right", "back"];
     console.log(`Generating ${angles.join(", ")} (fast: ${fast}, model: ${imageModel})`);
 
