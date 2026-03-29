@@ -438,8 +438,11 @@ serve(async (req) => {
 
     // Choose image model based on mode
     const imageModel = fast ? MODEL_ROUTER.generate_image_fast : MODEL_ROUTER.generate_image_quality;
-    const MAX_RETRIES = fast ? 2 : (maxRealismMode ? 4 : 3);
-    const shouldValidate = !fast; // Skip validation in fast mode
+    // Reduce retries to prevent timeout: fast=1, quality=2, maxRealism=2
+    const MAX_RETRIES = fast ? 1 : 2;
+    // Only validate front in quality mode (non-front angles skip validation to prevent stalling)
+    const requestedAngle = body.angle;
+    const shouldValidate = !fast && requestedAngle === "front" && maxRealismMode;
 
     console.log(`Mode: ${mode}, Fast: ${fast}, Model: ${imageModel}, MaxRetries: ${MAX_RETRIES}, Validate: ${shouldValidate}`);
 
@@ -574,7 +577,6 @@ serve(async (req) => {
     }
 
     // ── Step 3: Generate images ──
-    const requestedAngle = body.angle;
     const angles = mode === "generate_angle" && requestedAngle ? [requestedAngle] : ["front", "side-left", "side-right", "back"];
     console.log(`Generating ${angles.join(", ")} (fast: ${fast}, model: ${imageModel})`);
 
