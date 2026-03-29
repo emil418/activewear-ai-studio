@@ -16,8 +16,8 @@ const corsHeaders = {
 const AI_GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
 // ── Smart Model Router ──
-// Fast mode uses flash model for instant previews; quality mode uses PRO
 const MODEL_ROUTER = {
+  blueprint: "google/gemini-3-flash-preview",
   analyze: "google/gemini-3-flash-preview",
   generate_image_fast: "google/gemini-3.1-flash-image-preview",
   generate_image_quality: "google/gemini-3-pro-image-preview",
@@ -26,29 +26,36 @@ const MODEL_ROUTER = {
   validate_image: "google/gemini-3-flash-preview",
 };
 
+// ── Scene Lock Preamble — injected into EVERY generation prompt ──
+const SCENE_LOCK_PREAMBLE = `CAMERA RENDERING SYSTEM — STRICT SCENE LOCK ENGINE
+
+CORE RULE: You are NOT generating independent images.
+You are rendering the SAME FROZEN SCENE from a different camera position.
+
+This is a MULTI-CAMERA PRODUCTION SHOOT. All cameras fire at THE EXACT SAME MILLISECOND.
+The scene is FROZEN IN TIME. Nothing moves. Nothing changes. Only the camera rotates.
+
+HARD LOCKS (VIOLATION = IMMEDIATE REJECTION):
+- ENVIRONMENT LOCK: Same background, floor, depth, props. Zero variation.
+- LIGHTING LOCK: Same direction, shadows, exposure, color temperature. Zero variation.
+- IDENTITY LOCK: Same face, body proportions, skin tone, hair style, hair color. Zero variation.
+- GARMENT LOCK: Same clothing type, fit, wrinkles, textures, colors. Zero variation.
+- MOTION LOCK: Same EXACT body position, joint angles, weight distribution. Zero variation.
+- OBJECT LOCK: Same position, size, shape, color of all objects. Zero variation.
+
+THE ONLY THING THAT CHANGES IS THE CAMERA POSITION.`;
+
 // ── Motion Realism Preamble ──
-const MOTION_REALISM_PREAMBLE = `MOTION REALISM ENGINE — MANDATORY CONSTRAINTS:
-
-BIOMECHANICAL ACCURACY (NON-NEGOTIABLE):
-- Every joint must be at a physically possible angle — no hyperextension beyond anatomical limits
-- The spine must maintain a neutral or naturally loaded curve appropriate to the exercise
-- Limb proportions must remain CONSTANT
-- Muscle engagement must be visible and anatomically correct for the exercise phase shown
-- The athlete's center of gravity must be physically plausible
-
-BODY INTEGRITY:
-- Head-to-body ratio must remain realistic (approximately 1:7.5 for adults)
-- Hands and feet must be correctly proportioned
-- Weight-bearing limbs must show appropriate muscle tension and ground contact
-
-NATURAL MOVEMENT QUALITY:
-- The pose must look like a FREEZE-FRAME from a real video
-- There must be visible momentum cues: weight shift, dynamic tension
-- Hair, clothing, and loose elements must respond to the direction of movement
-
-GRAVITY AND PHYSICS:
-- All objects and body parts must obey gravity
-- Ground contact must show appropriate pressure and weight distribution`;
+const MOTION_REALISM_PREAMBLE = `BIOMECHANICAL ACCURACY (NON-NEGOTIABLE):
+- Every joint at a physically possible angle — no hyperextension
+- Spine maintains neutral or naturally loaded curve
+- Limb proportions CONSTANT — muscle engagement anatomically correct
+- Center of gravity physically plausible
+- Head-to-body ratio realistic (~1:7.5)
+- Weight-bearing limbs show appropriate tension and ground contact
+- Pose looks like a FREEZE-FRAME from real video
+- Hair, clothing respond to movement direction
+- All objects and body parts obey gravity`;
 
 // ── Exercise Definitions (compact) ──
 interface MotionPhase {
@@ -73,180 +80,180 @@ interface ExerciseMotionDef {
 
 const EXERCISE_DEFS: Record<string, ExerciseMotionDef> = {
   "squats": {
-    start: { position: "Standing upright, feet shoulder-width, arms at sides", joints: "Knees straight 180°, hips neutral", weight: "Centered on both feet", spine: "Neutral lordotic curve", balance: "Even bilateral" },
-    mid: { position: "Bending knees and hips, lowering body", joints: "Knees 120°, hips 110°, ankles dorsiflexed 15°", weight: "Shifting to heels", spine: "Slight forward lean, neutral curve", balance: "Weight shifts posteriorly" },
-    peak: { position: "Deep squat, thighs parallel, upright torso, arms forward", joints: "Knees 75°, hips 70°, ankles dorsiflexed 25°", weight: "Deep into heels", spine: "Neutral spine maintained", balance: "Counterbalanced by arm position" },
-    sceneRules: ["Both feet flat on ground", "No equipment", "Full body visible head to toe"],
-    camera: "WIDE full-body shot, head to toe, slight low angle",
-    fabricCue: "Leggings stretch at quads and glutes, compression at knee crease",
-    bodyConstraints: ["Knees MUST track over toes", "Heels flat on ground", "Hip crease drops below knee line at peak"],
+    start: { position: "Standing upright, feet shoulder-width", joints: "Knees 180°, hips neutral", weight: "Centered", spine: "Neutral", balance: "Even" },
+    mid: { position: "Bending knees/hips, lowering", joints: "Knees 120°, hips 110°", weight: "Heels", spine: "Slight lean, neutral", balance: "Posterior" },
+    peak: { position: "Deep squat, thighs parallel, arms forward", joints: "Knees 75°, hips 70°", weight: "Deep in heels", spine: "Neutral maintained", balance: "Counterbalanced" },
+    sceneRules: ["Both feet flat", "No equipment", "Full body head to toe"],
+    camera: "WIDE full-body, head to toe, slight low angle",
+    fabricCue: "Leggings stretch at quads/glutes, compression at knee",
+    bodyConstraints: ["Knees track over toes", "Heels flat", "Hip crease below knee at peak"],
     objectPhysics: [],
-    movementFlow: "Controlled descent, brief pause at depth, powerful drive upward",
+    movementFlow: "Controlled descent, pause at depth, powerful drive up",
   },
   "push-ups": {
-    start: { position: "High plank, arms extended, body straight line", joints: "Elbows straight, wrists under shoulders", weight: "Hands and toes", spine: "Perfectly straight", balance: "Hands shoulder-width" },
-    mid: { position: "Lowering chest toward ground, elbows bending", joints: "Elbows 90°", weight: "Shifting forward", spine: "Rigid plank", balance: "Body moves as one unit" },
-    peak: { position: "Chest near floor, body rigid and straight", joints: "Elbows 45-60° from torso", weight: "Chest 2-3 inches from floor", spine: "Absolute plank integrity", balance: "Maximal anterior chain tension" },
-    sceneRules: ["Body on floor level", "No bench", "Full body visible head to toes"],
-    camera: "WIDE full-body shot from low side angle",
-    fabricCue: "Shirt stretches across upper back and shoulders",
-    bodyConstraints: ["Body forms ONE STRAIGHT LINE", "Elbows tuck at 45°", "Head neutral"],
+    start: { position: "High plank, arms extended", joints: "Elbows straight, wrists under shoulders", weight: "Hands and toes", spine: "Straight", balance: "Shoulder-width" },
+    mid: { position: "Lowering chest, elbows bending", joints: "Elbows 90°", weight: "Shifting forward", spine: "Rigid plank", balance: "One unit" },
+    peak: { position: "Chest near floor, body rigid", joints: "Elbows 45-60° from torso", weight: "Chest 2-3in from floor", spine: "Plank integrity", balance: "Max anterior tension" },
+    sceneRules: ["Body on floor level", "No bench", "Full body head to toes"],
+    camera: "WIDE full-body from low side angle",
+    fabricCue: "Shirt stretches across upper back/shoulders",
+    bodyConstraints: ["Body ONE STRAIGHT LINE", "Elbows tuck 45°", "Head neutral"],
     objectPhysics: [],
-    movementFlow: "Controlled lowering, explosive press to lockout",
+    movementFlow: "Controlled lower, explosive press to lockout",
   },
   "deadlifts": {
-    start: { position: "Standing behind barbell, hinging at hips to grip bar, flat back", joints: "Hips hinged 80°, knees 130°", weight: "Mid-foot, loaded into hamstrings", spine: "FLAT back — neutral lumbar", balance: "Shoulders slightly in front of bar" },
-    mid: { position: "Pulling barbell off ground, bar close to shins", joints: "Hips and knees extending together", weight: "Shifting to posterior chain", spine: "Back angle unchanged", balance: "Bar travels vertically close to body" },
-    peak: { position: "Full lockout, standing tall, barbell at hip level", joints: "Knees 180°, hips 180°", weight: "Centered, stable", spine: "Fully erect, shoulders retracted", balance: "Standing tall, barbell balanced" },
-    sceneRules: ["Barbell MUST be visible", "WIDE full-body shot head to toe"],
-    camera: "WIDE full-body shot from 30° side angle",
-    fabricCue: "Fabric stretches at hamstrings and lower back",
-    bodyConstraints: ["FLAT BACK is NON-NEGOTIABLE", "Bar travels in straight vertical line", "Hips and knees extend SIMULTANEOUSLY"],
-    objectPhysics: ["Barbell shows weight — slight bar flex", "Plates symmetric on both ends"],
-    movementFlow: "Powerful pull from floor, hip snap to lockout, controlled descent",
+    start: { position: "Standing behind barbell, hinging, flat back", joints: "Hips 80°, knees 130°", weight: "Mid-foot, hamstrings", spine: "FLAT back", balance: "Shoulders ahead of bar" },
+    mid: { position: "Pulling bar off ground, close to shins", joints: "Hips/knees extending together", weight: "Posterior chain", spine: "Back angle unchanged", balance: "Bar vertical close to body" },
+    peak: { position: "Full lockout, standing tall, bar at hips", joints: "Knees 180°, hips 180°", weight: "Centered", spine: "Erect, shoulders retracted", balance: "Standing, bar balanced" },
+    sceneRules: ["Barbell visible", "WIDE full-body head to toe"],
+    camera: "WIDE full-body from 30° side",
+    fabricCue: "Fabric stretches at hamstrings/lower back",
+    bodyConstraints: ["FLAT BACK non-negotiable", "Bar straight vertical line", "Hips/knees extend simultaneously"],
+    objectPhysics: ["Barbell shows weight — bar flex", "Plates symmetric"],
+    movementFlow: "Powerful pull, hip snap to lockout, controlled descent",
   },
   "lunges": {
-    start: { position: "Standing upright, feet hip-width", joints: "Knees straight, hips neutral", weight: "Centered", spine: "Tall and neutral", balance: "Stable bilateral" },
-    mid: { position: "One leg forward, both knees bending", joints: "Front knee 110°, back knee 120°", weight: "Split between feet", spine: "Vertical torso", balance: "60/40 weight split" },
-    peak: { position: "Deep lunge, front thigh parallel, back knee near ground", joints: "Front knee 90°, back knee 90°", weight: "60% front, 40% back", spine: "Perfectly vertical", balance: "Hip-width stance" },
-    sceneRules: ["No equipment", "Full body visible head to toe"],
-    camera: "WIDE full-body shot, head to toe",
+    start: { position: "Standing upright, hip-width", joints: "Knees straight, hips neutral", weight: "Centered", spine: "Tall", balance: "Bilateral" },
+    mid: { position: "One leg forward, both knees bending", joints: "Front 110°, back 120°", weight: "Split", spine: "Vertical", balance: "60/40" },
+    peak: { position: "Deep lunge, front thigh parallel", joints: "Front 90°, back 90°", weight: "60% front, 40% back", spine: "Vertical", balance: "Hip-width" },
+    sceneRules: ["No equipment", "Full body head to toe"],
+    camera: "WIDE full-body, head to toe",
     fabricCue: "Stretch at front quad and back hip flexor",
-    bodyConstraints: ["Front knee tracks over ankle", "Back knee descends straight down", "Torso VERTICAL"],
+    bodyConstraints: ["Front knee tracks over ankle", "Back knee descends straight", "Torso VERTICAL"],
     objectPhysics: [],
-    movementFlow: "Controlled step forward, smooth descent, powerful drive back",
+    movementFlow: "Controlled step, smooth descent, powerful drive back",
   },
   "pull-ups": {
-    start: { position: "Hanging from pull-up bar above, arms fully extended, body vertical", joints: "Shoulders extended, elbows 180°", weight: "Hanging from hands", spine: "Slight hollow body", balance: "Dead hang, no swinging" },
-    mid: { position: "Pulling body upward, chest approaching bar", joints: "Elbows 110°", weight: "Pulling upward", spine: "Slight thoracic extension", balance: "Controlled vertical pull" },
-    peak: { position: "Chin above bar, elbows fully bent", joints: "Elbows 45°, shoulders contracted", weight: "Suspended at top", spine: "Proud chest, slight back arch", balance: "Peak contraction hold" },
-    sceneRules: ["Pull-up bar ABOVE athlete", "Athlete hangs BELOW bar", "Bar NEVER behind neck", "Body NEVER on floor", "Full body visible bar to feet"],
-    camera: "WIDE full-body vertical shot showing bar at top and feet at bottom",
-    fabricCue: "Back shirt stretches showing lat engagement",
-    bodyConstraints: ["Arms pull VERTICALLY", "Body remains vertical", "Grip overhand, wider than shoulders"],
-    objectPhysics: ["Pull-up bar is FIXED, horizontal, rigid", "Bar positioned high enough for full extension"],
-    movementFlow: "Dead hang, shoulder depression, smooth pull, controlled chin-over-bar peak",
+    start: { position: "Hanging from bar, arms extended, body vertical", joints: "Shoulders extended, elbows 180°", weight: "Hanging", spine: "Slight hollow", balance: "Dead hang" },
+    mid: { position: "Pulling up, chest approaching bar", joints: "Elbows 110°", weight: "Pulling up", spine: "Slight thoracic extension", balance: "Controlled vertical" },
+    peak: { position: "Chin above bar, elbows bent", joints: "Elbows 45°, shoulders contracted", weight: "Suspended at top", spine: "Proud chest", balance: "Peak hold" },
+    sceneRules: ["Pull-up bar ABOVE", "Athlete BELOW bar", "Bar NEVER behind neck", "Body NEVER on floor", "Full body bar to feet"],
+    camera: "WIDE vertical showing bar top and feet bottom",
+    fabricCue: "Back shirt stretches showing lats",
+    bodyConstraints: ["Arms pull VERTICALLY", "Body vertical", "Grip overhand, wider than shoulders"],
+    objectPhysics: ["Bar FIXED, horizontal, rigid", "Bar high enough for extension"],
+    movementFlow: "Dead hang, shoulder depression, smooth pull, chin-over-bar",
   },
   "bench press": {
-    start: { position: "Lying flat on bench, feet on floor, barbell at full extension", joints: "Elbows locked, wrists stacked", weight: "Bar at full extension", spine: "Natural arch, shoulder blades pinched", balance: "Five-point contact" },
-    mid: { position: "Lowering barbell toward chest, elbows at 45°", joints: "Elbows 90°", weight: "Bar descending under control", spine: "Arch maintained", balance: "Feet driving into floor" },
-    peak: { position: "Explosive press upward, arms extending, lying on bench", joints: "Full elbow extension", weight: "Pressing through palms", spine: "Maintained arch", balance: "Stable five-point contact" },
-    sceneRules: ["Bench visible underneath athlete", "Barbell visible and NEVER cut off", "Athlete LYING on back", "NEVER standing", "Feet flat on floor"],
-    camera: "WIDE full-body shot from side angle showing entire athlete on bench",
-    fabricCue: "Shirt stretches across chest during press",
-    bodyConstraints: ["Athlete is LYING HORIZONTALLY on bench", "Elbows at 45°", "Bar touches lower chest"],
-    objectPhysics: ["Barbell shows slight flex under load", "Bench is flat and stable"],
-    movementFlow: "Controlled unrack, slow descent, explosive drive to lockout",
+    start: { position: "Lying flat on bench, feet on floor, bar extended", joints: "Elbows locked, wrists stacked", weight: "Bar extended", spine: "Natural arch, blades pinched", balance: "Five-point" },
+    mid: { position: "Lowering bar to chest, elbows 45°", joints: "Elbows 90°", weight: "Bar descending", spine: "Arch maintained", balance: "Feet driving" },
+    peak: { position: "Explosive press, arms extending, lying on bench", joints: "Full extension", weight: "Pressing through palms", spine: "Arch maintained", balance: "Five-point" },
+    sceneRules: ["Bench visible underneath", "Barbell visible, NEVER cut off", "Athlete LYING on back", "NEVER standing", "Feet flat"],
+    camera: "WIDE full-body from side showing entire athlete on bench",
+    fabricCue: "Shirt stretches across chest",
+    bodyConstraints: ["Athlete LYING HORIZONTALLY", "Elbows 45°", "Bar touches lower chest"],
+    objectPhysics: ["Bar flex under load", "Bench flat and stable"],
+    movementFlow: "Controlled unrack, slow descent, explosive drive",
   },
   "sprint": {
-    start: { position: "Standing tall, slight forward lean", joints: "Neutral standing", weight: "Balls of feet", spine: "Slight forward lean", balance: "Athletic ready" },
-    mid: { position: "Sprinting, one knee driving high, opposite arm pumping", joints: "Drive knee 90° hip flexion", weight: "Single-leg stance", spine: "Slight forward lean maintained", balance: "Contralateral coordination" },
-    peak: { position: "Maximum knee drive, explosive arm pump", joints: "Knee at maximum height", weight: "Explosive single-leg drive", spine: "Forward lean 15-20°", balance: "Dynamic single-leg" },
-    sceneRules: ["Running in place", "No treadmill", "Full body visible head to toe"],
-    camera: "WIDE full-body shot, head to toe",
+    start: { position: "Standing, slight forward lean", joints: "Neutral", weight: "Balls of feet", spine: "Slight lean", balance: "Athletic ready" },
+    mid: { position: "One knee driving high, opposite arm pumping", joints: "Drive knee 90° hip flexion", weight: "Single-leg", spine: "Slight lean", balance: "Contralateral" },
+    peak: { position: "Max knee drive, explosive arm pump", joints: "Knee max height", weight: "Explosive single-leg", spine: "Forward 15-20°", balance: "Dynamic single-leg" },
+    sceneRules: ["Running in place", "No treadmill", "Full body head to toe"],
+    camera: "WIDE full-body, head to toe",
     fabricCue: "Intense fabric ripple with each stride",
-    bodyConstraints: ["Contralateral arm-leg coordination", "Arms pump forward-back, NOT across midline"],
+    bodyConstraints: ["Contralateral arm-leg", "Arms pump forward-back, NOT across midline"],
     objectPhysics: [],
     movementFlow: "Explosive rhythmic alternation with hip drive",
   },
   "burpees": {
-    start: { position: "Standing upright", joints: "Neutral standing", weight: "Centered", spine: "Tall and neutral", balance: "Stable bilateral" },
-    mid: { position: "In plank, body straight, arms extended", joints: "Shoulders over wrists", weight: "Hands and toes", spine: "Perfect plank", balance: "Stable four-point" },
-    peak: { position: "Explosive jump, arms overhead, full extension", joints: "Full triple extension", weight: "Airborne", spine: "Fully extended vertical", balance: "Airborne, aligned" },
-    sceneRules: ["No equipment", "Full body visible with headroom for jump"],
-    camera: "WIDE full-body shot from slight side angle with headroom",
-    fabricCue: "Maximum fabric dynamics through all phases",
-    bodyConstraints: ["Plank: straight line", "Jump: full triple extension", "Landing: soft knees"],
+    start: { position: "Standing upright", joints: "Neutral", weight: "Centered", spine: "Tall", balance: "Bilateral" },
+    mid: { position: "In plank, body straight", joints: "Shoulders over wrists", weight: "Hands/toes", spine: "Perfect plank", balance: "Four-point" },
+    peak: { position: "Explosive jump, arms overhead", joints: "Full triple extension", weight: "Airborne", spine: "Extended", balance: "Airborne aligned" },
+    sceneRules: ["No equipment", "Full body with headroom"],
+    camera: "WIDE full-body from slight side with headroom",
+    fabricCue: "Maximum fabric dynamics",
+    bodyConstraints: ["Plank: straight line", "Jump: triple extension", "Landing: soft knees"],
     objectPhysics: [],
-    movementFlow: "Standing → squat → plank → push-up → squat → explosive jump",
+    movementFlow: "Standing → squat → plank → push-up → squat → jump",
   },
   "high knees": {
-    start: { position: "Standing tall, arms at 90° bend", joints: "Neutral, elbows 90°", weight: "Balls of feet", spine: "Tall and vertical", balance: "Athletic ready" },
-    mid: { position: "One knee driving up, opposite arm pumping", joints: "Knee 90° hip flexion", weight: "Single-leg", spine: "Vertical, no fold", balance: "Rapid alternating" },
-    peak: { position: "Knee at chest height, rapid alternation", joints: "Maximum hip flexion", weight: "Quick alternating ground contact", spine: "Upright", balance: "Fast rhythmic" },
-    sceneRules: ["No equipment", "Standing in place", "Full body visible head to toe"],
-    camera: "WIDE full-body shot, head to toe",
-    fabricCue: "Leggings stretch at hip, shirt bounces with rhythm",
-    bodyConstraints: ["Torso stays UPRIGHT", "Contralateral arm-leg coordination"],
+    start: { position: "Standing tall, arms 90°", joints: "Neutral, elbows 90°", weight: "Balls of feet", spine: "Tall", balance: "Athletic" },
+    mid: { position: "One knee driving up, opposite arm pumping", joints: "Knee 90° hip flexion", weight: "Single-leg", spine: "Vertical", balance: "Alternating" },
+    peak: { position: "Knee at chest height, rapid alternation", joints: "Max hip flexion", weight: "Quick alternating", spine: "Upright", balance: "Fast rhythmic" },
+    sceneRules: ["No equipment", "Standing in place", "Full body head to toe"],
+    camera: "WIDE full-body, head to toe",
+    fabricCue: "Leggings stretch at hip, shirt bounces",
+    bodyConstraints: ["Torso UPRIGHT", "Contralateral arm-leg"],
     objectPhysics: [],
     movementFlow: "Fast rhythmic alternating knee drives",
   },
   "box jumps": {
-    start: { position: "Athletic quarter squat facing box, arms drawn back", joints: "Knees 130°, hips 120°", weight: "Balls of feet", spine: "Slight forward lean, neutral", balance: "Weight loaded in legs" },
-    mid: { position: "Explosive triple extension, body launching, knees tucking", joints: "Full extension then knee tuck", weight: "Airborne", spine: "Extending through jump", balance: "Aimed at box center" },
-    peak: { position: "Landing softly on box in squat, then standing tall", joints: "Knees 100° on landing", weight: "Soft landing on box", spine: "Absorbing impact", balance: "Stable landing on box" },
-    sceneRules: ["Plyometric box visible", "WIDE full-body shot with headroom"],
-    camera: "WIDE full-body shot from side angle, head to toe including box",
-    fabricCue: "Strong fabric stretch during loading, compression on landing",
-    bodyConstraints: ["Full triple extension before feet leave ground", "Soft landing", "Feet land simultaneously"],
-    objectPhysics: ["Box is SOLID and stable", "Box is knee to hip height"],
-    movementFlow: "Countermovement → explosive triple extension → tuck → soft landing → stand",
+    start: { position: "Athletic quarter squat facing box", joints: "Knees 130°, hips 120°", weight: "Balls of feet", spine: "Slight lean", balance: "Weight in legs" },
+    mid: { position: "Explosive triple extension, launching", joints: "Full extension then tuck", weight: "Airborne", spine: "Extending", balance: "Aimed at box" },
+    peak: { position: "Landing softly on box, then standing", joints: "Knees 100° on landing", weight: "Soft landing", spine: "Absorbing", balance: "Stable on box" },
+    sceneRules: ["Plyometric box visible", "WIDE with headroom"],
+    camera: "WIDE full-body from side, head to toe including box",
+    fabricCue: "Stretch during loading, compression on landing",
+    bodyConstraints: ["Full triple extension before feet leave ground", "Soft landing", "Feet simultaneous"],
+    objectPhysics: ["Box SOLID and stable", "Box knee-to-hip height"],
+    movementFlow: "Countermovement → extension → tuck → soft landing → stand",
   },
   "squat jumps": {
-    start: { position: "Deep squat, arms back for momentum", joints: "Knees 75°", weight: "Deep in heels", spine: "Neutral, slight lean", balance: "Loaded bilateral" },
-    mid: { position: "Exploding upward, extending rapidly", joints: "Rapidly extending all joints", weight: "Driving through feet", spine: "Extending to vertical", balance: "Transitioning to airborne" },
-    peak: { position: "Fully airborne, body extended, arms up", joints: "Full triple extension, toes pointed", weight: "Airborne", spine: "Fully extended", balance: "Vertically aligned" },
-    sceneRules: ["No equipment", "Full body visible with headroom for jump"],
-    camera: "WIDE full-body shot with generous headroom",
-    fabricCue: "Maximum legging stretch at bottom, stretch during jump",
-    bodyConstraints: ["Full squat depth before jump", "Triple extension drives jump"],
+    start: { position: "Deep squat, arms back", joints: "Knees 75°", weight: "Deep in heels", spine: "Neutral, slight lean", balance: "Loaded" },
+    mid: { position: "Exploding upward", joints: "Rapidly extending", weight: "Driving through feet", spine: "Extending", balance: "Transitioning airborne" },
+    peak: { position: "Fully airborne, extended, arms up", joints: "Triple extension, toes pointed", weight: "Airborne", spine: "Fully extended", balance: "Aligned" },
+    sceneRules: ["No equipment", "Full body with headroom"],
+    camera: "WIDE full-body with headroom",
+    fabricCue: "Max stretch at bottom, stretch during jump",
+    bodyConstraints: ["Full depth before jump", "Triple extension drives jump"],
     objectPhysics: [],
     movementFlow: "Deep squat → explosive extension → max height → soft landing",
   },
   "kettlebell swings": {
-    start: { position: "Wide stance, hinged at hips, kettlebell between legs, back flat", joints: "Hips 80°, knees slightly bent", weight: "Posterior loaded, heels", spine: "FLAT back, neutral lumbar", balance: "Weight back in hips" },
-    mid: { position: "Explosive hip drive, snapping hips, kettlebell rising", joints: "Hips extending rapidly, arms passive", weight: "Driving through heels", spine: "Rapidly extending to vertical", balance: "Hip momentum creates movement" },
-    peak: { position: "Standing tall, kettlebell at chest height, hips locked", joints: "Full hip extension, arms at shoulder height", weight: "Centered, kettlebell floating", spine: "Fully erect, glutes locked", balance: "Standing tall" },
-    sceneRules: ["Kettlebell visible and NEVER cut off", "WIDE full-body shot head to toe"],
-    camera: "WIDE full-body shot from slight side angle, showing kettlebell arc",
-    fabricCue: "Dramatic fabric movement with each swing",
-    bodyConstraints: ["HIP HINGE not squat", "Arms are PASSIVE — hips power the swing", "Flat back ALWAYS"],
-    objectPhysics: ["Kettlebell follows smooth pendulum arc", "Shows realistic weight"],
-    movementFlow: "Backswing hinge → explosive hip snap → float at top → controlled fall back",
+    start: { position: "Wide stance, hips hinged, KB between legs", joints: "Hips 80°, knees slightly bent", weight: "Posterior, heels", spine: "FLAT back", balance: "Weight in hips" },
+    mid: { position: "Explosive hip drive, KB rising", joints: "Hips extending rapidly", weight: "Driving through heels", spine: "Extending", balance: "Hip momentum" },
+    peak: { position: "Standing tall, KB at chest height", joints: "Full hip extension, arms shoulder height", weight: "Centered, KB floating", spine: "Erect, glutes locked", balance: "Standing" },
+    sceneRules: ["Kettlebell visible, NEVER cut off", "WIDE full-body head to toe"],
+    camera: "WIDE full-body from slight side",
+    fabricCue: "Dramatic fabric movement",
+    bodyConstraints: ["HIP HINGE not squat", "Arms PASSIVE", "Flat back ALWAYS"],
+    objectPhysics: ["KB smooth pendulum arc", "Realistic weight"],
+    movementFlow: "Backswing hinge → hip snap → float at top → controlled fall",
   },
   "jump rope": {
-    start: { position: "Standing tall, holding rope handles, elbows at sides", joints: "Elbows 90° close to ribs", weight: "Balls of feet", spine: "Tall, vertical", balance: "Light, ready to bounce" },
-    mid: { position: "Rope rotating, small bounces on balls of feet", joints: "Ankles extending with each hop", weight: "Light bounces, 1-2 inches", spine: "Vertical and stable", balance: "Feet together, rhythmic" },
-    peak: { position: "Fast rhythmic jumping, rope rotating around body", joints: "Rapid ankle-driven bounces, fast wrist rotation", weight: "Light, rhythmic, on balls of feet", spine: "Perfectly still upper body", balance: "Relaxed efficient rhythm" },
-    sceneRules: ["Jump rope visible rotating around athlete", "WIDE full-body shot with space for rope"],
-    camera: "WIDE full-body shot, head to toe with rope arc space",
+    start: { position: "Standing tall, holding rope", joints: "Elbows 90° close to ribs", weight: "Balls of feet", spine: "Tall", balance: "Light" },
+    mid: { position: "Rope rotating, small bounces", joints: "Ankles extending each hop", weight: "1-2 inch bounces", spine: "Stable", balance: "Rhythmic" },
+    peak: { position: "Fast rhythmic jumping", joints: "Rapid ankle bounces, fast wrist", weight: "Light rhythmic", spine: "Still upper body", balance: "Efficient rhythm" },
+    sceneRules: ["Jump rope visible", "WIDE with rope space"],
+    camera: "WIDE full-body, head to toe with rope arc",
     fabricCue: "Shirt bounces with each hop",
-    bodyConstraints: ["Arms close to body", "Jumps SMALL (1-2 inches)", "Upper body STILL"],
-    objectPhysics: ["Rope forms smooth arc", "Handles at hip height"],
-    movementFlow: "Light rhythmic bouncing with wrist-driven rope rotation",
+    bodyConstraints: ["Arms close to body", "Jumps SMALL 1-2in", "Upper body STILL"],
+    objectPhysics: ["Rope smooth arc", "Handles at hip height"],
+    movementFlow: "Light rhythmic bouncing with wrist-driven rotation",
   },
   "running": {
-    start: { position: "Standing in running position, slight forward lean", joints: "Neutral, arms at 90°", weight: "Balls of feet", spine: "Slight forward lean", balance: "Ready athletic stance" },
-    mid: { position: "Alternating knee drives, opposite arm swing", joints: "Knee 90° hip flexion", weight: "Alternating single-leg", spine: "Stable, minimal rotation", balance: "Contralateral coordination" },
-    peak: { position: "Full running stride, high knee drive, powerful arm pump", joints: "Maximum knee lift, full arm swing", weight: "Dynamic single-leg", spine: "Stable and forward-leaning", balance: "Dynamic single-leg balance" },
-    sceneRules: ["Running in place", "No treadmill", "Full body visible head to toe"],
-    camera: "WIDE full-body shot, head to toe",
-    fabricCue: "Shirt bounces with each stride, leggings flex at knees and hips",
+    start: { position: "Standing, slight forward lean", joints: "Neutral, arms 90°", weight: "Balls of feet", spine: "Slight lean", balance: "Ready" },
+    mid: { position: "Alternating knee drives, arm swing", joints: "Knee 90° hip flexion", weight: "Alternating single-leg", spine: "Stable", balance: "Contralateral" },
+    peak: { position: "Full stride, high knee, powerful arm", joints: "Max knee lift, full arm swing", weight: "Dynamic single-leg", spine: "Stable forward-leaning", balance: "Dynamic" },
+    sceneRules: ["Running in place", "No treadmill", "Full body head to toe"],
+    camera: "WIDE full-body, head to toe",
+    fabricCue: "Shirt bounces, leggings flex at knees/hips",
     bodyConstraints: ["Contralateral coordination", "Foot strikes under center of mass"],
     objectPhysics: [],
-    movementFlow: "Rhythmic alternating stride with efficient arm pump",
+    movementFlow: "Rhythmic alternating stride with arm pump",
   },
   "jumping": {
-    start: { position: "Quarter squat, arms drawn back", joints: "Knees 130°, hips 120°", weight: "Balls of feet", spine: "Slight forward lean", balance: "Loaded bilateral" },
-    mid: { position: "Exploding upward, arms driving overhead", joints: "Full triple extension", weight: "Leaving ground", spine: "Extending to vertical", balance: "Bilateral launch" },
-    peak: { position: "Fully airborne, body extended, arms overhead", joints: "Full extension, toes pointed", weight: "Airborne at peak", spine: "Fully extended", balance: "Vertically aligned" },
-    sceneRules: ["No equipment", "Full body visible with headroom"],
-    camera: "WIDE full-body shot with generous headroom",
-    fabricCue: "Fabric compresses at loading, stretches during jump",
-    bodyConstraints: ["Triple extension COMPLETE before feet leave ground", "Landing absorbs impact"],
+    start: { position: "Quarter squat, arms back", joints: "Knees 130°, hips 120°", weight: "Balls of feet", spine: "Slight lean", balance: "Loaded" },
+    mid: { position: "Exploding up, arms driving overhead", joints: "Full triple extension", weight: "Leaving ground", spine: "Extending", balance: "Bilateral" },
+    peak: { position: "Airborne, extended, arms overhead", joints: "Full extension, toes pointed", weight: "Airborne at peak", spine: "Extended", balance: "Aligned" },
+    sceneRules: ["No equipment", "Full body with headroom"],
+    camera: "WIDE full-body with headroom",
+    fabricCue: "Fabric compresses loading, stretches jumping",
+    bodyConstraints: ["Triple extension COMPLETE before feet leave", "Landing absorbs impact"],
     objectPhysics: [],
-    movementFlow: "Countermovement → explosive triple extension → peak → soft landing",
+    movementFlow: "Countermovement → extension → peak → soft landing",
   },
   "battle ropes": {
-    start: { position: "Athletic half-squat, gripping rope ends", joints: "Knees 120°, hips 110°", weight: "Athletic base, heels", spine: "Neutral, slight lean, core braced", balance: "Wide stable base" },
-    mid: { position: "Alternating arm waves, creating rope undulation", joints: "Shoulders alternating, elbows bent", weight: "Anchored in legs", spine: "Stable core, minimal rotation", balance: "Lower body stable platform" },
-    peak: { position: "Maximum wave amplitude, powerful arm drives", joints: "Full shoulder range, rapid alternation", weight: "Explosive arms, stable squat", spine: "Rigid core transfers force", balance: "Base absorbs reactive forces" },
-    sceneRules: ["Battle ropes visible extending to anchor", "WIDE shot showing full rope length"],
-    camera: "WIDE full-body shot showing full rope length",
-    fabricCue: "Shirt shows rapid movement at shoulders and arms",
-    bodyConstraints: ["Lower body ANCHORED in squat", "Core BRACED", "Waves from SHOULDER MOVEMENT"],
-    objectPhysics: ["Ropes show WAVE PATTERN", "Waves travel toward anchor", "Rope sag is realistic"],
-    movementFlow: "Stable squat base → alternating arm drives → rhythmic wave propagation",
+    start: { position: "Athletic half-squat, gripping rope ends", joints: "Knees 120°, hips 110°", weight: "Athletic base, heels", spine: "Neutral, braced", balance: "Wide stable" },
+    mid: { position: "Alternating arm waves, rope undulation", joints: "Shoulders alternating, elbows bent", weight: "Anchored in legs", spine: "Stable core", balance: "Lower body stable" },
+    peak: { position: "Max wave amplitude, powerful drives", joints: "Full shoulder range, rapid alternation", weight: "Explosive arms, stable squat", spine: "Rigid core", balance: "Base absorbs forces" },
+    sceneRules: ["Battle ropes visible to anchor", "WIDE showing rope length"],
+    camera: "WIDE full-body showing full rope length",
+    fabricCue: "Shirt shows rapid movement at shoulders",
+    bodyConstraints: ["Lower body ANCHORED", "Core BRACED", "Waves from SHOULDER"],
+    objectPhysics: ["Ropes WAVE PATTERN", "Waves toward anchor", "Realistic sag"],
+    movementFlow: "Stable squat → alternating arm drives → wave propagation",
   },
 };
 
@@ -257,7 +264,6 @@ function buildPoseInstructions(movement: string, angle: string): string {
   if (!def) {
     return `${MOTION_REALISM_PREAMBLE}\n\nThe athlete performs ${movement} with correct biomechanical form. Full body visible head to toe.`;
   }
-  const sceneStr = def.sceneRules.join(". ");
   const constraintStr = def.bodyConstraints.join("\n• ");
   const objectStr = def.objectPhysics.length > 0 ? `\nOBJECT PHYSICS:\n• ${def.objectPhysics.join("\n• ")}` : "";
 
@@ -266,31 +272,26 @@ function buildPoseInstructions(movement: string, angle: string): string {
   const angleLabel = angle.replace("-", " ").toUpperCase();
   if (key === "bench press") {
     if (angle === "front") angleReinforcement = `\nANGLE: Camera at athlete's feet. Athlete LYING FLAT on bench. HORIZONTAL.`;
-    else if (isSide) angleReinforcement = `\nANGLE (${angleLabel}): Camera at ${angle === "side-right" ? "right" : "left"} side of bench. Athlete LYING FLAT, seen from side. HORIZONTAL.`;
-    else if (angle === "back") angleReinforcement = `\nANGLE: Camera behind athlete's head. Athlete LYING FLAT on bench. HORIZONTAL.`;
+    else if (isSide) angleReinforcement = `\nANGLE (${angleLabel}): Camera at ${angle === "side-right" ? "right" : "left"} side. Athlete LYING FLAT. HORIZONTAL.`;
+    else if (angle === "back") angleReinforcement = `\nANGLE: Camera behind head. Athlete LYING FLAT. HORIZONTAL.`;
   } else if (key === "pull-ups") {
-    angleReinforcement = `\nANGLE (${angleLabel}): Athlete HANGING from bar ABOVE — VERTICAL, feet off ground. Bar at TOP, feet at BOTTOM.`;
+    angleReinforcement = `\nANGLE (${angleLabel}): Athlete HANGING from bar ABOVE — VERTICAL, feet off ground.`;
   } else if (key === "push-ups") {
-    angleReinforcement = `\nANGLE (${angleLabel}): Athlete in HORIZONTAL plank/push-up on FLOOR. Body PARALLEL to ground.`;
+    angleReinforcement = `\nANGLE (${angleLabel}): Athlete in HORIZONTAL plank/push-up on FLOOR.`;
   }
 
   return `${MOTION_REALISM_PREAMBLE}
 
-BIOMECHANICAL DEFINITION for ${movement}:
-START: ${def.start.position}. Joints: ${def.start.joints}.
+EXERCISE: ${movement}
 MID: ${def.mid.position}. Joints: ${def.mid.joints}.
 PEAK: ${def.peak.position}. Joints: ${def.peak.joints}.
-
-Show MID or PEAK phase — most dynamic moment.
-
+Show MID or PEAK phase.
 BODY CONSTRAINTS:
 • ${constraintStr}
 ${objectStr}
-
-MOVEMENT FLOW: ${def.movementFlow}
+FLOW: ${def.movementFlow}
 ${angleReinforcement}
-
-SCENE: ${sceneStr}. CAMERA: ${def.camera}. GARMENT: ${def.fabricCue}.`;
+SCENE: ${def.sceneRules.join(". ")}. CAMERA: ${def.camera}. GARMENT: ${def.fabricCue}.`;
 }
 
 // ── Helper: remove background ──
@@ -305,7 +306,7 @@ async function removeBackground(base64Image: string, apiKey: string, label: stri
         messages: [{
           role: "user",
           content: [
-            { type: "text", text: `Remove the background from this image completely. Output ONLY the foreground object (the ${label}) on a fully transparent background. Keep original colors and quality 100% intact.` },
+            { type: "text", text: `Remove background completely. Output ONLY the ${label} on transparent background. Keep colors/quality intact.` },
             { type: "image_url", image_url: { url: base64Image } },
           ],
         }],
@@ -313,17 +314,14 @@ async function removeBackground(base64Image: string, apiKey: string, label: stri
     });
     if (resp.ok) {
       const data = await resp.json();
-      const choice = data.choices?.[0]?.message;
-      const url = extractImageUrl(choice);
+      const url = extractImageUrl(data.choices?.[0]?.message);
       if (url) return url;
     }
-  } catch (e) {
-    console.warn(`BG removal error for ${label}:`, e);
-  }
+  } catch (e) { console.warn(`BG removal error for ${label}:`, e); }
   return base64Image;
 }
 
-// ── Helper: validate image ──
+// ── Helper: validate image against master scene ──
 async function validateImage(
   imageUrl: string,
   apiKey: string,
@@ -358,9 +356,7 @@ async function validateImage(
         return { valid: parsed.valid !== false, issues: parsed.issues || [] };
       }
     }
-  } catch (e) {
-    console.warn(`Validation error for ${angle}:`, e);
-  }
+  } catch (e) { console.warn(`Validation error for ${angle}:`, e); }
   return { valid: true, issues: [] };
 }
 
@@ -381,14 +377,54 @@ function extractImageUrl(choice: Record<string, unknown>): string | null {
   return null;
 }
 
-// Camera position prompts
+// ── Camera position prompts with scene-lock enforcement ──
 const CAMERA_POSITIONS: Record<string, string> = {
-  "front": "CAMERA: DIRECTLY IN FRONT. Athlete faces camera. We see FRONT of body.",
-  "side-left": "CAMERA: 90° LEFT SIDE. TRUE LEFT PROFILE. Athlete does NOT face camera.",
-  "side-right": "CAMERA: 90° RIGHT SIDE. TRUE RIGHT PROFILE. Athlete does NOT face camera.",
-  "back": "CAMERA: DIRECTLY BEHIND. We see BACK of body. Face NOT visible.",
-  "side": "CAMERA: 90° LEFT SIDE. TRUE SIDE VIEW.",
+  "front": "CAMERA POSITION: DIRECTLY IN FRONT (0°). Athlete faces camera. Full front of body visible. THIS IS THE ANCHOR VIEW.",
+  "side-left": "CAMERA POSITION: 90° LEFT SIDE. Camera has rotated 90° around the SAME FROZEN SCENE. TRUE LEFT PROFILE. Athlete does NOT face camera. Same pose, same moment, only camera moved.",
+  "side-right": "CAMERA POSITION: 90° RIGHT SIDE. Camera has rotated 90° around the SAME FROZEN SCENE. TRUE RIGHT PROFILE. Athlete does NOT face camera. Same pose, same moment, only camera moved.",
+  "back": "CAMERA POSITION: DIRECTLY BEHIND (180°). Camera has rotated 180° around the SAME FROZEN SCENE. Full BACK of body visible. Face NOT visible. Same pose, same moment, only camera moved.",
 };
+
+// ── Build Scene Blueprint prompt ──
+function buildSceneBlueprintPrompt(opts: {
+  movement: string;
+  athleteDesc: string;
+  garmentDesc: string;
+  environmentDesc: string;
+  intensity: number;
+  motionIntelligencePrompt: string;
+}): string {
+  const key = opts.movement.toLowerCase().replace(/-/g, " ");
+  const def = EXERCISE_DEFS[key];
+  const phaseDesc = def
+    ? `MID: ${def.mid.position} (${def.mid.joints})\nPEAK: ${def.peak.position} (${def.peak.joints})`
+    : `${opts.movement} at mid-to-peak phase with correct biomechanics`;
+
+  return `SCENE BLUEPRINT PLANNER — Create a FROZEN MOMENT definition.
+
+You are defining a single frozen moment in time that will be captured by 4 cameras simultaneously.
+
+ATHLETE: ${opts.athleteDesc}
+GARMENT: ${opts.garmentDesc}
+ENVIRONMENT: ${opts.environmentDesc}
+EXERCISE: ${opts.movement} at ${opts.intensity}% intensity
+
+BIOMECHANICAL PHASES:
+${phaseDesc}
+
+${opts.motionIntelligencePrompt}
+
+Create a precise blueprint. Return ONLY valid JSON:
+{
+  "frozen_pose": "Exact description of the athlete's body position at this frozen moment — every joint angle, weight distribution, head position, arm position, leg position",
+  "motion_phase": "exact phase (e.g. 'mid-squat, thighs 30° past parallel, arms forward for counterbalance')",
+  "garment_state": "exact state of fabric — where it stretches, compresses, folds at this frozen moment",
+  "lighting_setup": "3-point lighting: key light direction, fill ratio, rim light position",
+  "ground_contact": "exact description of feet/body contact with ground and weight distribution",
+  "equipment_state": "position and state of any equipment at this frozen moment (or 'none')",
+  "atmosphere": "sweat level, breathing phase, muscle tension level"
+}`;
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -420,7 +456,7 @@ serve(async (req) => {
       logoBase64, logoPosition, athleteIdentity,
     } = body;
     const mode = body.mode || "full";
-    const fast = body.fast === true; // FAST MODE: use flash model, skip validation
+    const fast = body.fast === true;
     const motionIntelligencePrompt = body.motionIntelligencePrompt || "";
     const trainedAthleteMode = body.trainedAthleteMode !== false;
     const maxRealismMode = body.maxRealismMode === true && !fast;
@@ -436,15 +472,16 @@ serve(async (req) => {
       logoPosition,
     });
 
-    // Choose image model based on mode
     const imageModel = fast ? MODEL_ROUTER.generate_image_fast : MODEL_ROUTER.generate_image_quality;
-    // Reduce retries to prevent timeout: fast=1, quality=2, maxRealism=2
     const MAX_RETRIES = fast ? 1 : 2;
-    // Only validate front in quality mode (non-front angles skip validation to prevent stalling)
     const requestedAngle = body.angle;
-    const shouldValidate = !fast && requestedAngle === "front" && maxRealismMode;
+    // Validate front in quality mode, and side/back angles when anchor image exists
+    const anchorImageUrl = body.anchorImageUrl || masterScene.anchor_image_url;
+    const shouldValidate = !fast && maxRealismMode && requestedAngle === "front";
+    // For non-front angles: lightweight consistency check against anchor
+    const shouldValidateConsistency = !fast && requestedAngle !== "front" && !!anchorImageUrl;
 
-    console.log(`Mode: ${mode}, Fast: ${fast}, Model: ${imageModel}, MaxRetries: ${MAX_RETRIES}, Validate: ${shouldValidate}`);
+    console.log(`Mode: ${mode}, Fast: ${fast}, Model: ${imageModel}, Angle: ${requestedAngle}, Validate: ${shouldValidate}, ConsistencyCheck: ${shouldValidateConsistency}`);
 
     // ── Pre-process uploads ──
     let processedGarment = body.processedGarment || garmentBase64;
@@ -479,9 +516,18 @@ serve(async (req) => {
       performance_notes: "Good stretch recovery under load.",
     };
 
+    // Scene Blueprint data (from blueprint mode or cached)
+    let sceneBlueprint = body.sceneBlueprint || null;
+
     if (mode === "analyze" || mode === "full") {
-      // Run analysis and physics in parallel
-      const [analysisResult, physicsResult] = await Promise.all([
+      // Run analysis, physics, and blueprint in parallel
+      const athleteDesc = athleteIdentity
+        ? `${athleteIdentity.gender}, ${athleteIdentity.body_type}, ${athleteIdentity.height_cm}cm, ${athleteIdentity.weight_kg}kg, ${athleteIdentity.skin_tone} skin, ${athleteIdentity.face_structure} face, ${athleteIdentity.hair_style}${athleteIdentity.hair_color ? ` ${athleteIdentity.hair_color} hair` : ""}`
+        : `${gender}, ${bodyType}, size ${size}`;
+      const garmentDesc = `${garmentName}, size ${size}`;
+      const envDesc = `${masterScene.environment_lock.location}, ${masterScene.environment_lock.background}, ${masterScene.environment_lock.lighting}`;
+
+      const [analysisResult, physicsResult, blueprintResult] = await Promise.all([
         (async () => {
           try {
             const resp = await fetch(AI_GATEWAY, {
@@ -491,12 +537,12 @@ serve(async (req) => {
                 model: MODEL_ROUTER.analyze,
                 messages: [{
                   role: "system",
-                  content: `You are an expert activewear analyst. Analyze the garment and return JSON with: fabric_type (string), garment_category (ONLY: "T-Shirt", "Compression T-Shirt", "Leggings", "Shorts", "Sports Bra", "Training Top", "Compression Tights", "Tank Top", "Hoodie", "Joggers"), color_palette (array), stretch_rating (1-10), compression_level ("Low"|"Medium"|"High"), breathability_rating (1-10), recommended_use (array). Return ONLY valid JSON.`,
+                  content: `Expert activewear analyst. Analyze garment → JSON: fabric_type, garment_category (ONLY: "T-Shirt","Compression T-Shirt","Leggings","Shorts","Sports Bra","Training Top","Compression Tights","Tank Top","Hoodie","Joggers"), color_palette, stretch_rating (1-10), compression_level, breathability_rating (1-10), recommended_use. ONLY valid JSON.`,
                 }, {
                   role: "user",
                   content: processedGarment
-                    ? [{ type: "text", text: `Analyze this athletic garment for "${garmentName}".` }, { type: "image_url", image_url: { url: processedGarment } }]
-                    : `Analyze an athletic garment called "${garmentName}" (${gender}, size ${size}).`,
+                    ? [{ type: "text", text: `Analyze garment "${garmentName}".` }, { type: "image_url", image_url: { url: processedGarment } }]
+                    : `Analyze garment "${garmentName}" (${gender}, size ${size}).`,
                 }],
               }),
             });
@@ -517,8 +563,8 @@ serve(async (req) => {
               body: JSON.stringify({
                 model: MODEL_ROUTER.describe_physics,
                 messages: [
-                  { role: "system", content: "You are a sportswear physics engine. Return JSON with: stretch_factor, compression_percentage, sweat_absorption, breathability_score, stress_zones, performance_notes. Return ONLY valid JSON." },
-                  { role: "user", content: `Garment: ${garmentName}. Athlete: ${gender}, size ${size}, ${bodyType}. Movement: ${movement} at ${intensity}% intensity.` },
+                  { role: "system", content: "Sportswear physics engine. Return JSON: stretch_factor, compression_percentage, sweat_absorption, breathability_score, stress_zones, performance_notes. ONLY valid JSON." },
+                  { role: "user", content: `Garment: ${garmentName}. Athlete: ${gender}, ${size}, ${bodyType}. Movement: ${movement} at ${intensity}% intensity.` },
                 ],
               }),
             });
@@ -531,10 +577,37 @@ serve(async (req) => {
           } catch (e) { console.error("Physics error:", e); }
           return null;
         })(),
+        // Scene Blueprint — defines the EXACT frozen moment
+        (async () => {
+          try {
+            const bpPrompt = buildSceneBlueprintPrompt({
+              movement: movement || "squats",
+              athleteDesc,
+              garmentDesc,
+              environmentDesc: envDesc,
+              intensity: intensity || 50,
+              motionIntelligencePrompt,
+            });
+            const resp = await fetch(AI_GATEWAY, {
+              method: "POST",
+              headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+              body: JSON.stringify({
+                model: MODEL_ROUTER.blueprint,
+                messages: [{ role: "user", content: bpPrompt }],
+              }),
+            });
+            if (resp.ok) {
+              const data = await resp.json();
+              const content = data.choices?.[0]?.message?.content || "{}";
+              const match = content.match(/\{[\s\S]*\}/);
+              if (match) return JSON.parse(match[0]);
+            }
+          } catch (e) { console.error("Blueprint error:", e); }
+          return null;
+        })(),
       ]);
 
       if (analysisResult) {
-        // Validate category
         const validCategories = ["T-Shirt", "Compression T-Shirt", "Leggings", "Shorts", "Sports Bra", "Training Top", "Compression Tights", "Tank Top", "Hoodie", "Joggers"];
         if (!validCategories.includes(analysisResult.garment_category)) {
           analysisResult.garment_category = "T-Shirt";
@@ -543,6 +616,9 @@ serve(async (req) => {
       }
       if (physicsResult) {
         physicsData = { ...physicsData, ...physicsResult };
+      }
+      if (blueprintResult) {
+        sceneBlueprint = blueprintResult;
       }
     }
 
@@ -561,16 +637,17 @@ serve(async (req) => {
       },
     };
 
-    // ── If mode is "analyze", return early ──
+    // ── If mode is "analyze", return early with blueprint ──
     if (mode === "analyze") {
       return new Response(
         JSON.stringify({
           success: true, mode: "analyze",
           garment_analysis: garmentAnalysis,
           physics: physicsData,
+          sceneBlueprint,
           processedGarment, processedLogo,
           master_scene: masterScene,
-          model_router: { analysis: MODEL_ROUTER.analyze, physics: MODEL_ROUTER.describe_physics, background_removal: MODEL_ROUTER.remove_bg },
+          model_router: { analysis: MODEL_ROUTER.analyze, physics: MODEL_ROUTER.describe_physics, background_removal: MODEL_ROUTER.remove_bg, blueprint: MODEL_ROUTER.blueprint },
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -579,6 +656,18 @@ serve(async (req) => {
     // ── Step 3: Generate images ──
     const angles = mode === "generate_angle" && requestedAngle ? [requestedAngle] : ["front", "side-left", "side-right", "back"];
     console.log(`Generating ${angles.join(", ")} (fast: ${fast}, model: ${imageModel})`);
+
+    // Build blueprint context for prompts
+    const blueprintContext = sceneBlueprint
+      ? `\nFROZEN MOMENT BLUEPRINT (MANDATORY — this is the EXACT pose to render):
+Pose: ${sceneBlueprint.frozen_pose || ""}
+Phase: ${sceneBlueprint.motion_phase || ""}
+Garment State: ${sceneBlueprint.garment_state || ""}
+Lighting: ${sceneBlueprint.lighting_setup || ""}
+Ground Contact: ${sceneBlueprint.ground_contact || ""}
+Equipment: ${sceneBlueprint.equipment_state || "none"}
+Atmosphere: ${sceneBlueprint.atmosphere || ""}`
+      : "";
 
     async function generateAngle(angle: string): Promise<string | null> {
       let attempts = 0;
@@ -596,15 +685,15 @@ serve(async (req) => {
             (isSideAngle && isSleevePlacement);
 
           const logoInstructions = processedLogo ? (showLogoThisAngle
-            ? `\nLOGO: Placed at "${placementLabel}", visible from ${angle}. Blend into fabric naturally, 8-12cm size.`
-            : `\nLOGO: At "${placementLabel}" — NOT visible from ${angle} view.`) : "";
+            ? `\nLOGO: Placed at "${placementLabel}", visible from ${angle}. Blend into fabric, 8-12cm.`
+            : `\nLOGO: At "${placementLabel}" — NOT visible from ${angle}.`) : "";
 
           const garmentCategory = masterScene.garment_lock.garment_category || "activewear";
-          const garmentTypeEnforcement = `GARMENT LOCK: The garment is a "${garmentCategory}". This type is IMMUTABLE — never changes.${masterScene.garment_lock.garment_descriptor ? ` ${masterScene.garment_lock.garment_descriptor}` : ""}`;
+          const garmentTypeEnforcement = `GARMENT LOCK: "${garmentCategory}" — IMMUTABLE type.${masterScene.garment_lock.garment_descriptor ? ` ${masterScene.garment_lock.garment_descriptor}` : ""}`;
 
           const MOTIF_RULES = angle === "front"
-            ? `Reproduce any front prints/motifs faithfully.`
-            : `Any prints/motifs are FRONT ONLY. ${angle.replace("-", " ")} view must be PLAIN.`;
+            ? `Reproduce front prints/motifs faithfully.`
+            : `Prints/motifs are FRONT ONLY. ${angle.replace("-", " ")} view is PLAIN.`;
 
           const athleteDesc = athleteIdentity
             ? `ATHLETE (LOCKED): ${athleteIdentity.gender}, ${athleteIdentity.body_type}, ${athleteIdentity.height_cm}cm, ${athleteIdentity.weight_kg}kg, ${athleteIdentity.skin_tone} skin, ${athleteIdentity.face_structure} face, ${athleteIdentity.hair_style}${athleteIdentity.hair_color ? ` ${athleteIdentity.hair_color} hair (COLOR LOCKED)` : ""}. SAME person in every output.`
@@ -612,22 +701,28 @@ serve(async (req) => {
 
           const anglePoseInstructions = buildPoseInstructions(movement, angle);
           const motionBlock = motionIntelligencePrompt ? `\n${motionIntelligencePrompt}` : "";
-          const maxRealismBlock = maxRealismMode ? `\nMAX REALISM: Every pixel indistinguishable from real photograph. Quality threshold: ${qualityThreshold}%.` : "";
+          const maxRealismBlock = maxRealismMode ? `\nMAX REALISM: Every pixel indistinguishable from real photograph. Threshold: ${qualityThreshold}%.` : "";
 
           const cameraPos = CAMERA_POSITIONS[angle] || CAMERA_POSITIONS["front"];
           const angleDisplayName = angle.replace("-", " ").toUpperCase();
 
-          const mainPrompt = `PHOTOREALISTIC SPORTSWEAR — ${angleDisplayName} VIEW
+          // For non-front angles, add anchor reference instruction
+          const anchorRefInstruction = angle !== "front" && anchorImageUrl
+            ? `\nANCHOR REFERENCE: The provided reference image is the FRONT VIEW of this EXACT scene. You MUST render the SAME scene — same person, same pose, same clothing, same environment, same lighting, same moment — but from the ${angleDisplayName} camera position. The reference image is your GROUND TRUTH.`
+            : "";
+
+          const mainPrompt = `${SCENE_LOCK_PREAMBLE}
 
 ${cameraPos}
+${anchorRefInstruction}
 
 MASTER SCENE: ${describeMasterSceneCompact(masterScene)}
+${blueprintContext}
 
 ${garmentTypeEnforcement}
-
 ${athleteDesc}
 
-FRAMING: ZOOM OUT FAR. Full-body, head to toe. Athlete occupies 45-55% of frame height. 20%+ space above head, 15%+ below feet. 9:16 vertical (1080×1920). Camera 4-5m away. All equipment fully visible.
+FRAMING: ZOOM OUT. Full-body head to toe. Athlete 45-55% frame height. 20%+ above head, 15%+ below feet. 9:16 vertical (1080×1920). 4-5m distance. All equipment visible.
 
 ${anglePoseInstructions}
 ${motionBlock}
@@ -635,11 +730,30 @@ ${maxRealismBlock}
 
 ${MOTIF_RULES}${logoInstructions}
 
-ANTI-ARTIFACT: NO halo/glow around athlete. NO cropping of any body part. Every body part and equipment fully in frame.
+ANTI-ARTIFACT: NO halo/glow. NO cropping. Every body part and equipment in frame.
+Canon EOS R5, 24mm f/2.8, professional studio lighting.
 
-Shot on Canon EOS R5, 24mm f/2.8, professional studio lighting. Indistinguishable from real photoshoot. Dark studio background.
+STRICT: ${angleDisplayName} PERSPECTIVE ONLY. Same frozen moment. Only camera position changed.`;
 
-STRICT: ${angleDisplayName} PERSPECTIVE ONLY.`;
+          // Build message content — include anchor image for non-front angles
+          const contentParts: Array<Record<string, unknown>> = [
+            { type: "text", text: mainPrompt },
+          ];
+
+          // Always include garment reference
+          if (processedGarment) {
+            contentParts.push({ type: "image_url", image_url: { url: processedGarment } });
+          }
+
+          // For non-front angles: include anchor (front) image as reference
+          if (angle !== "front" && anchorImageUrl) {
+            contentParts.push({ type: "image_url", image_url: { url: anchorImageUrl } });
+          }
+
+          // Include logo if visible from this angle
+          if (processedLogo && showLogoThisAngle) {
+            contentParts.push({ type: "image_url", image_url: { url: processedLogo } });
+          }
 
           const imageResp = await fetch(AI_GATEWAY, {
             method: "POST",
@@ -649,13 +763,7 @@ STRICT: ${angleDisplayName} PERSPECTIVE ONLY.`;
               modalities: ["image", "text"],
               messages: [{
                 role: "user",
-                content: processedGarment
-                  ? [
-                      { type: "text", text: mainPrompt },
-                      { type: "image_url", image_url: { url: processedGarment } },
-                      ...(processedLogo && showLogoThisAngle ? [{ type: "image_url", image_url: { url: processedLogo } }] : []),
-                    ]
-                  : mainPrompt,
+                content: contentParts.length === 1 ? mainPrompt : contentParts,
               }],
             }),
           });
@@ -664,17 +772,28 @@ STRICT: ${angleDisplayName} PERSPECTIVE ONLY.`;
             const imageData = await imageResp.json();
             const imgUrl = extractImageUrl(imageData.choices?.[0]?.message as Record<string, unknown>);
             if (imgUrl) {
-              // Only validate in quality mode (not fast)
-              if (shouldValidate) {
-                const referenceImageUrl = masterScene.anchor_image_url;
-                const validation = await validateImage(imgUrl, LOVABLE_API_KEY, angle, movement, masterScene, referenceImageUrl);
+              // Front: full validation if maxRealism
+              if (shouldValidate && angle === "front") {
+                const validation = await validateImage(imgUrl, LOVABLE_API_KEY, angle, movement, masterScene);
                 if (!validation.valid) {
-                  console.warn(`Validation failed for ${angle} (attempt ${attempts}): ${validation.issues.join(", ")}`);
+                  console.warn(`Front validation failed (attempt ${attempts}): ${validation.issues.join(", ")}`);
                   await new Promise(r => setTimeout(r, 500));
                   continue;
                 }
               }
-              console.log(`✅ ${angle} generated (attempt ${attempts}, ${fast ? "fast" : "quality"} mode)`);
+              // Non-front: consistency validation against anchor
+              if (shouldValidateConsistency && angle !== "front") {
+                const validation = await validateImage(imgUrl, LOVABLE_API_KEY, angle, movement, masterScene, anchorImageUrl);
+                if (!validation.valid) {
+                  console.warn(`Consistency check failed for ${angle} (attempt ${attempts}): ${validation.issues.join(", ")}`);
+                  // Only retry once for consistency — don't stall
+                  if (attempts < MAX_RETRIES) {
+                    await new Promise(r => setTimeout(r, 300));
+                    continue;
+                  }
+                }
+              }
+              console.log(`✅ ${angle} generated (attempt ${attempts}, ${fast ? "fast" : "quality"})`);
               return imgUrl;
             }
           } else {
@@ -783,11 +902,12 @@ STRICT: ${angleDisplayName} PERSPECTIVE ONLY.`;
         success: true,
         garment_analysis: garmentAnalysis, physics: physicsData,
         images: generatedImages, stored_urls: storedImageUrls,
-        master_scene: masterScene,
+        master_scene: masterScene, sceneBlueprint,
         model_router: {
           analysis: MODEL_ROUTER.analyze, physics: MODEL_ROUTER.describe_physics,
           image_generation: imageModel, background_removal: MODEL_ROUTER.remove_bg,
-          image_validation: MODEL_ROUTER.validate_image, video: "runway/gen4-turbo",
+          image_validation: MODEL_ROUTER.validate_image, blueprint: MODEL_ROUTER.blueprint,
+          video: "runway/gen4-turbo",
         },
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -796,10 +916,10 @@ STRICT: ${angleDisplayName} PERSPECTIVE ONLY.`;
     console.error("generate-motion error:", e);
     const message = e instanceof Error ? e.message : "Unknown error";
     if (message.includes("429") || message.includes("rate limit")) {
-      return new Response(JSON.stringify({ error: "Rate limit reached. Please wait and try again." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ error: "Rate limit reached. Please wait." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
     if (message.includes("402")) {
-      return new Response(JSON.stringify({ error: "AI credits exhausted. Please add credits." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ error: "AI credits exhausted." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
     return new Response(JSON.stringify({ error: message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
