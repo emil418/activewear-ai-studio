@@ -518,50 +518,22 @@ const Create = () => {
         description: "Remaining angles loading in background...",
       });
 
-      // Stage 3: BACKGROUND — Generate remaining angles progressively (non-blocking)
+      // Stage 3: BACKGROUND — Generate remaining angles SEQUENTIALLY (prevents overload)
       setBackgroundGenerating(true);
       setPipelineState(prev => prev ? { ...prev, stage: "generating", stageMessage: "Loading remaining angles..." } : prev);
 
       const remainingAngles = ["side-left", "side-right", "back"] as const;
 
-      // Set all remaining angles to generating
-      setAngleProgress(prev => {
-        const updated = { ...prev };
-        for (const a of remainingAngles) updated[a] = "generating";
-        return updated;
-      });
+      // Generate angles ONE AT A TIME to prevent API overload and stalling
+      for (const angle of remainingAngles) {
+        setAngleProgress(prev => ({ ...prev, [angle]: "generating" }));
+        setPipelineState(prev => prev ? { ...prev, stageMessage: `Generating ${ANGLE_LABELS[angle]}...` } : prev);
 
-      // Generate remaining angles IN PARALLEL (quality mode with validation)
-      const parallelResults = await Promise.allSettled(
-        remainingAngles.map(async (angle) => {
-          for (let restart = 0; restart <= MAX_FULL_RESTARTS; restart++) {
-            let retryScene = currentMasterScene;
-            if (restart > 0) {
-              const fallbackSeed = baseMasterScene.scene_seed + restart + 10;
-              retryScene = {
-                ...currentMasterScene,
-                scene_seed: fallbackSeed,
-                video_lock: { ...currentMasterScene.video_lock, same_seed: fallbackSeed },
-              };
-            }
-            try {
-              const angleResult = await generateSingleAngle(angle, commonBody, analyzeData, retryScene, {
-                fast: false, // Quality mode with validation for consistency
-                timeoutMs: 60_000,
-              });
-              return { angle, result: angleResult };
-            } catch {
-              if (restart >= MAX_FULL_RESTARTS) return { angle, result: null };
-            }
-          }
-          return { angle, result: null };
-        })
-      );
-
-      // Process parallel results and update UI
-      for (const settled of parallelResults) {
-        if (settled.status === "fulfilled" && settled.value?.result) {
-          const { angle, result: angleResult } = settled.value;
+        try {
+          const angleResult = await generateSingleAngle(angle, commonBody, analyzeData, currentMasterScene, {
+            fast: false, // Try quality first, auto-fallback to fast built into generateSingleAngle
+            timeoutMs: 55_000,
+          });
           images[angle] = angleResult.image;
           if (angleResult.storedUrl) storedUrls[angle] = angleResult.storedUrl;
           setAngleProgress(prev => ({ ...prev, [angle]: "done" }));
@@ -570,10 +542,13 @@ const Create = () => {
             images: { ...prev.images, [angle]: angleResult.image },
             stored_urls: { ...prev.stored_urls, ...(angleResult.storedUrl ? { [angle]: angleResult.storedUrl } : {}) },
           } : prev);
-        } else {
-          const angle = settled.status === "fulfilled" ? settled.value?.angle : "unknown";
-          console.warn(`Angle ${angle} failed after all retries`);
+        } catch {
+          console.warn(`Angle ${angle} failed after all retries and fast fallback`);
+          setAngleProgress(prev => ({ ...prev, [angle]: "done" }));
         }
+
+        // Small delay between angles to avoid rate limiting
+        await new Promise(r => setTimeout(r, 500));
       }
 
       // Final completion
