@@ -521,21 +521,24 @@ const Create = () => {
         description: "Remaining angles loading in background...",
       });
 
-      // Stage 3: BACKGROUND — Generate remaining angles SEQUENTIALLY (prevents overload)
+      // Stage 3: BACKGROUND — Generate remaining angles from SAME master scene
+      // Pass anchor (front) image URL so the AI renders the same frozen scene from different cameras
+      const anchorImageUrl = currentMasterScene.anchor_image_url || storedUrls.front || images.front || undefined;
       setBackgroundGenerating(true);
-      setPipelineState(prev => prev ? { ...prev, stage: "generating", stageMessage: "Loading remaining angles..." } : prev);
+      setPipelineState(prev => prev ? { ...prev, stage: "generating", stageMessage: "Rendering remaining camera angles from master scene..." } : prev);
 
       const remainingAngles = ["side-left", "side-right", "back"] as const;
 
       // Generate angles ONE AT A TIME to prevent API overload and stalling
       for (const angle of remainingAngles) {
         setAngleProgress(prev => ({ ...prev, [angle]: "generating" }));
-        setPipelineState(prev => prev ? { ...prev, stageMessage: `Generating ${ANGLE_LABELS[angle]}...` } : prev);
+        setPipelineState(prev => prev ? { ...prev, stageMessage: `Camera ${ANGLE_LABELS[angle]} — rendering from master scene...` } : prev);
 
         try {
           const angleResult = await generateSingleAngle(angle, commonBody, analyzeData, currentMasterScene, {
-            fast: false, // Try quality first, auto-fallback to fast built into generateSingleAngle
+            fast: false,
             timeoutMs: 55_000,
+            anchorImageUrl,
           });
           images[angle] = angleResult.image;
           if (angleResult.storedUrl) storedUrls[angle] = angleResult.storedUrl;
