@@ -260,7 +260,7 @@ const Create = () => {
       reader.readAsDataURL(file);
     });
 
-  // Generate a single angle with timeout and retries
+  // Generate a single angle with timeout and retries + fast-mode fallback
   const generateSingleAngle = async (
     angle: string,
     commonBody: Record<string, unknown>,
@@ -268,53 +268,63 @@ const Create = () => {
     masterScene: MasterScenePayload,
     options: { maxRetries?: number; timeoutMs?: number; fast?: boolean } = {},
   ): Promise<{ image: string | null; storedUrl: string | null; masterScene: MasterScenePayload }> => {
-    const { maxRetries = 2, timeoutMs = 45_000, fast = false } = options;
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      if (attempt > 1) {
-        setAngleProgress(prev => ({ ...prev, [angle]: "retrying" }));
-        setPipelineState(prev => prev ? {
-          ...prev,
-          stageMessage: `Retrying ${ANGLE_LABELS[angle] || angle} (${attempt}/${maxRetries})…`,
-        } : prev);
-      }
-      try {
-        const anglePromise = supabase.functions.invoke("generate-motion", {
-          body: {
-            ...commonBody,
-            mode: "generate_angle",
-            angle,
-            fast, // Use fast flash model + skip validation
-            masterScene,
-            processedGarment: analyzeData.processedGarment,
-            processedLogo: analyzeData.processedLogo,
-            garmentAnalysis: analyzeData.garment_analysis,
-            physicsData: analyzeData.physics,
-          },
-        });
-        const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("TIMEOUT")), timeoutMs)
-        );
-        const angleResp = await Promise.race([anglePromise, timeoutPromise]) as Awaited<typeof anglePromise>;
+    const { maxRetries = 2, timeoutMs = 50_000, fast = false } = options;
 
-        if (angleResp.data?.success) {
-          let updatedScene = masterScene;
-          if (angleResp.data.master_scene) {
-            updatedScene = angleResp.data.master_scene as MasterScenePayload;
-          } else if (angle === "front") {
-            updatedScene = {
-              ...masterScene,
-              anchor_image_url: angleResp.data.stored_url || angleResp.data.image || masterScene.anchor_image_url,
+    // Try quality mode first, then fallback to fast mode
+    const modes: Array<{ fast: boolean; label: string }> = fast
+      ? [{ fast: true, label: "fast" }]
+      : [{ fast: false, label: "quality" }, { fast: true, label: "fast-fallback" }];
+
+    for (const modeConfig of modes) {
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        if (attempt > 1 || modeConfig.label === "fast-fallback") {
+          setAngleProgress(prev => ({ ...prev, [angle]: "retrying" }));
+          setPipelineState(prev => prev ? {
+            ...prev,
+            stageMessage: modeConfig.label === "fast-fallback"
+              ? `Switching ${ANGLE_LABELS[angle] || angle} to fast mode…`
+              : `Retrying ${ANGLE_LABELS[angle] || angle} (${attempt}/${maxRetries})…`,
+          } : prev);
+        }
+        try {
+          const anglePromise = supabase.functions.invoke("generate-motion", {
+            body: {
+              ...commonBody,
+              mode: "generate_angle",
+              angle,
+              fast: modeConfig.fast,
+              masterScene,
+              processedGarment: analyzeData.processedGarment,
+              processedLogo: analyzeData.processedLogo,
+              garmentAnalysis: analyzeData.garment_analysis,
+              physicsData: analyzeData.physics,
+            },
+          });
+          const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error("TIMEOUT")), timeoutMs)
+          );
+          const angleResp = await Promise.race([anglePromise, timeoutPromise]) as Awaited<typeof anglePromise>;
+
+          if (angleResp.data?.success) {
+            let updatedScene = masterScene;
+            if (angleResp.data.master_scene) {
+              updatedScene = angleResp.data.master_scene as MasterScenePayload;
+            } else if (angle === "front") {
+              updatedScene = {
+                ...masterScene,
+                anchor_image_url: angleResp.data.stored_url || angleResp.data.image || masterScene.anchor_image_url,
+              };
+            }
+            return {
+              image: angleResp.data.image,
+              storedUrl: angleResp.data.stored_url || null,
+              masterScene: updatedScene,
             };
           }
-          return {
-            image: angleResp.data.image,
-            storedUrl: angleResp.data.stored_url || null,
-            masterScene: updatedScene,
-          };
+          console.warn(`Angle ${angle} attempt ${attempt} (${modeConfig.label}) failed:`, angleResp.data?.error);
+        } catch (err) {
+          console.warn(`Angle ${angle} attempt ${attempt} (${modeConfig.label}) threw:`, err);
         }
-        console.warn(`Angle ${angle} attempt ${attempt} failed:`, angleResp.data?.error);
-      } catch (err) {
-        console.warn(`Angle ${angle} attempt ${attempt} threw:`, err);
       }
     }
     throw new Error(`ANGLE_FAILED:${angle}`);
