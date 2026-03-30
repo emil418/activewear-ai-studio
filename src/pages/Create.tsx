@@ -1729,11 +1729,16 @@ const Create = () => {
                       />
                     ) : (
                       <div className="flex flex-col items-center justify-center gap-2">
-                        {status === "done" ? null : (
+                        {status === "failed" ? (
+                          <>
+                            <span className="text-destructive text-lg">✗</span>
+                            <p className="text-xs text-destructive/60 mt-1">Recovery failed</p>
+                          </>
+                        ) : status === "done" ? null : (
                           <>
                             <Loader2 className="w-6 h-6 text-primary/40 animate-spin" />
                             <p className="text-xs text-muted-foreground/40 mt-1">
-                              {status === "retrying" ? "Retrying…" : status === "generating" ? "Generating…" : "Queued…"}
+                              {status === "retrying" ? "Retrying…" : status === "fallback_attempt" ? "Fallback…" : status === "generating" ? "Generating…" : status === "validating" ? "Validating…" : "Queued…"}
                             </p>
                           </>
                         )}
