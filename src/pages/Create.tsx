@@ -158,9 +158,11 @@ const Create = () => {
   const [result, setResult] = useState<GenerationResult | null>(null);
   const [generationError, setGenerationError] = useState<string | null>(null);
 
-  // Progressive angle loading state
-  const [angleProgress, setAngleProgress] = useState<Record<string, "pending" | "generating" | "done" | "retrying">>({});
+  // Progressive angle loading state — granular per-output tracking
+  type AngleState = "pending" | "generating" | "validating" | "done" | "failed" | "retrying" | "fallback_attempt";
+  const [angleProgress, setAngleProgress] = useState<Record<string, AngleState>>({});
   const [backgroundGenerating, setBackgroundGenerating] = useState(false);
+  const [jobComplete, setJobComplete] = useState(false);
 
   // Athlete selection
   const [athletes, setAthletes] = useState<AthleteProfile[]>([]);
@@ -339,6 +341,7 @@ const Create = () => {
     setLoadingMsg(0);
     setSizeVariants({});
     setRunwayVideoUrl(null);
+    setJobComplete(false);
     setAngleProgress({ front: "pending", "side-left": "pending", "side-right": "pending", back: "pending" });
 
     // Initialize pipeline state
@@ -355,7 +358,11 @@ const Create = () => {
       setLoadingMsg(prev => prev >= loadingMessages.length - 1 ? prev : prev + 1);
     }, 3000);
 
-    const MAX_FULL_RESTARTS = 1;
+    const MAX_FULL_RESTARTS = 2;
+    const PER_ANGLE_MAX_RETRIES = 2;
+    const ANGLE_TIMEOUT_MS = 50_000;
+    const FAST_FALLBACK_TIMEOUT_MS = 35_000;
+
     try {
       const garmentBase64 = garmentFile ? await fileToBase64(garmentFile) : null;
       const logoBase64 = logoFile ? await fileToBase64(logoFile) : null;
@@ -439,20 +446,66 @@ const Create = () => {
         if (analyzeData.master_scene) {
           baseMasterScene = analyzeData.master_scene as MasterScenePayload;
         }
-        // Cache for future use
         sceneCache.set(cacheKey, { analyzeData, masterScene: baseMasterScene });
       }
 
-      // Stage 2: FAST-FIRST — Generate FRONT view immediately
-      setPipelineState(prev => prev ? { ...prev, stage: "generating", stageMessage: "Generating front preview (fast mode)...", currentPass: 1 } : prev);
-      setLoadingMsg(3);
-      setAngleProgress(prev => ({ ...prev, front: "generating" }));
+      // ── GENERATION CONTROL + FAIL-SAFE ENGINE ──
 
       let currentMasterScene = baseMasterScene;
       const images: Record<string, string | null> = {};
       const storedUrls: Record<string, string> = {};
+      let frontPreviewShown = false;
 
-      // Generate front view first — FAST MODE for instant preview
+      // Helper: attempt one angle with quality → fast fallback
+      const attemptAngle = async (
+        angle: string,
+        anchorUrl?: string,
+      ): Promise<boolean> => {
+        // Quality attempt
+        setAngleProgress(prev => ({ ...prev, [angle]: "generating" }));
+        setPipelineState(prev => prev ? { ...prev, stageMessage: `Camera ${ANGLE_LABELS[angle] || angle} — rendering...` } : prev);
+
+        try {
+          const res = await generateSingleAngle(angle, commonBody, analyzeData, currentMasterScene, {
+            fast: angle === "front" && !frontPreviewShown,
+            maxRetries: PER_ANGLE_MAX_RETRIES,
+            timeoutMs: ANGLE_TIMEOUT_MS,
+            anchorImageUrl: anchorUrl,
+          });
+          images[angle] = res.image;
+          if (res.storedUrl) storedUrls[angle] = res.storedUrl;
+          currentMasterScene = res.masterScene;
+          setAngleProgress(prev => ({ ...prev, [angle]: "done" }));
+          return true;
+        } catch {
+          // Quality failed — try fast fallback
+          setAngleProgress(prev => ({ ...prev, [angle]: "fallback_attempt" }));
+          setPipelineState(prev => prev ? { ...prev, stageMessage: `${ANGLE_LABELS[angle] || angle} — switching to fast fallback...` } : prev);
+
+          try {
+            const fallbackRes = await generateSingleAngle(angle, commonBody, analyzeData, currentMasterScene, {
+              fast: true,
+              maxRetries: 1,
+              timeoutMs: FAST_FALLBACK_TIMEOUT_MS,
+              anchorImageUrl: anchorUrl,
+            });
+            images[angle] = fallbackRes.image;
+            if (fallbackRes.storedUrl) storedUrls[angle] = fallbackRes.storedUrl;
+            currentMasterScene = fallbackRes.masterScene;
+            setAngleProgress(prev => ({ ...prev, [angle]: "done" }));
+            return true;
+          } catch {
+            setAngleProgress(prev => ({ ...prev, [angle]: "failed" }));
+            return false;
+          }
+        }
+      };
+
+      // ── STEP A: Generate FRONT (master anchor) ──
+      setPipelineState(prev => prev ? { ...prev, stage: "generating", stageMessage: "Generating front preview (fast mode)...", currentPass: 1 } : prev);
+      setLoadingMsg(3);
+
+      let frontSuccess = false;
       for (let restart = 0; restart <= MAX_FULL_RESTARTS; restart++) {
         if (restart > 0) {
           const fallbackSeed = baseMasterScene.scene_seed + restart;
@@ -461,26 +514,20 @@ const Create = () => {
             scene_seed: fallbackSeed,
             video_lock: { ...baseMasterScene.video_lock, same_seed: fallbackSeed },
           };
+          setPipelineState(prev => prev ? { ...prev, stageMessage: `Restarting front generation (attempt ${restart + 1})...` } : prev);
         }
-        try {
-          const frontResult = await generateSingleAngle("front", commonBody, analyzeData, currentMasterScene, {
-            fast: true, // Use flash model + skip validation for instant preview
-            timeoutMs: 30_000,
-          });
-          images.front = frontResult.image;
-          if (frontResult.storedUrl) storedUrls.front = frontResult.storedUrl;
-          currentMasterScene = frontResult.masterScene;
-          setAngleProgress(prev => ({ ...prev, front: "done" }));
-          break;
-        } catch {
-          if (restart >= MAX_FULL_RESTARTS) throw new Error("Front view could not be generated");
-          continue;
-        }
+        frontSuccess = await attemptAngle("front");
+        if (frontSuccess) break;
       }
 
-      // IMMEDIATELY show front preview — jump to results
+      if (!frontSuccess) {
+        throw new Error("Front view could not be generated after all recovery attempts.");
+      }
+
+      // Show front preview immediately
       clearInterval(interval);
       setLoadingMsg(4);
+      frontPreviewShown = true;
 
       const partialResult: GenerationResult = {
         garment_analysis: analyzeData.garment_analysis as Record<string, unknown>,
@@ -503,7 +550,6 @@ const Create = () => {
       setActiveSizeTab(selectedSize);
       setGenerating(false);
 
-      // Set initial quality score
       const realismBase = maxRealismMode ? 94 : (trainedAthleteMode ? 92 : 85);
       setQualityScore({
         overall: realismBase,
@@ -521,55 +567,91 @@ const Create = () => {
         description: "Remaining angles loading in background...",
       });
 
-      // Stage 3: BACKGROUND — Generate remaining angles from SAME master scene
-      // Pass anchor (front) image URL so the AI renders the same frozen scene from different cameras
+      // ── STEP B: Background — Generate remaining angles with auto-recovery ──
       const anchorImageUrl = currentMasterScene.anchor_image_url || storedUrls.front || images.front || undefined;
       setBackgroundGenerating(true);
       setPipelineState(prev => prev ? { ...prev, stage: "generating", stageMessage: "Rendering remaining camera angles from master scene..." } : prev);
 
       const remainingAngles = ["side-left", "side-right", "back"] as const;
+      const failedAngles: string[] = [];
 
-      // Generate angles ONE AT A TIME to prevent API overload and stalling
+      // Pass 1: sequential generation
       for (const angle of remainingAngles) {
-        setAngleProgress(prev => ({ ...prev, [angle]: "generating" }));
-        setPipelineState(prev => prev ? { ...prev, stageMessage: `Camera ${ANGLE_LABELS[angle]} — rendering from master scene...` } : prev);
-
-        try {
-          const angleResult = await generateSingleAngle(angle, commonBody, analyzeData, currentMasterScene, {
-            fast: false,
-            timeoutMs: 55_000,
-            anchorImageUrl,
-          });
-          images[angle] = angleResult.image;
-          if (angleResult.storedUrl) storedUrls[angle] = angleResult.storedUrl;
-          setAngleProgress(prev => ({ ...prev, [angle]: "done" }));
+        const success = await attemptAngle(angle, anchorImageUrl);
+        if (success) {
           setResult(prev => prev ? {
             ...prev,
-            images: { ...prev.images, [angle]: angleResult.image },
-            stored_urls: { ...prev.stored_urls, ...(angleResult.storedUrl ? { [angle]: angleResult.storedUrl } : {}) },
+            images: { ...prev.images, [angle]: images[angle] },
+            stored_urls: { ...prev.stored_urls, ...(storedUrls[angle] ? { [angle]: storedUrls[angle] } : {}) },
           } : prev);
-        } catch {
-          console.warn(`Angle ${angle} failed after all retries and fast fallback`);
-          setAngleProgress(prev => ({ ...prev, [angle]: "done" }));
+        } else {
+          failedAngles.push(angle);
         }
-
-        // Small delay between angles to avoid rate limiting
         await new Promise(r => setTimeout(r, 500));
       }
 
-      // Final completion
+      // ── STEP C: Auto-recovery — retry only failed angles ──
+      if (failedAngles.length > 0 && failedAngles.length < 3) {
+        setPipelineState(prev => prev ? { ...prev, stageMessage: `Auto-recovering ${failedAngles.length} failed angle(s)...` } : prev);
+
+        for (const angle of [...failedAngles]) {
+          setAngleProgress(prev => ({ ...prev, [angle]: "retrying" }));
+          const success = await attemptAngle(angle, anchorImageUrl);
+          if (success) {
+            failedAngles.splice(failedAngles.indexOf(angle), 1);
+            setResult(prev => prev ? {
+              ...prev,
+              images: { ...prev.images, [angle]: images[angle] },
+              stored_urls: { ...prev.stored_urls, ...(storedUrls[angle] ? { [angle]: storedUrls[angle] } : {}) },
+            } : prev);
+          }
+          await new Promise(r => setTimeout(r, 300));
+        }
+      }
+
+      // ── STEP D: If ALL background angles failed, full restart ──
+      if (failedAngles.length === 3) {
+        setPipelineState(prev => prev ? { ...prev, stageMessage: "All background angles failed — restarting pipeline with new seed..." } : prev);
+        const restartSeed = baseMasterScene.scene_seed + 99;
+        currentMasterScene = {
+          ...baseMasterScene,
+          scene_seed: restartSeed,
+          anchor_image_url: anchorImageUrl,
+          video_lock: { ...baseMasterScene.video_lock, same_seed: restartSeed },
+        };
+
+        for (const angle of remainingAngles) {
+          const success = await attemptAngle(angle, anchorImageUrl);
+          if (success) {
+            failedAngles.splice(failedAngles.indexOf(angle), 1);
+            setResult(prev => prev ? {
+              ...prev,
+              images: { ...prev.images, [angle]: images[angle] },
+              stored_urls: { ...prev.stored_urls, ...(storedUrls[angle] ? { [angle]: storedUrls[angle] } : {}) },
+            } : prev);
+          }
+          await new Promise(r => setTimeout(r, 500));
+        }
+      }
+
+      // ── STRICT COMPLETION VALIDATION ──
       const completedAngles = ANGLES.filter(a => images[a] || storedUrls[a]);
+      const allComplete = completedAngles.length === ANGLES.length;
       const finalScore = Math.min(realismBase + completedAngles.length * 2, 99);
+
+      setJobComplete(allComplete);
 
       setPipelineState(prev => prev ? {
         ...prev,
-        stage: "complete",
-        stageMessage: `Quality: ${finalScore}% — ${completedAngles.length}/4 angles complete`,
+        stage: allComplete ? "complete" : "failed",
+        stageMessage: allComplete
+          ? `Quality: ${finalScore}% — All ${completedAngles.length} angles complete ✓`
+          : `${completedAngles.length}/${ANGLES.length} angles generated — ${failedAngles.length} could not be recovered`,
         qualityReport: {
           angleScores: {},
           overallScore: finalScore,
-          passed: finalScore >= maxRealismConfig.qualityThreshold,
-          issues: [],
+          passed: allComplete && finalScore >= maxRealismConfig.qualityThreshold,
+          issues: failedAngles.map(a => `${ANGLE_LABELS[a] || a} failed after all recovery attempts`),
           passNumber: 1,
           autoCorrections: [],
         },
@@ -578,15 +660,15 @@ const Create = () => {
       setQualityScore(prev => prev ? { ...prev, overall: finalScore } : prev);
       setBackgroundGenerating(false);
 
-      if (completedAngles.length === 4) {
+      if (allComplete) {
         toast({
           title: `✅ All angles complete — ${maxRealismMode ? "Max Realism" : "Standard"} quality`,
-          description: `Score: ${finalScore}%`,
+          description: `Score: ${finalScore}% — Full set validated`,
         });
-      } else {
+      } else if (completedAngles.length > 0) {
         toast({
-          title: `⚠️ ${completedAngles.length}/4 angles generated`,
-          description: "Some angles are still processing. They will appear automatically.",
+          title: `⚠️ ${completedAngles.length}/${ANGLES.length} angles generated`,
+          description: `${failedAngles.map(a => ANGLE_LABELS[a] || a).join(", ")} could not be recovered. You can retry individual angles.`,
         });
       }
     } catch (err: unknown) {
@@ -594,10 +676,11 @@ const Create = () => {
       const message = err instanceof Error ? err.message : "Generation failed";
       console.error("Generation pipeline error:", message);
       setGenerating(false);
-      setPipelineState(prev => prev ? { ...prev, stage: "failed", stageMessage: "Generation encountered an issue. Please try again." } : prev);
+      setJobComplete(false);
+      setPipelineState(prev => prev ? { ...prev, stage: "failed", stageMessage: "Generation failed after all recovery attempts." } : prev);
       toast({
-        title: "Generation issue",
-        description: "Please try again. The system will retry faster this time.",
+        title: "Generation failed",
+        description: "All recovery attempts exhausted. Please try again.",
         variant: "destructive",
       });
     }
@@ -1609,10 +1692,11 @@ const Create = () => {
                     return (
                       <div key={angle} className={`flex-1 text-center text-[10px] px-2 py-1.5 rounded-lg font-semibold ${
                         status === "done" ? "bg-primary/15 text-primary" :
-                        status === "generating" || status === "retrying" ? "bg-accent/15 text-accent-foreground animate-pulse" :
+                        status === "failed" ? "bg-destructive/15 text-destructive" :
+                        status === "generating" || status === "retrying" || status === "fallback_attempt" || status === "validating" ? "bg-accent/15 text-accent-foreground animate-pulse" :
                         "bg-muted text-muted-foreground"
                       }`}>
-                        {status === "done" ? "✓" : status === "generating" ? "⏳" : status === "retrying" ? "🔄" : "○"} {ANGLE_LABELS[angle]}
+                        {status === "done" ? "✓" : status === "failed" ? "✗" : status === "generating" ? "⏳" : status === "retrying" ? "🔄" : status === "fallback_attempt" ? "⚡" : status === "validating" ? "🔍" : "○"} {ANGLE_LABELS[angle]}
                       </div>
                     );
                   })}
@@ -1645,11 +1729,16 @@ const Create = () => {
                       />
                     ) : (
                       <div className="flex flex-col items-center justify-center gap-2">
-                        {status === "done" ? null : (
+                        {status === "failed" ? (
+                          <>
+                            <span className="text-destructive text-lg">✗</span>
+                            <p className="text-xs text-destructive/60 mt-1">Recovery failed</p>
+                          </>
+                        ) : status === "done" ? null : (
                           <>
                             <Loader2 className="w-6 h-6 text-primary/40 animate-spin" />
                             <p className="text-xs text-muted-foreground/40 mt-1">
-                              {status === "retrying" ? "Retrying…" : status === "generating" ? "Generating…" : "Queued…"}
+                              {status === "retrying" ? "Retrying…" : status === "fallback_attempt" ? "Fallback…" : status === "generating" ? "Generating…" : status === "validating" ? "Validating…" : "Queued…"}
                             </p>
                           </>
                         )}
