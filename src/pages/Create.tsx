@@ -1692,10 +1692,11 @@ const Create = () => {
                     return (
                       <div key={angle} className={`flex-1 text-center text-[10px] px-2 py-1.5 rounded-lg font-semibold ${
                         status === "done" ? "bg-primary/15 text-primary" :
-                        status === "generating" || status === "retrying" ? "bg-accent/15 text-accent-foreground animate-pulse" :
+                        status === "failed" ? "bg-destructive/15 text-destructive" :
+                        status === "generating" || status === "retrying" || status === "fallback_attempt" || status === "validating" ? "bg-accent/15 text-accent-foreground animate-pulse" :
                         "bg-muted text-muted-foreground"
                       }`}>
-                        {status === "done" ? "✓" : status === "generating" ? "⏳" : status === "retrying" ? "🔄" : "○"} {ANGLE_LABELS[angle]}
+                        {status === "done" ? "✓" : status === "failed" ? "✗" : status === "generating" ? "⏳" : status === "retrying" ? "🔄" : status === "fallback_attempt" ? "⚡" : status === "validating" ? "🔍" : "○"} {ANGLE_LABELS[angle]}
                       </div>
                     );
                   })}
