@@ -158,9 +158,11 @@ const Create = () => {
   const [result, setResult] = useState<GenerationResult | null>(null);
   const [generationError, setGenerationError] = useState<string | null>(null);
 
-  // Progressive angle loading state
-  const [angleProgress, setAngleProgress] = useState<Record<string, "pending" | "generating" | "done" | "retrying">>({});
+  // Progressive angle loading state — granular per-output tracking
+  type AngleState = "pending" | "generating" | "validating" | "done" | "failed" | "retrying" | "fallback_attempt";
+  const [angleProgress, setAngleProgress] = useState<Record<string, AngleState>>({});
   const [backgroundGenerating, setBackgroundGenerating] = useState(false);
+  const [jobComplete, setJobComplete] = useState(false);
 
   // Athlete selection
   const [athletes, setAthletes] = useState<AthleteProfile[]>([]);
