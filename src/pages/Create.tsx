@@ -537,9 +537,12 @@ const Create = () => {
         master_scene: currentMasterScene,
         model_router: {
           ...(analyzeData.model_router as Record<string, string> || {}),
-          preview_fast: "google/gemini-3.1-flash-image-preview",
-          quality_generation: "google/gemini-3-pro-image-preview",
-          image_validation: "google/gemini-3-flash-preview",
+          pipeline_stages: "plan → preview → master → angles → video",
+          planning: "gemini-2.5-pro",
+          preview_image: "gemini-3.1-flash-image",
+          quality_image: "gemini-3-pro-image",
+          fallback_image: "gemini-3.1-flash-image",
+          validation: "gemini-3-flash",
           video: "runway/gen4-turbo",
         },
       };

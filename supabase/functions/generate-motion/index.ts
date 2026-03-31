@@ -676,7 +676,7 @@ serve(async (req) => {
           sceneBlueprint,
           processedGarment, processedLogo,
           master_scene: masterScene,
-          model_router: { analysis: MODEL_ROUTER.analyze, physics: MODEL_ROUTER.describe_physics, background_removal: MODEL_ROUTER.remove_bg, blueprint: MODEL_ROUTER.blueprint },
+          model_router: getModelRouterInfo(false),
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
