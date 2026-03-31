@@ -15,16 +15,45 @@ const corsHeaders = {
 
 const AI_GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
-// ── Smart Model Router ──
+// ── Smart Model Router — best model per task ──
+// Planning/reasoning uses the strongest model for accurate scene blueprints.
+// Preview uses the fastest image model for instant feedback.
+// Quality uses the highest fidelity image model for the master scene.
+// Validation uses a fast text model to avoid blocking.
 const MODEL_ROUTER = {
-  blueprint: "google/gemini-3-flash-preview",
+  // Stage 1: Planning — strongest reasoning for scene blueprint + motion planning
+  blueprint: "google/gemini-2.5-pro",
+  // Stage 1: Analysis — fast text model for garment classification
   analyze: "google/gemini-3-flash-preview",
+  // Stage 2: Fast preview — fastest image model for instant front preview
   generate_image_fast: "google/gemini-3.1-flash-image-preview",
+  // Stage 3: Final master + multi-angle — highest quality image model
   generate_image_quality: "google/gemini-3-pro-image-preview",
+  // Stage 1: Physics — lightweight text model for fabric physics
   describe_physics: "google/gemini-2.5-flash",
+  // Pre-processing: background removal — fast image model
   remove_bg: "google/gemini-3.1-flash-image-preview",
+  // Stage 4: Validation — fast text model for quality checks
   validate_image: "google/gemini-3-flash-preview",
-};
+  // Fallback: when quality model fails, downgrade to fast model
+  fallback_image: "google/gemini-3.1-flash-image-preview",
+} as const;
+
+// Model info for transparency (returned to client)
+function getModelRouterInfo(fast: boolean) {
+  return {
+    planning: MODEL_ROUTER.blueprint,
+    analysis: MODEL_ROUTER.analyze,
+    physics: MODEL_ROUTER.describe_physics,
+    background_removal: MODEL_ROUTER.remove_bg,
+    preview_image: MODEL_ROUTER.generate_image_fast,
+    quality_image: MODEL_ROUTER.generate_image_quality,
+    fallback_image: MODEL_ROUTER.fallback_image,
+    validation: MODEL_ROUTER.validate_image,
+    active_image_model: fast ? MODEL_ROUTER.generate_image_fast : MODEL_ROUTER.generate_image_quality,
+    video: "runway/gen4-turbo",
+  };
+}
 
 // ── Scene Lock Preamble — injected into EVERY generation prompt ──
 const SCENE_LOCK_PREAMBLE = `CAMERA RENDERING SYSTEM — STRICT SCENE LOCK ENGINE
@@ -647,7 +676,7 @@ serve(async (req) => {
           sceneBlueprint,
           processedGarment, processedLogo,
           master_scene: masterScene,
-          model_router: { analysis: MODEL_ROUTER.analyze, physics: MODEL_ROUTER.describe_physics, background_removal: MODEL_ROUTER.remove_bg, blueprint: MODEL_ROUTER.blueprint },
+          model_router: getModelRouterInfo(false),
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );

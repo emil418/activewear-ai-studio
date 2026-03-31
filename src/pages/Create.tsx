@@ -537,9 +537,12 @@ const Create = () => {
         master_scene: currentMasterScene,
         model_router: {
           ...(analyzeData.model_router as Record<string, string> || {}),
-          preview_fast: "google/gemini-3.1-flash-image-preview",
-          quality_generation: "google/gemini-3-pro-image-preview",
-          image_validation: "google/gemini-3-flash-preview",
+          pipeline_stages: "plan → preview → master → angles → video",
+          planning: "gemini-2.5-pro",
+          preview_image: "gemini-3.1-flash-image",
+          quality_image: "gemini-3-pro-image",
+          fallback_image: "gemini-3.1-flash-image",
+          validation: "gemini-3-flash",
           video: "runway/gen4-turbo",
         },
       };
@@ -1850,13 +1853,20 @@ const Create = () => {
 
             {/* Smart Model Router Info */}
             {activeResult?.model_router && (
-              <div className="glass-card p-4 space-y-2">
-                <h4 className="text-sm font-bold flex items-center gap-2"><Layers className="w-4 h-4 text-primary" /> Smart Model Router</h4>
+              <div className="glass-card p-4 space-y-3">
+                <h4 className="text-sm font-bold flex items-center gap-2"><Layers className="w-4 h-4 text-primary" /> Intelligent Model Router</h4>
+                {activeResult.model_router.pipeline_stages && (
+                  <div className="text-xs text-muted-foreground font-mono bg-muted/30 rounded-lg px-3 py-2">
+                    {activeResult.model_router.pipeline_stages}
+                  </div>
+                )}
                 <div className="grid grid-cols-2 gap-2 text-xs">
-                  {Object.entries(activeResult.model_router).map(([task, model]) => (
+                  {Object.entries(activeResult.model_router)
+                    .filter(([key]) => key !== "pipeline_stages")
+                    .map(([task, model]) => (
                     <div key={task} className="flex justify-between gap-1">
                       <span className="text-muted-foreground capitalize">{task.replace(/_/g, " ")}</span>
-                      <span className="font-mono text-primary truncate max-w-[120px]">{String(model).split("/").pop()}</span>
+                      <span className="font-mono text-primary truncate max-w-[140px]">{String(model).split("/").pop()}</span>
                     </div>
                   ))}
                 </div>
