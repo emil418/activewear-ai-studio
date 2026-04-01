@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Package, Download, Image, Video, FileText, Layers, Plus, ArrowRight } from "lucide-react";
+import { Package, Download, Image, Video, FileText, Layers, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 

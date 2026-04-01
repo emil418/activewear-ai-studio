@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { MapPin, Check, Sun, Moon, Zap, Trees, Dumbbell } from "lucide-react";
+import { MapPin, Check, Sun, Zap, Trees, Dumbbell } from "lucide-react";
 
 const ENVIRONMENT_PACKS = [
   {

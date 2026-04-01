@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Shield, Activity, AlertTriangle, CheckCircle2, XCircle, Loader2, RefreshCw, Clock, Cpu, Eye } from "lucide-react";
+import { Shield, Activity, AlertTriangle, CheckCircle2, XCircle, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
