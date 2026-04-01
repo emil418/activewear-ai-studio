@@ -19,8 +19,13 @@ import Library from "./pages/Library";
 import Billing from "./pages/Billing";
 import BrandSettings from "./pages/BrandSettings";
 import AthleteLibrary from "./pages/AthleteLibrary";
+import GarmentLibrary from "./pages/GarmentLibrary";
+import EnvironmentLibrary from "./pages/EnvironmentLibrary";
 import Templates from "./pages/Templates";
 import FitTesting from "./pages/FitTesting";
+import CampaignPack from "./pages/CampaignPack";
+import History from "./pages/History";
+import AdminPanel from "./pages/AdminPanel";
 
 const queryClient = new QueryClient();
 
