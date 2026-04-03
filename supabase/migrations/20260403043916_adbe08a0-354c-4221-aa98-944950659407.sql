@@ -1,0 +1,1 @@
+ALTER TABLE public.athlete_profiles ADD COLUMN hair_color text NOT NULL DEFAULT 'black';

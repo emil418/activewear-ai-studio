@@ -123,6 +123,7 @@ export type Database = {
           created_at: string
           face_structure: string
           gender: string
+          hair_color: string
           hair_style: string
           height_cm: number
           id: string
@@ -142,6 +143,7 @@ export type Database = {
           created_at?: string
           face_structure?: string
           gender?: string
+          hair_color?: string
           hair_style?: string
           height_cm?: number
           id?: string
@@ -161,6 +163,7 @@ export type Database = {
           created_at?: string
           face_structure?: string
           gender?: string
+          hair_color?: string
           hair_style?: string
           height_cm?: number
           id?: string
