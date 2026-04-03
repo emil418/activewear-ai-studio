@@ -55,7 +55,6 @@ const App = () => (
                 <Route path="billing" element={<Billing />} />
                 <Route path="settings" element={<BrandSettings />} />
                 <Route path="admin" element={<AdminPanel />} />
-                <Route path="settings" element={<BrandSettings />} />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>
