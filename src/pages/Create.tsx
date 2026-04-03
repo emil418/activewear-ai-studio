@@ -61,6 +61,11 @@ const ANGLE_LABELS: Record<string, string> = {
   "back": "Back",
 };
 const bodyTypes = ["Lean Runner", "Athletic", "Muscular", "Plus-Size", "Adaptive"];
+const OUTPUT_FORMATS = [
+  { id: "9:16", label: "Portrait", desc: "9:16 — Social / Mobile" },
+  { id: "16:9", label: "Landscape", desc: "16:9 — Web / Presentation" },
+  { id: "1:1", label: "Square", desc: "1:1 — Feed / Catalog" },
+] as const;
 
 const loadingMessages = [
   "🧠 Planning scene — analyzing requirements...",
