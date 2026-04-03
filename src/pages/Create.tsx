@@ -1572,6 +1572,24 @@ const Create = () => {
               </div>
             </div>
 
+            {/* Output Format Selector */}
+            <div className="glass-card p-5 space-y-3">
+              <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Output Format</p>
+              <div className="flex gap-2">
+                {OUTPUT_FORMATS.map(f => (
+                  <button key={f.id} onClick={() => setOutputFormat(f.id as typeof outputFormat)}
+                    className={`flex-1 text-center px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 ${
+                      outputFormat === f.id
+                        ? "bg-primary/10 text-primary border border-primary/20"
+                        : "bg-muted text-muted-foreground border border-border hover:border-primary/20"
+                    }`}>
+                    <span className="block font-bold">{f.label}</span>
+                    <span className="block text-[10px] opacity-70 mt-0.5">{f.desc}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Max Realism Mode Toggle */}
             {!showSimplifiedUI && (
               <div className="glass-card p-5 space-y-3 border border-primary/10">
