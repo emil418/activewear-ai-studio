@@ -405,6 +405,9 @@ const BrandSettings = () => {
           </div>
         )}
       </motion.div>
+
+      {/* Admin Management — only visible to admins */}
+      <AdminManagement />
     </div>
   );
 };
