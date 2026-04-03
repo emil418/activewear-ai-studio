@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Palette, Upload, Save, Sparkles, Check, Loader2, Image, Type, Eye } from "lucide-react";
+import AdminManagement from "@/components/AdminManagement";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -404,6 +405,9 @@ const BrandSettings = () => {
           </div>
         )}
       </motion.div>
+
+      {/* Admin Management — only visible to admins */}
+      <AdminManagement />
     </div>
   );
 };

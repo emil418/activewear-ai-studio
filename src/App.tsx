@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { InfluencerModeProvider } from "@/hooks/useInfluencerMode";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import AdminRoute from "@/components/AdminRoute";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
@@ -22,7 +23,6 @@ import AthleteLibrary from "./pages/AthleteLibrary";
 import GarmentLibrary from "./pages/GarmentLibrary";
 import EnvironmentLibrary from "./pages/EnvironmentLibrary";
 import Templates from "./pages/Templates";
-import FitTesting from "./pages/FitTesting";
 import CampaignPack from "./pages/CampaignPack";
 import History from "./pages/History";
 import AdminPanel from "./pages/AdminPanel";
@@ -51,13 +51,11 @@ const App = () => (
                 <Route path="garments" element={<GarmentLibrary />} />
                 <Route path="environments" element={<EnvironmentLibrary />} />
                 <Route path="templates" element={<Templates />} />
-                <Route path="fit-testing" element={<FitTesting />} />
                 <Route path="campaigns" element={<CampaignPack />} />
                 <Route path="history" element={<History />} />
                 <Route path="billing" element={<Billing />} />
                 <Route path="settings" element={<BrandSettings />} />
-                <Route path="admin" element={<AdminPanel />} />
-                <Route path="settings" element={<BrandSettings />} />
+                <Route path="admin" element={<AdminRoute><AdminPanel /></AdminRoute>} />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>

@@ -3,34 +3,39 @@ import { Link, useLocation, Outlet, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Home, Zap, Image, CreditCard, Settings,
-  ChevronLeft, ChevronRight, LogOut, Menu, X, Activity, Users, FileText, Ruler,
+  ChevronLeft, ChevronRight, LogOut, Menu, X, Activity, Users, FileText,
   Shirt, MapPin, Package, Clock, Shield
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useAdmin } from "@/hooks/useAdmin";
 
-const navItems = [
+const baseNavItems = [
   { icon: Home, label: "Dashboard", path: "/dashboard" },
   { icon: Users, label: "Athletes", path: "/dashboard/athletes" },
   { icon: Shirt, label: "Garments", path: "/dashboard/garments" },
   { icon: MapPin, label: "Environments", path: "/dashboard/environments" },
   { icon: FileText, label: "Templates", path: "/dashboard/templates" },
   { icon: Zap, label: "Create", path: "/dashboard/create" },
-  { icon: Ruler, label: "Fit Testing", path: "/dashboard/fit-testing" },
   { icon: Package, label: "Campaign Pack", path: "/dashboard/campaigns" },
   { icon: Image, label: "Library", path: "/dashboard/library" },
   { icon: Clock, label: "History", path: "/dashboard/history" },
   { divider: true },
   { icon: CreditCard, label: "Billing", path: "/dashboard/billing" },
   { icon: Settings, label: "Settings", path: "/dashboard/settings" },
-  { icon: Shield, label: "Admin", path: "/dashboard/admin" },
 ] as const;
 
 const DashboardLayout = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const { user, signOut } = useAuth();
+  const { isAdmin } = useAdmin();
   const location = useLocation();
   const navigate = useNavigate();
+
+  const navItems = [
+    ...baseNavItems,
+    ...(isAdmin ? [{ icon: Shield, label: "Admin", path: "/dashboard/admin" }] : []),
+  ] as const;
 
   const handleLogout = async () => {
     await signOut();

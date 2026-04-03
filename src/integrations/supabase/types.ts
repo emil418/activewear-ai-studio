@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_allowlist: {
+        Row: {
+          added_by: string | null
+          created_at: string
+          email: string
+          id: string
+        }
+        Insert: {
+          added_by?: string | null
+          created_at?: string
+          email: string
+          id?: string
+        }
+        Update: {
+          added_by?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+        }
+        Relationships: []
+      }
       assets: {
         Row: {
           brand_id: string
@@ -102,6 +123,7 @@ export type Database = {
           created_at: string
           face_structure: string
           gender: string
+          hair_color: string
           hair_style: string
           height_cm: number
           id: string
@@ -121,6 +143,7 @@ export type Database = {
           created_at?: string
           face_structure?: string
           gender?: string
+          hair_color?: string
           hair_style?: string
           height_cm?: number
           id?: string
@@ -140,6 +163,7 @@ export type Database = {
           created_at?: string
           face_structure?: string
           gender?: string
+          hair_color?: string
           hair_style?: string
           height_cm?: number
           id?: string
@@ -687,6 +711,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_admin_email: { Args: { check_email: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "editor" | "viewer"

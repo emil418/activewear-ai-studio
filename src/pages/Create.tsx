@@ -61,6 +61,11 @@ const ANGLE_LABELS: Record<string, string> = {
   "back": "Back",
 };
 const bodyTypes = ["Lean Runner", "Athletic", "Muscular", "Plus-Size", "Adaptive"];
+const OUTPUT_FORMATS = [
+  { id: "9:16", label: "Portrait", desc: "9:16 — Social / Mobile" },
+  { id: "16:9", label: "Landscape", desc: "16:9 — Web / Presentation" },
+  { id: "1:1", label: "Square", desc: "1:1 — Feed / Catalog" },
+] as const;
 
 const loadingMessages = [
   "🧠 Planning scene — analyzing requirements...",
@@ -196,6 +201,9 @@ const Create = () => {
   const [maxRealismMode, setMaxRealismMode] = useState(false);
   const maxRealismConfig: MaxRealismConfig = maxRealismMode ? MAX_REALISM_ON : MAX_REALISM_OFF;
   const [pipelineState, setPipelineState] = useState<PipelineState | null>(null);
+
+  // Output format
+  const [outputFormat, setOutputFormat] = useState<"9:16" | "16:9" | "1:1">("9:16");
 
   const { toast } = useToast();
   const { session: _session, user, authReady } = useAuth();
@@ -1561,6 +1569,24 @@ const Create = () => {
                     <p className="text-sm font-medium">{logoFile.name} — {logoPosition?.placement || "chest-center"}</p>
                   </div>
                 )}
+              </div>
+            </div>
+
+            {/* Output Format Selector */}
+            <div className="glass-card p-5 space-y-3">
+              <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Output Format</p>
+              <div className="flex gap-2">
+                {OUTPUT_FORMATS.map(f => (
+                  <button key={f.id} onClick={() => setOutputFormat(f.id as typeof outputFormat)}
+                    className={`flex-1 text-center px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 ${
+                      outputFormat === f.id
+                        ? "bg-primary/10 text-primary border border-primary/20"
+                        : "bg-muted text-muted-foreground border border-border hover:border-primary/20"
+                    }`}>
+                    <span className="block font-bold">{f.label}</span>
+                    <span className="block text-[10px] opacity-70 mt-0.5">{f.desc}</span>
+                  </button>
+                ))}
               </div>
             </div>
 
