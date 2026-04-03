@@ -202,6 +202,9 @@ const Create = () => {
   const maxRealismConfig: MaxRealismConfig = maxRealismMode ? MAX_REALISM_ON : MAX_REALISM_OFF;
   const [pipelineState, setPipelineState] = useState<PipelineState | null>(null);
 
+  // Output format
+  const [outputFormat, setOutputFormat] = useState<"9:16" | "16:9" | "1:1">("9:16");
+
   const { toast } = useToast();
   const { session: _session, user, authReady } = useAuth();
   const { influencerMode } = useInfluencerMode();
