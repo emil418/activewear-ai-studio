@@ -28,8 +28,14 @@ const DashboardLayout = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const { user, signOut } = useAuth();
+  const { isAdmin } = useAdmin();
   const location = useLocation();
   const navigate = useNavigate();
+
+  const navItems = [
+    ...baseNavItems,
+    ...(isAdmin ? [{ icon: Shield, label: "Admin", path: "/dashboard/admin" }] : []),
+  ] as const;
 
   const handleLogout = async () => {
     await signOut();
