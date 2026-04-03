@@ -55,7 +55,7 @@ const App = () => (
                 <Route path="history" element={<History />} />
                 <Route path="billing" element={<Billing />} />
                 <Route path="settings" element={<BrandSettings />} />
-                <Route path="admin" element={<AdminPanel />} />
+                <Route path="admin" element={<AdminRoute><AdminPanel /></AdminRoute>} />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>
