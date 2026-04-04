@@ -14,6 +14,12 @@ interface FaceSelectorProps {
     hair_color: string;
     body_type: string;
     brand_vibe: string;
+    appearance_preset?: string;
+    face_style?: string;
+    age_feel?: string;
+    expression_style?: string;
+    hair_type?: string;
+    hair_length?: string;
   };
   selectedFace: string | null;
   onSelectFace: (url: string) => void;
@@ -91,7 +97,7 @@ const FaceSelector = ({ athleteTraits, selectedFace, onSelectFace, locked = fals
       {generating && faces.length === 0 && (
         <div className="glass-card p-8 flex flex-col items-center justify-center gap-3">
           <Loader2 className="w-6 h-6 animate-spin text-primary" />
-          <p className="text-xs text-muted-foreground">Generating face options...</p>
+          <p className="text-xs text-muted-foreground">Generating face options based on appearance traits...</p>
         </div>
       )}
 
@@ -140,7 +146,7 @@ const FaceSelector = ({ athleteTraits, selectedFace, onSelectFace, locked = fals
       {!generating && faces.length === 0 && !selectedFace && (
         <div className="glass-card p-6 flex flex-col items-center gap-3 text-center">
           <p className="text-xs text-muted-foreground">
-            Generate face options based on athlete traits, then select one to lock as the visual identity.
+            Generate face options based on appearance traits, then select one to lock as the visual identity.
           </p>
         </div>
       )}
