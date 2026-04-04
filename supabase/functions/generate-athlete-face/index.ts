@@ -43,30 +43,39 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { gender, skin_tone, face_structure, hair_style, hair_color, body_type, brand_vibe, count = 4 } = body;
+    const {
+      gender, skin_tone, face_structure, hair_style, hair_color,
+      body_type, brand_vibe, appearance_preset, face_style,
+      age_feel, expression_style, hair_type, hair_length, count = 4,
+    } = body;
 
     const genderDesc = (gender || "male").toLowerCase();
     const skinDesc = skin_tone || "medium";
     const faceDesc = face_structure || "angular";
-    const hairDesc = hair_style || "short fade";
+    const hairStyleDesc = hair_style || "short fade";
     const hairColorDesc = hair_color || "black";
+    const hairTypeDesc = hair_type || "straight";
+    const hairLengthDesc = hair_length || "short";
     const vibeDesc = brand_vibe || "aesthetic";
+    const presetDesc = appearance_preset && appearance_preset !== "Custom" ? `, ${appearance_preset} appearance` : "";
+    const faceStyleDesc = face_style ? `, ${face_style.toLowerCase()} facial aesthetic` : "";
+    const ageDesc = age_feel || "athletic adult";
 
-    const basePrompt = `Professional headshot portrait photo of a ${genderDesc} athlete with ${skinDesc} skin tone, ${faceDesc} face structure, ${hairDesc} ${hairColorDesc} hair. Athletic ${body_type || "aesthetic"} build. ${vibeDesc} brand vibe. Clean studio lighting, neutral gray background, sharp focus on face, shoulders visible. Photorealistic, high resolution, no text, no watermark, no artifacts, no glow or halo around the subject.`;
+    const basePrompt = `Professional headshot portrait photo of a ${genderDesc} ${ageDesc} athlete${presetDesc}${faceStyleDesc}. ${skinDesc} skin tone, ${faceDesc} face structure, ${hairLengthDesc} ${hairTypeDesc} ${hairStyleDesc} ${hairColorDesc} hair. Athletic ${body_type || "aesthetic"} build. ${vibeDesc} brand vibe. Clean studio lighting, neutral gray background, sharp focus on face, shoulders visible. Photorealistic, high resolution, no text, no watermark, no artifacts, no glow or halo around the subject.`;
 
-    const variations = [
-      `${basePrompt} Direct eye contact, confident neutral expression.`,
-      `${basePrompt} Slight smile, warm expression, approachable look.`,
-      `${basePrompt} Intense focused expression, competitive athlete look.`,
-      `${basePrompt} Relaxed natural expression, casual confidence.`,
+    const expressionVariations = [
+      { expr: expression_style || "confident neutral", label: "Confident" },
+      { expr: "slight smile, warm expression, approachable look", label: "Warm" },
+      { expr: "intense focused expression, competitive athlete look", label: "Intense" },
+      { expr: "relaxed natural expression, casual confidence", label: "Relaxed" },
     ];
 
-    const selectedVariations = variations.slice(0, Math.min(count, 4));
-
+    const selectedVariations = expressionVariations.slice(0, Math.min(count, 4));
     const results: string[] = [];
 
-    for (const prompt of selectedVariations) {
+    for (const variation of selectedVariations) {
       try {
+        const prompt = `${basePrompt} ${variation.expr}.`;
         const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
           headers: {
@@ -81,7 +90,8 @@ Deno.serve(async (req) => {
         });
 
         if (!aiResponse.ok) {
-          console.error("AI generation failed:", aiResponse.status);
+          const errText = await aiResponse.text();
+          console.error("AI generation failed:", aiResponse.status, errText);
           continue;
         }
 
@@ -89,7 +99,6 @@ Deno.serve(async (req) => {
         const imageUrl = aiData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
 
         if (imageUrl) {
-          // Upload to storage
           const base64Data = imageUrl.replace(/^data:image\/\w+;base64,/, "");
           const binaryData = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
           const fileName = `faces/${user.id}/${crypto.randomUUID()}.png`;
@@ -115,7 +124,7 @@ Deno.serve(async (req) => {
     }
 
     if (results.length === 0) {
-      return new Response(JSON.stringify({ error: "Failed to generate faces" }), {
+      return new Response(JSON.stringify({ error: "Failed to generate faces. Please try again." }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, User, Edit2, Trash2, Check, X, Users, Lock, Shield } from "lucide-react";
+import { Plus, User, Edit2, Trash2, Check, X, Users, Lock, Shield, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdmin } from "@/hooks/useAdmin";
@@ -15,9 +16,16 @@ const GENDERS = ["Male", "Female", "Non-binary"];
 const BODY_TYPES = ["lean", "aesthetic", "muscular", "bulky"];
 const SKIN_TONES = ["fair", "light", "medium", "olive", "brown", "dark"];
 const FACE_STRUCTURES = ["angular", "soft", "strong jaw", "oval", "square", "diamond"];
-const HAIR_STYLES = ["short fade", "buzz cut", "long tied", "braids", "afro", "bald", "medium wavy", "ponytail"];
+const HAIR_STYLES = ["short fade", "buzz cut", "long tied", "braids", "afro", "bald", "medium wavy", "ponytail", "cropped", "bun"];
 const HAIR_COLORS = ["black", "dark brown", "brown", "light brown", "blonde", "red", "auburn", "gray", "white"];
+const HAIR_TYPES = ["straight", "wavy", "curly", "coily", "kinky"];
+const HAIR_LENGTHS = ["short", "medium", "long"];
 const BRAND_VIBES = ["hardcore", "minimalist", "aesthetic", "luxury gym"];
+
+const APPEARANCE_PRESETS = ["Nordic / Scandinavian", "East Asian", "South Asian", "Black / African diaspora", "Middle Eastern", "Latin American", "Mixed", "Custom"];
+const FACE_STYLES = ["Soft", "Sharp", "Strong", "Athletic", "Editorial", "Rugged", "Clean", "Minimal", "Premium", "Lifestyle"];
+const AGE_FEELS = ["young adult", "mature adult", "athletic adult", "editorial adult", "premium commercial model"];
+const EXPRESSION_STYLES = ["neutral", "focused", "intense", "calm", "confident", "performance-focused", "editorial neutral"];
 
 interface AthleteProfile {
   id: string;
@@ -36,6 +44,12 @@ interface AthleteProfile {
   brand_vibe: string;
   identity_seed: string | null;
   reference_portrait_url: string | null;
+  appearance_preset: string;
+  face_style: string;
+  age_feel: string;
+  expression_style: string;
+  hair_type: string;
+  hair_length: string;
   created_at: string;
 }
 
@@ -51,7 +65,13 @@ const defaultAthlete = {
   face_structure: "angular",
   hair_style: "short fade",
   hair_color: "black",
+  hair_type: "straight",
+  hair_length: "short",
   brand_vibe: "aesthetic",
+  appearance_preset: "Custom",
+  face_style: "Athletic",
+  age_feel: "athletic adult",
+  expression_style: "neutral",
 };
 
 const ChipSelector = ({ label, options, value, onChange }: { label: string; options: string[]; value: string; onChange: (v: string) => void }) => (
@@ -67,6 +87,22 @@ const ChipSelector = ({ label, options, value, onChange }: { label: string; opti
           }`}>{o}</button>
       ))}
     </div>
+  </div>
+);
+
+const DropdownField = ({ label, options, value, onChange }: { label: string; options: string[]; value: string; onChange: (v: string) => void }) => (
+  <div className="space-y-1.5">
+    <Label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{label}</Label>
+    <Select value={value} onValueChange={onChange}>
+      <SelectTrigger className="premium-input capitalize">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {options.map(o => (
+          <SelectItem key={o} value={o} className="capitalize">{o}</SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   </div>
 );
 
@@ -107,7 +143,6 @@ const AthleteLibrary = () => {
       const seed = `${form.name}-${form.gender}-${form.height_cm}-${form.weight_kg}-${form.body_type}-${form.face_structure}-${form.skin_tone}-${Date.now()}`;
       if (editingId) {
         const updatePayload: Record<string, unknown> = { ...form, identity_seed: seed };
-        // Only admin can change the face on an existing athlete
         if (isAdmin && selectedFace) {
           updatePayload.reference_portrait_url = selectedFace;
         }
@@ -133,7 +168,10 @@ const AthleteLibrary = () => {
       name: a.name, gender: a.gender, height_cm: a.height_cm, weight_kg: a.weight_kg,
       body_type: a.body_type, muscle_density: a.muscle_density, body_fat_pct: a.body_fat_pct,
       skin_tone: a.skin_tone, face_structure: a.face_structure, hair_style: a.hair_style,
-      hair_color: a.hair_color || "black", brand_vibe: a.brand_vibe,
+      hair_color: a.hair_color || "black", hair_type: a.hair_type || "straight",
+      hair_length: a.hair_length || "short", brand_vibe: a.brand_vibe,
+      appearance_preset: a.appearance_preset || "Custom", face_style: a.face_style || "Athletic",
+      age_feel: a.age_feel || "athletic adult", expression_style: a.expression_style || "neutral",
     });
     setSelectedFace(a.reference_portrait_url || null);
     setEditingId(a.id); setShowForm(true);
@@ -151,7 +189,7 @@ const AthleteLibrary = () => {
           <h1 className="font-display text-2xl font-bold tracking-tight flex items-center gap-2">
             <Users className="w-6 h-6 text-primary" /> Athlete Library
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">Persistent digital athletes with locked face identities.</p>
+          <p className="text-sm text-muted-foreground mt-1">Premium digital athletes with locked face identities.</p>
         </div>
         {!showForm && (
           <Button onClick={() => { setForm(defaultAthlete); setEditingId(null); setSelectedFace(null); setShowForm(true); }} className="rounded-xl gap-2">
@@ -168,11 +206,16 @@ const AthleteLibrary = () => {
               <h2 className="font-display text-lg font-bold">{editingId ? "Edit Athlete" : "Create New Athlete"}</h2>
               <button onClick={() => { setShowForm(false); setEditingId(null); setSelectedFace(null); }} className="p-1.5 rounded-lg hover:bg-muted transition-colors"><X className="w-4 h-4" /></button>
             </div>
+
+            {/* Step 1: Basic Info */}
             <div className="space-y-1.5">
               <Label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Athlete Name</Label>
               <Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="e.g. Marcus, Zara, Kai..." className="premium-input" />
             </div>
             <ChipSelector label="Gender" options={GENDERS} value={form.gender} onChange={v => setForm({ ...form, gender: v })} />
+
+            {/* Step 2: Body */}
+            <ChipSelector label="Body Type" options={BODY_TYPES} value={form.body_type} onChange={v => setForm({ ...form, body_type: v })} />
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Height (cm)</Label>
@@ -189,28 +232,52 @@ const AthleteLibrary = () => {
                 </div>
               </div>
             </div>
-            <ChipSelector label="Body Type" options={BODY_TYPES} value={form.body_type} onChange={v => setForm({ ...form, body_type: v })} />
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Muscle Density</Label>
-                <span className="text-sm font-bold text-primary">{form.muscle_density}/10</span>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Muscle Density</Label>
+                  <span className="text-sm font-bold text-primary">{form.muscle_density}/10</span>
+                </div>
+                <Slider value={[form.muscle_density]} onValueChange={v => setForm({ ...form, muscle_density: v[0] })} min={1} max={10} step={1} />
               </div>
-              <Slider value={[form.muscle_density]} onValueChange={v => setForm({ ...form, muscle_density: v[0] })} min={1} max={10} step={1} />
-            </div>
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Body Fat %</Label>
-                <span className="text-sm font-bold text-primary">{form.body_fat_pct}%</span>
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Body Fat %</Label>
+                  <span className="text-sm font-bold text-primary">{form.body_fat_pct}%</span>
+                </div>
+                <Slider value={[form.body_fat_pct]} onValueChange={v => setForm({ ...form, body_fat_pct: v[0] })} min={5} max={35} step={1} />
               </div>
-              <Slider value={[form.body_fat_pct]} onValueChange={v => setForm({ ...form, body_fat_pct: v[0] })} min={5} max={35} step={1} />
             </div>
-            <ChipSelector label="Skin Tone" options={SKIN_TONES} value={form.skin_tone} onChange={v => setForm({ ...form, skin_tone: v })} />
-            <ChipSelector label="Face Structure" options={FACE_STRUCTURES} value={form.face_structure} onChange={v => setForm({ ...form, face_structure: v })} />
-            <ChipSelector label="Hair Style" options={HAIR_STYLES} value={form.hair_style} onChange={v => setForm({ ...form, hair_style: v })} />
-            <ChipSelector label="Hair Color" options={HAIR_COLORS} value={form.hair_color} onChange={v => setForm({ ...form, hair_color: v })} />
+
+            {/* Step 3: Appearance Identity */}
+            <div className="border-t border-border pt-5 space-y-4">
+              <p className="text-xs font-bold text-primary uppercase tracking-widest">Appearance Identity</p>
+              <div className="grid grid-cols-2 gap-4">
+                <DropdownField label="Appearance Preset" options={APPEARANCE_PRESETS} value={form.appearance_preset} onChange={v => setForm({ ...form, appearance_preset: v })} />
+                <DropdownField label="Face Style" options={FACE_STYLES} value={form.face_style} onChange={v => setForm({ ...form, face_style: v })} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <DropdownField label="Age Feel" options={AGE_FEELS} value={form.age_feel} onChange={v => setForm({ ...form, age_feel: v })} />
+                <DropdownField label="Expression Style" options={EXPRESSION_STYLES} value={form.expression_style} onChange={v => setForm({ ...form, expression_style: v })} />
+              </div>
+              <ChipSelector label="Skin Tone" options={SKIN_TONES} value={form.skin_tone} onChange={v => setForm({ ...form, skin_tone: v })} />
+              <ChipSelector label="Face Structure" options={FACE_STRUCTURES} value={form.face_structure} onChange={v => setForm({ ...form, face_structure: v })} />
+            </div>
+
+            {/* Step 4: Hair */}
+            <div className="border-t border-border pt-5 space-y-4">
+              <p className="text-xs font-bold text-primary uppercase tracking-widest">Hair Identity</p>
+              <div className="grid grid-cols-3 gap-4">
+                <DropdownField label="Hair Type" options={HAIR_TYPES} value={form.hair_type} onChange={v => setForm({ ...form, hair_type: v })} />
+                <DropdownField label="Hair Length" options={HAIR_LENGTHS} value={form.hair_length} onChange={v => setForm({ ...form, hair_length: v })} />
+                <DropdownField label="Hair Color" options={HAIR_COLORS} value={form.hair_color} onChange={v => setForm({ ...form, hair_color: v })} />
+              </div>
+              <ChipSelector label="Hair Style" options={HAIR_STYLES} value={form.hair_style} onChange={v => setForm({ ...form, hair_style: v })} />
+            </div>
+
             <ChipSelector label="Brand Vibe" options={BRAND_VIBES} value={form.brand_vibe} onChange={v => setForm({ ...form, brand_vibe: v })} />
 
-            {/* Face Generation Section */}
+            {/* Face Generation */}
             <div className="border-t border-border pt-5">
               <FaceSelector
                 athleteTraits={{
@@ -221,6 +288,12 @@ const AthleteLibrary = () => {
                   hair_color: form.hair_color,
                   body_type: form.body_type,
                   brand_vibe: form.brand_vibe,
+                  appearance_preset: form.appearance_preset,
+                  face_style: form.face_style,
+                  age_feel: form.age_feel,
+                  expression_style: form.expression_style,
+                  hair_type: form.hair_type,
+                  hair_length: form.hair_length,
                 }}
                 selectedFace={selectedFace}
                 onSelectFace={setSelectedFace}
@@ -247,7 +320,7 @@ const AthleteLibrary = () => {
                 </div>
                 <div>
                   <p className="font-display font-bold text-lg">No athletes yet</p>
-                  <p className="text-sm text-muted-foreground mt-1">Create your first persistent digital athlete.</p>
+                  <p className="text-sm text-muted-foreground mt-1">Create your first premium digital athlete.</p>
                 </div>
                 <Button onClick={() => { setForm(defaultAthlete); setSelectedFace(null); setShowForm(true); }} className="rounded-xl gap-2">
                   <Plus className="w-4 h-4" /> Create First Athlete
@@ -258,7 +331,6 @@ const AthleteLibrary = () => {
                 {athletes.map(a => (
                   <motion.div key={a.id} layout className="glass-card-hover p-5 space-y-3">
                     <div className="flex items-start gap-3">
-                      {/* Face portrait or initial fallback */}
                       {a.reference_portrait_url ? (
                         <div className="w-16 h-20 rounded-xl flex-shrink-0 overflow-hidden border border-primary/10">
                           <img src={a.reference_portrait_url} alt={a.name} className="w-full h-full object-cover" />
@@ -280,7 +352,7 @@ const AthleteLibrary = () => {
                             </button>
                           </div>
                         </div>
-                        <p className="text-xs text-muted-foreground capitalize">{a.gender} · {a.body_type}</p>
+                        <p className="text-xs text-muted-foreground capitalize">{a.gender} · {a.body_type} · {a.age_feel || "adult"}</p>
                         <div className="flex items-center gap-1.5 mt-1">
                           {a.reference_portrait_url && (
                             <span className="inline-flex items-center gap-1 text-[10px] text-primary font-medium">
@@ -299,13 +371,17 @@ const AthleteLibrary = () => {
                       <span>BF {a.body_fat_pct}%</span>
                       <span className="capitalize">Skin: {a.skin_tone}</span>
                       <span>Muscle: {a.muscle_density}/10</span>
-                      <span className="capitalize">Face: {a.face_structure}</span>
+                      <span className="capitalize">Face: {a.face_style || a.face_structure}</span>
                       <span className="capitalize">Hair: {a.hair_style}</span>
                       <span className="capitalize">Color: {a.hair_color || "black"}</span>
+                      <span className="capitalize">Expr: {a.expression_style || "neutral"}</span>
                     </div>
 
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       <span className="feature-badge">{a.brand_vibe}</span>
+                      {a.appearance_preset && a.appearance_preset !== "Custom" && (
+                        <span className="feature-badge">{a.appearance_preset}</span>
+                      )}
                     </div>
                   </motion.div>
                 ))}
