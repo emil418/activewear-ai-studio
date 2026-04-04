@@ -116,15 +116,21 @@ export type Database = {
       }
       athlete_profiles: {
         Row: {
+          age_feel: string
+          appearance_preset: string
           body_fat_pct: number
           body_type: string
           brand_id: string
           brand_vibe: string
           created_at: string
+          expression_style: string
           face_structure: string
+          face_style: string
           gender: string
           hair_color: string
+          hair_length: string
           hair_style: string
+          hair_type: string
           height_cm: number
           id: string
           identity_seed: string | null
@@ -136,15 +142,21 @@ export type Database = {
           weight_kg: number
         }
         Insert: {
+          age_feel?: string
+          appearance_preset?: string
           body_fat_pct?: number
           body_type?: string
           brand_id: string
           brand_vibe?: string
           created_at?: string
+          expression_style?: string
           face_structure?: string
+          face_style?: string
           gender?: string
           hair_color?: string
+          hair_length?: string
           hair_style?: string
+          hair_type?: string
           height_cm?: number
           id?: string
           identity_seed?: string | null
@@ -156,15 +168,21 @@ export type Database = {
           weight_kg?: number
         }
         Update: {
+          age_feel?: string
+          appearance_preset?: string
           body_fat_pct?: number
           body_type?: string
           brand_id?: string
           brand_vibe?: string
           created_at?: string
+          expression_style?: string
           face_structure?: string
+          face_style?: string
           gender?: string
           hair_color?: string
+          hair_length?: string
           hair_style?: string
+          hair_type?: string
           height_cm?: number
           id?: string
           identity_seed?: string | null
