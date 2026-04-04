@@ -1,13 +1,15 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, User, Edit2, Trash2, Check, X, Users } from "lucide-react";
+import { Plus, User, Edit2, Trash2, Check, X, Users, Lock, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { useAdmin } from "@/hooks/useAdmin";
 import { supabase } from "@/integrations/supabase/client";
+import FaceSelector from "@/components/FaceSelector";
 
 const GENDERS = ["Male", "Female", "Non-binary"];
 const BODY_TYPES = ["lean", "aesthetic", "muscular", "bulky"];
@@ -74,9 +76,11 @@ const AthleteLibrary = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(defaultAthlete);
+  const [selectedFace, setSelectedFace] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
   const { user, authReady } = useAuth();
+  const { isAdmin } = useAdmin();
 
   const fetchAthletes = async () => {
     if (!authReady || !user) { setLoading(false); return; }
@@ -102,13 +106,23 @@ const AthleteLibrary = () => {
       if (!brand) throw new Error("Could not create brand");
       const seed = `${form.name}-${form.gender}-${form.height_cm}-${form.weight_kg}-${form.body_type}-${form.face_structure}-${form.skin_tone}-${Date.now()}`;
       if (editingId) {
-        await supabase.from("athlete_profiles").update({ ...form, identity_seed: seed }).eq("id", editingId);
+        const updatePayload: Record<string, unknown> = { ...form, identity_seed: seed };
+        // Only admin can change the face on an existing athlete
+        if (isAdmin && selectedFace) {
+          updatePayload.reference_portrait_url = selectedFace;
+        }
+        await supabase.from("athlete_profiles").update(updatePayload).eq("id", editingId);
         toast({ title: "Athlete updated" });
       } else {
-        await supabase.from("athlete_profiles").insert({ ...form, brand_id: brand.id, identity_seed: seed });
+        await supabase.from("athlete_profiles").insert({
+          ...form,
+          brand_id: brand.id,
+          identity_seed: seed,
+          reference_portrait_url: selectedFace,
+        });
         toast({ title: "Athlete created", description: `${form.name} added to your library.` });
       }
-      setShowForm(false); setEditingId(null); setForm(defaultAthlete); fetchAthletes();
+      setShowForm(false); setEditingId(null); setForm(defaultAthlete); setSelectedFace(null); fetchAthletes();
     } catch (err) {
       toast({ title: "Error saving athlete", description: String(err), variant: "destructive" });
     } finally { setSaving(false); }
@@ -121,20 +135,13 @@ const AthleteLibrary = () => {
       skin_tone: a.skin_tone, face_structure: a.face_structure, hair_style: a.hair_style,
       hair_color: a.hair_color || "black", brand_vibe: a.brand_vibe,
     });
+    setSelectedFace(a.reference_portrait_url || null);
     setEditingId(a.id); setShowForm(true);
   };
 
   const handleDelete = async (id: string) => {
     await supabase.from("athlete_profiles").delete().eq("id", id);
     toast({ title: "Athlete removed" }); fetchAthletes();
-  };
-
-  // Generate a deterministic avatar color from name
-  const avatarColor = (name: string) => {
-    let hash = 0;
-    for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
-    const h = Math.abs(hash) % 360;
-    return `hsl(${h}, 55%, 45%)`;
   };
 
   return (
@@ -144,10 +151,10 @@ const AthleteLibrary = () => {
           <h1 className="font-display text-2xl font-bold tracking-tight flex items-center gap-2">
             <Users className="w-6 h-6 text-primary" /> Athlete Library
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">Persistent digital athletes for consistent brand imagery.</p>
+          <p className="text-sm text-muted-foreground mt-1">Persistent digital athletes with locked face identities.</p>
         </div>
         {!showForm && (
-          <Button onClick={() => { setForm(defaultAthlete); setEditingId(null); setShowForm(true); }} className="rounded-xl gap-2">
+          <Button onClick={() => { setForm(defaultAthlete); setEditingId(null); setSelectedFace(null); setShowForm(true); }} className="rounded-xl gap-2">
             <Plus className="w-4 h-4" /> New Athlete
           </Button>
         )}
@@ -159,7 +166,7 @@ const AthleteLibrary = () => {
             className="glass-card p-6 space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="font-display text-lg font-bold">{editingId ? "Edit Athlete" : "Create New Athlete"}</h2>
-              <button onClick={() => { setShowForm(false); setEditingId(null); }} className="p-1.5 rounded-lg hover:bg-muted transition-colors"><X className="w-4 h-4" /></button>
+              <button onClick={() => { setShowForm(false); setEditingId(null); setSelectedFace(null); }} className="p-1.5 rounded-lg hover:bg-muted transition-colors"><X className="w-4 h-4" /></button>
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Athlete Name</Label>
@@ -202,12 +209,31 @@ const AthleteLibrary = () => {
             <ChipSelector label="Hair Style" options={HAIR_STYLES} value={form.hair_style} onChange={v => setForm({ ...form, hair_style: v })} />
             <ChipSelector label="Hair Color" options={HAIR_COLORS} value={form.hair_color} onChange={v => setForm({ ...form, hair_color: v })} />
             <ChipSelector label="Brand Vibe" options={BRAND_VIBES} value={form.brand_vibe} onChange={v => setForm({ ...form, brand_vibe: v })} />
+
+            {/* Face Generation Section */}
+            <div className="border-t border-border pt-5">
+              <FaceSelector
+                athleteTraits={{
+                  gender: form.gender,
+                  skin_tone: form.skin_tone,
+                  face_structure: form.face_structure,
+                  hair_style: form.hair_style,
+                  hair_color: form.hair_color,
+                  body_type: form.body_type,
+                  brand_vibe: form.brand_vibe,
+                }}
+                selectedFace={selectedFace}
+                onSelectFace={setSelectedFace}
+                locked={!!editingId && !isAdmin}
+              />
+            </div>
+
             <div className="flex gap-3 pt-2">
               <Button onClick={handleSave} disabled={saving} className="rounded-xl gap-2 flex-1">
                 {saving ? <span className="animate-spin">⏳</span> : <Check className="w-4 h-4" />}
                 {editingId ? "Update Athlete" : "Create Athlete"}
               </Button>
-              <Button variant="outline" onClick={() => { setShowForm(false); setEditingId(null); }} className="rounded-xl">Cancel</Button>
+              <Button variant="outline" onClick={() => { setShowForm(false); setEditingId(null); setSelectedFace(null); }} className="rounded-xl">Cancel</Button>
             </div>
           </motion.div>
         ) : (
@@ -223,7 +249,7 @@ const AthleteLibrary = () => {
                   <p className="font-display font-bold text-lg">No athletes yet</p>
                   <p className="text-sm text-muted-foreground mt-1">Create your first persistent digital athlete.</p>
                 </div>
-                <Button onClick={() => { setForm(defaultAthlete); setShowForm(true); }} className="rounded-xl gap-2">
+                <Button onClick={() => { setForm(defaultAthlete); setSelectedFace(null); setShowForm(true); }} className="rounded-xl gap-2">
                   <Plus className="w-4 h-4" /> Create First Athlete
                 </Button>
               </div>
@@ -232,11 +258,16 @@ const AthleteLibrary = () => {
                 {athletes.map(a => (
                   <motion.div key={a.id} layout className="glass-card-hover p-5 space-y-3">
                     <div className="flex items-start gap-3">
-                      {/* Face thumbnail / avatar */}
-                      <div className="w-14 h-14 rounded-xl flex-shrink-0 flex items-center justify-center text-white font-bold text-lg"
-                        style={{ backgroundColor: avatarColor(a.name) }}>
-                        {a.name.charAt(0).toUpperCase()}
-                      </div>
+                      {/* Face portrait or initial fallback */}
+                      {a.reference_portrait_url ? (
+                        <div className="w-16 h-20 rounded-xl flex-shrink-0 overflow-hidden border border-primary/10">
+                          <img src={a.reference_portrait_url} alt={a.name} className="w-full h-full object-cover" />
+                        </div>
+                      ) : (
+                        <div className="w-16 h-20 rounded-xl flex-shrink-0 flex items-center justify-center bg-muted border border-border">
+                          <User className="w-6 h-6 text-muted-foreground" />
+                        </div>
+                      )}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
                           <p className="font-display font-bold text-sm truncate">{a.name}</p>
@@ -250,6 +281,16 @@ const AthleteLibrary = () => {
                           </div>
                         </div>
                         <p className="text-xs text-muted-foreground capitalize">{a.gender} · {a.body_type}</p>
+                        <div className="flex items-center gap-1.5 mt-1">
+                          {a.reference_portrait_url && (
+                            <span className="inline-flex items-center gap-1 text-[10px] text-primary font-medium">
+                              <Lock className="w-2.5 h-2.5" /> Face locked
+                            </span>
+                          )}
+                          {a.identity_seed && !a.reference_portrait_url && (
+                            <span className="text-[10px] text-primary/40">ID locked</span>
+                          )}
+                        </div>
                       </div>
                     </div>
 
@@ -265,7 +306,6 @@ const AthleteLibrary = () => {
 
                     <div className="flex items-center gap-1.5">
                       <span className="feature-badge">{a.brand_vibe}</span>
-                      {a.identity_seed && <span className="text-[10px] text-primary/40">ID locked</span>}
                     </div>
                   </motion.div>
                 ))}
