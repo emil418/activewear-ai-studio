@@ -108,12 +108,8 @@ const BODYWEIGHT_ONLY_MOVEMENTS = new Set([
   "squats",
   "push-ups",
   "lunges",
-  "sprint",
   "burpees",
-  "high knees",
-  "squat jumps",
   "running",
-  "jumping",
 ]);
 
 const OBJECT_RULES: Record<string, { required: string[]; forbidden: string[] }> = {
