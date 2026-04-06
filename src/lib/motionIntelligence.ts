@@ -189,7 +189,8 @@ All joints must transition SMOOTHLY between angles — no teleporting between po
 
 const EQUIPMENT_MOVEMENTS = new Set([
   "deadlifts", "bench press", "pull-ups", "kettlebell swings",
-  "battle ropes", "box jumps", "jump rope"
+  "battle ropes", "box jumps", "jump rope",
+  "rowing machine", "assault airbike", "clean and jerk"
 ]);
 
 export function movementHasEquipment(movement: string): boolean {

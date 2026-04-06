@@ -141,6 +141,18 @@ const OBJECT_RULES: Record<string, { required: string[]; forbidden: string[] }> 
     required: ["athletic training shoes", "kettlebell"],
     forbidden: ["barbell", "bench", "jump rope", "battle ropes", "plyometric box"],
   },
+  "rowing machine": {
+    required: ["athletic training shoes", "rowing ergometer"],
+    forbidden: ["barbell", "bench", "kettlebell", "jump rope", "battle ropes", "plyometric box"],
+  },
+  "assault airbike": {
+    required: ["athletic training shoes", "assault air bike"],
+    forbidden: ["barbell", "bench", "kettlebell", "jump rope", "battle ropes", "plyometric box"],
+  },
+  "clean and jerk": {
+    required: ["athletic training shoes", "olympic barbell", "bumper plates"],
+    forbidden: ["kettlebell", "jump rope", "battle ropes", "plyometric box", "bench"],
+  },
 };
 
 function normalizeMovementKey(movement: string) {

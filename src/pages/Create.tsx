@@ -47,8 +47,9 @@ const STEPS = [
 
 const movements = [
   { cat: "Strength", items: ["Squats", "Push-ups", "Deadlifts", "Lunges", "Pull-ups", "Bench Press"] },
-  { cat: "Cardio", items: ["Sprint", "Burpees", "High Knees", "Jump Rope", "Box Jumps"] },
-  { cat: "HIIT", items: ["Squat Jumps", "Battle Ropes", "Kettlebell Swings", "Running", "Jumping"] },
+  { cat: "Olympic Lifting", items: ["Clean and Jerk"] },
+  { cat: "Conditioning", items: ["Rowing Machine", "Assault AirBike", "Battle Ropes", "Kettlebell Swings"] },
+  { cat: "Bodyweight", items: ["Burpees", "Running", "Box Jumps", "Jump Rope"] },
 ];
 
 const genders = ["Male", "Female", "Non-binary"];
