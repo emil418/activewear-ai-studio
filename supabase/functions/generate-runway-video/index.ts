@@ -79,14 +79,6 @@ const EXERCISE_DEFS: Record<string, ExerciseMotionDef> = {
     camera: "WIDE full-body shot from slight side angle showing ENTIRE athlete lying on bench from head to feet, barbell fully visible end to end, never crop body or equipment",
     fabricCue: "Shirt stretches across chest during press, fabric tightens at shoulders under load — garment compression clearly visible",
   },
-  "sprint": {
-    start: { position: "Explosive start position, slight forward lean, weight on balls of feet, ready to burst", joints: "Neutral athletic stance, slight knee bend", weight: "Balls of feet, leaning forward" },
-    mid: { position: "Full sprint stride, one knee driving high toward chest, opposite arm pumping aggressively, powerful ground contact", joints: "Drive knee at 90° hip flexion, opposite elbow driving back at 90°", weight: "Alternating single-leg powerful strikes" },
-    peak: { position: "Maximum velocity sprinting, high knee drive, aggressive arm pump, slight forward lean, powerful and explosive", joints: "Maximum knee height, full arm swing range, ankle dorsiflexed", weight: "Explosive single-leg drive, rapid alternation" },
-    sceneRules: ["Sprinting in place or short distance", "No treadmill", "WIDE full-body shot head to toe", "Athletic and explosive"],
-    camera: "WIDE full-body shot, head to toe with space for arm swing, slight slow-motion feel",
-    fabricCue: "Intense fabric ripple with each explosive stride, shirt bouncing, shorts stretching at hip flexors — garment motion clearly visible",
-  },
   "burpees": {
     start: { position: "Standing tall, then dropping into squat with hands reaching for floor", joints: "Transitioning from standing to squat to plank rapidly", weight: "Shifting from feet to hands" },
     mid: { position: "Jump back to plank, perform a push-up with chest to floor, then jump feet forward to hands", joints: "Full plank, push-up at bottom, then explosive hip flexion to jump forward", weight: "Hands and toes in plank, then feet under hips" },
@@ -95,14 +87,6 @@ const EXERCISE_DEFS: Record<string, ExerciseMotionDef> = {
     camera: "WIDE full-body shot from slight side angle, head to toe with extra headroom for jump",
     fabricCue: "Maximum fabric dynamics—stretch at back in plank, compression at chest in push-up, full stretch during jump — garment behavior visible throughout",
   },
-  "high knees": {
-    start: { position: "Standing tall in athletic position, arms ready at sides", joints: "Neutral athletic stance", weight: "Centered, ready" },
-    mid: { position: "Driving one knee up toward chest level, opposite arm pumping, rapid alternating rhythm", joints: "Drive knee past 90° hip flexion, quick switch", weight: "Bouncing on balls of feet, rapid alternation" },
-    peak: { position: "Maximum speed high knees, knees reaching chest height each rep, intense arm drive, athletic rhythm", joints: "Maximum hip flexion each side, rapid fire", weight: "Quick light bouncing, athletic cadence" },
-    sceneRules: ["Standing in place", "WIDE full-body shot head to toe", "Fast rhythmic movement"],
-    camera: "WIDE full-body shot, head to toe with space around athlete, stable",
-    fabricCue: "Leggings stretch at hip with each knee drive, shirt bounces with rapid athletic movement — garment motion clearly visible",
-  },
   "box jumps": {
     start: { position: "Athletic quarter squat, arms drawn back, eyes focused on the box, coiling to explode", joints: "Knees 130°, hips loaded, ankles ready", weight: "Balls of feet, loading posterior chain" },
     mid: { position: "Explosive triple extension, body launching upward and forward, arms driving overhead, knees tucking to clear box", joints: "Full extension then rapid knee tuck", weight: "Airborne, traveling upward" },
@@ -110,14 +94,6 @@ const EXERCISE_DEFS: Record<string, ExerciseMotionDef> = {
     sceneRules: ["Plyometric box or platform visible", "WIDE full-body shot with headroom", "Explosive athletic jump"],
     camera: "WIDE full-body shot from slight side angle, head to toe including box, generous headroom",
     fabricCue: "Strong fabric stretch during loading crouch, visible compression at knees on soft landing — garment performance clearly visible",
-  },
-  "squat jumps": {
-    start: { position: "Dropping into deep bodyweight squat, arms reaching back for momentum", joints: "Knees deep at 75°, hips below parallel", weight: "Loaded deep into heels and mid-foot" },
-    mid: { position: "Exploding upward from squat, triple extension, arms swinging overhead for momentum", joints: "Rapidly extending ankles, knees, hips simultaneously", weight: "Driving through feet, launching" },
-    peak: { position: "Fully airborne, body extended, arms overhead, then landing softly back into squat", joints: "Full extension at peak, then absorbing into next squat", weight: "Airborne at peak, soft landing" },
-    sceneRules: ["No equipment", "WIDE full-body shot with headroom for jump", "Continuous squat-jump cycle"],
-    camera: "WIDE full-body shot, head to toe with generous headroom, stable",
-    fabricCue: "Maximum legging stretch at squat bottom, fabric stretches along legs during explosive jump — garment behavior clearly visible",
   },
   "battle ropes": {
     start: { position: "Athletic half-squat stance, holding ends of two heavy battle ropes, arms extended forward", joints: "Knees bent, hips hinged slightly, core braced, grip tight", weight: "Grounded through feet, center of gravity low" },
@@ -151,13 +127,29 @@ const EXERCISE_DEFS: Record<string, ExerciseMotionDef> = {
     camera: "WIDE full-body shot, head to toe with space for arm swing, stable or slight tracking",
     fabricCue: "Shirt bounces naturally with each stride, shorts and leggings flex at knees and hips — garment motion clearly visible",
   },
-  "jumping": {
-    start: { position: "Athletic quarter squat, arms drawn back, coiling to jump", joints: "Knees 130°, hips loaded, ankles ready to extend", weight: "Balls of feet, posterior chain loading" },
-    mid: { position: "Explosive triple extension, arms driving overhead, body launching vertically", joints: "Full extension through ankles, knees, hips simultaneously", weight: "Leaving ground with full force" },
-    peak: { position: "Fully airborne at peak height, body extended or tucked, arms overhead, then controlled landing", joints: "Full body extension or tuck at peak", weight: "Airborne at peak, absorbing on landing" },
-    sceneRules: ["WIDE full-body shot with headroom", "Clean vertical or tuck jump", "Natural athletic jump"],
-    camera: "WIDE full-body shot, head to toe with generous headroom, stable",
-    fabricCue: "Fabric compresses at crouch, stretches along body during jump, ripples on landing — garment behavior clearly visible",
+  "rowing machine": {
+    start: { position: "Seated on rowing ergometer, knees bent, shins vertical, arms extended gripping handle, torso leaning forward", joints: "Knees 130°, hips flexed 60°, arms straight", weight: "Feet strapped in footrests" },
+    mid: { position: "Driving legs back, pushing seat along rail, handle pulling toward lower ribs, torso opening up", joints: "Knees extending, hips opening, elbows bending to pull", weight: "Driving through heels on footplate" },
+    peak: { position: "Full drive finish, legs extended, handle at lower ribs, torso leaning slightly back 15°, chest proud", joints: "Knees nearly straight, elbows behind torso, shoulders retracted", weight: "Balanced on seat at finish position" },
+    sceneRules: ["Rowing ergometer fully visible", "Athlete seated on machine at all times", "WIDE showing full machine and athlete", "No extra equipment"],
+    camera: "WIDE full-body shot from side showing entire rower and athlete, never crop machine",
+    fabricCue: "Shirt stretches across back during powerful drive phase, leggings compress at quads under load — garment performance clearly visible",
+  },
+  "assault airbike": {
+    start: { position: "Seated on assault air bike, feet on pedals, hands on handles, ready position", joints: "One knee bent 90°, other extending, arms in alternating push-pull position", weight: "Seated on saddle, feet locked in pedals" },
+    mid: { position: "Aggressive cycling with synchronized arm-leg push-pull motion, building intensity", joints: "Knees alternating 70°-160° cycling motion, arms pushing and pulling handles", weight: "Powerful alternating leg drive through pedals" },
+    peak: { position: "Full intensity cycling, maximum RPM, aggressive arm drive, visible extreme effort and sweat", joints: "Maximum cycling speed, full arm range of motion in push/pull", weight: "Explosive alternating pedal strokes, total body effort" },
+    sceneRules: ["Assault AirBike fully visible and complete", "Athlete seated on bike at all times", "WIDE showing full bike and athlete", "No extra equipment"],
+    camera: "WIDE full-body shot from slight side angle showing entire bike and athlete, never crop equipment",
+    fabricCue: "Shirt moves dynamically with aggressive arm cycling, leggings compress at quads with each powerful stroke — garment behavior clearly visible",
+  },
+  "clean and jerk": {
+    start: { position: "Standing behind barbell with bumper plates, feet hip-width, hinging to grip bar with hook grip, flat back", joints: "Hips 80°, knees 110°, shoulders positioned over the bar", weight: "Mid-foot, loaded into hamstrings and posterior chain" },
+    mid: { position: "Explosive pull from floor, triple extension, rapid pull-under to catch bar in front rack position on shoulders", joints: "Full triple extension then elbows whip forward high into front rack catch position", weight: "Driving explosively through feet, receiving bar on front deltoids" },
+    peak: { position: "Standing from clean, dip-drive jerk phase, bar pressed overhead to full lockout, split or power position", joints: "Full overhead arm lockout, slight split stance, core braced maximally", weight: "Bar balanced overhead, weight distributed through midfoot" },
+    sceneRules: ["Olympic barbell with bumper plates visible", "WIDE full-body shot head to toe with generous overhead room", "Full Olympic lifting sequence", "No extra equipment"],
+    camera: "WIDE full-body shot from slight side angle showing full range from floor to overhead lockout, never crop bar",
+    fabricCue: "Shirt stretches powerfully across back during pull phase, shoulders during overhead press, leggings compress at thighs in catch — garment performance clearly visible",
   },
 };
 
@@ -174,16 +166,14 @@ const BIOMECH_CUES: Record<string, string> = {
   "pull-ups": "PULL-UP from overhead bar. Dead hang, lats fully stretched, body still. Scapular depression initiates — shoulders drop first. 2s controlled pull — chin clears bar, forearms straining, lats flaring visibly through shirt, slight natural body sway. 0.5s hold at top. 2s slow negative to full dead hang. Visible effort on face, natural grip micro-adjustments between reps.",
   "push-ups": "PUSH-UP from high plank. Body rigid head-to-heels — NO hip sag, NO pike. 2s descent — elbows 45°, scapulae pinch, chest 2in from floor. Visible pause, effort on face. 1.5s press — chest/triceps contract under skin, full lockout. Forearm veins visible. Slight micro-timing variation between reps like a real human.",
   "lunges": "LUNGE — steps forward heel-to-toe with visible weight transfer. 1.5s descent — front knee 90°, back knee 2in above floor, torso upright with core bracing. 1.5s drive up through front heel. Natural balance micro-adjustments, slight wobble, visible quad and glute engagement under skin.",
-  "sprint": "SPRINT — explosive alternating knee drives past 90°, aggressive 90° arm pump, 15° forward lean, balls of feet striking with visible impact. Natural acceleration, slight stride asymmetry, visible exertion on face, muscles contracting through fabric with each stride.",
-  "burpees": "BURPEE — fluid continuous sequence: squat-hands down, jump back to plank, full push-up (controlled descent and press), jump feet forward, explosive vertical jump with arms overhead, controlled landing absorbing impact. Natural transition timing between phases, visible fatigue.",
   "kettlebell swings": "KETTLEBELL SWING — kettlebell in both hands. Deep hip hinge with flat back, visible hamstring stretch. Explosive hip snap drives bell to chest height — power from hips, arms relaxed. Brief float at top. Controlled pendulum back down. Sharp exhale on each snap. Bell has visible weight and inertia.",
   "battle ropes": "BATTLE ROPES — athletic half-squat gripping rope ends. Powerful alternating arm waves with undulating wave patterns traveling down ropes with real physics. Natural rhythm with slight variations, visible shoulder fatigue building. Ropes have visible weight and resistance. Core visibly bracing.",
-  "high knees": "HIGH KNEES — rapid alternating knee drives to chest height, opposite arm pumping, balls of feet with athletic cadence. Natural rhythm micro-variations, visible exertion, slight natural torso rotation with each drive.",
   "box jumps": "BOX JUMP — loads into squat, arms back. Explosive triple extension launching upward, knees tuck to clear edge. Soft controlled landing on box absorbing impact, stands tall. Visible loading tension, genuine explosive effort, natural balance on landing.",
-  "squat jumps": "SQUAT JUMP — deep squat, arms back. Explosive triple extension launching airborne, arms overhead at peak. Controlled soft landing absorbing back into squat. Visible loading tension, natural landing absorption with balance adjustments.",
   "jump rope": "JUMP ROPE — rope handles in hands, elbows at sides. Wrists drive rope rotation, light bounces on balls of feet barely leaving ground. Rope visibly rotating with real physics. Natural rhythm, visible calf engagement.",
   "running": "RUNNING — natural stride with alternating leg drives and opposite arm swing. Heel-to-toe foot strike with visible ground contact. Natural gait with slight asymmetry, visible breathing rhythm, smooth fluid locomotion.",
-  "jumping": "JUMP — athletic squat loading, arms back. Explosive vertical jump with full triple extension, arms overhead. Full body extension at peak. Controlled soft landing absorbing impact. Visible power and effort throughout.",
+  "rowing machine": "ROWING MACHINE — seated on ergometer, feet strapped in. Catch position: knees bent, arms extended, torso forward. Explosive leg drive pushes seat back, torso opens, arms pull handle to lower ribs. Controlled recovery reverses sequence. Smooth continuous rhythm, visible quad and back engagement, natural breathing pattern.",
+  "assault airbike": "ASSAULT AIRBIKE — seated on air bike, feet on pedals, hands on handles. Aggressive synchronized arm-leg cycling — push-pull opposition pattern. Building intensity with increasing RPM, total body effort visible. Fan wheel spinning, natural breathing pattern, visible sweat and exertion.",
+  "clean and jerk": "CLEAN AND JERK — Olympic lift. Hook grip on barbell, flat back setup. First pull breaks floor, bar close to shins. Explosive triple extension into aggressive pull-under, catching bar in front rack on shoulders. Stand from clean. Dip-drive-split jerk pressing bar overhead to full lockout. Bar has visible mass and inertia throughout. Natural effort and micro-adjustments."
 };
 
 // Camera angle descriptions — maximally explicit

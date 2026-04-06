@@ -108,12 +108,8 @@ const BODYWEIGHT_ONLY_MOVEMENTS = new Set([
   "squats",
   "push-ups",
   "lunges",
-  "sprint",
   "burpees",
-  "high knees",
-  "squat jumps",
   "running",
-  "jumping",
 ]);
 
 const OBJECT_RULES: Record<string, { required: string[]; forbidden: string[] }> = {
@@ -144,6 +140,18 @@ const OBJECT_RULES: Record<string, { required: string[]; forbidden: string[] }> 
   "kettlebell swings": {
     required: ["athletic training shoes", "kettlebell"],
     forbidden: ["barbell", "bench", "jump rope", "battle ropes", "plyometric box"],
+  },
+  "rowing machine": {
+    required: ["athletic training shoes", "rowing ergometer"],
+    forbidden: ["barbell", "bench", "kettlebell", "jump rope", "battle ropes", "plyometric box"],
+  },
+  "assault airbike": {
+    required: ["athletic training shoes", "assault air bike"],
+    forbidden: ["barbell", "bench", "kettlebell", "jump rope", "battle ropes", "plyometric box"],
+  },
+  "clean and jerk": {
+    required: ["athletic training shoes", "olympic barbell", "bumper plates"],
+    forbidden: ["kettlebell", "jump rope", "battle ropes", "plyometric box", "bench"],
   },
 };
 
